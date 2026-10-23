@@ -599,6 +599,56 @@
       downloadAnchor.click();
       downloadAnchor.remove();
     }
+    // Almacenamiento global
+  var observaciones = [];
+  var capaMapaElementos = L.layerGroup().addTo(map);
+
+  // TU URL DE GOOGLE APPS SCRIPT
+  var URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbx14-KvA2ok7kCg3Tdm9XEVwRTMyZtRKSdllL7cLQCm6m-MppJXFgVr6Imx9hYBBGHGOg/exec";
+
+  function guardarObservacion() {
+    var rawCoords = document.getElementById('input-coords').value.split(',');
+    var lat = parseFloat(rawCoords[0]);
+    var lng = parseFloat(rawCoords[1]);
+    var anilla = document.getElementById('input-inscripcion').value.trim().toUpperCase() || "SIN_ANILLA";
+
+    var registro = {
+      id: observaciones.length + 1,
+      fecha: document.getElementById('input-fecha').value,
+      especie: document.getElementById('input-especie').value,
+      localidad: document.getElementById('input-localidad').value,
+      inscripcion: anilla,
+      bgColor: document.getElementById('input-bg-color').value,
+      textColor: document.getElementById('input-text-color').value,
+      tipoMarca: document.getElementById('input-tipo-marca').value,
+      orden: document.getElementById('input-orden').value,
+      edad: document.getElementById('input-edad').value,
+      sexo: document.getElementById('input-sexo').value,
+      condicion: document.getElementById('input-condicion').value,
+      observador: document.getElementById('input-observador').value,
+      lat: lat,
+      lng: lng
+    };
+
+    // 1. Añadir localmente para actualizar mapa y rutas al instante
+    observaciones.push(registro);
+    actualizarSelectorFiltro();
+    renderizarTodoElMapaYTabla();
+
+    // 2. Enviar automáticamente a Google Sheets en segundo plano
+    fetch(URL_GOOGLE_SCRIPT, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registro)
+    })
+    .then(() => {
+      console.log("Datos enviados correctamente a Google Sheets.");
+    })
+    .catch(error => {
+      console.error("Error al sincronizar con Google Sheets:", error);
+    });
+  }
   </script>
 </body>
 </html>
