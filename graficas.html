@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas y Gráficas - Tracking Ornitológico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+
+  <div class="container my-5">
+    <div class="card shadow border-0 p-4">
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-bold text-success mb-1">📊 Gráficas Dinámicas por Datos Introducidos</h2>
+          <p class="text-muted mb-0">Introduce o filtra tus datos abajo y las gráficas se generarán al instante.</p>
+        </div>
+        <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
+      </div>
+
+      <!-- PANEL DE FILTRADO RÁPIDO -->
+      <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
+        <h5 class="fw-bold text-dark mb-3">⚡ Filtrar Datos Instantáneos</h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Fecha / Año</label>
+            <input type="date" id="filtro-fecha" class="form-control form-control-sm" onchange="generarGraficas()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Localidad</label>
+            <input type="text" id="filtro-localidad" class="form-control form-control-sm" placeholder="Ej: Valencia" oninput="generarGraficas()">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Sexo</label>
+            <select id="filtro-sexo" class="form-select form-select-sm" onchange="generarGraficas()">
+              <option value="TODOS">Todos</option>
+              <option value="Macho">Macho</option>
+              <option value="Hembra">Hembra</option>
+              <option value="Desconocido">Desconocido</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Edad EURING</label>
+            <select id="filtro-edad" class="form-select form-select-sm" onchange="generarGraficas()">
+              <option value="TODAS">Todas</option>
+              <option value="1">1 - Pullus</option>
+              <option value="3">3 - 1er año</option>
+              <option value="6">6 - Adulto</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Peso (g)</label>
+            <input type="number" step="0.1" id="filtro-peso" class="form-control form-control-sm" placeholder="g" oninput="generarGraficas()">
+          </div>
+        </div>
+      </div>
+
+      <!-- MENSAJE SI NO HAY DATOS -->
+      <div id="sin-datos-aviso" class="text-center py-5 text-muted" style="display:none;">
+        <h4>No hay datos suficientes para mostrar gráficas.</h4>
+        <p>Empieza a introducir registros en el módulo de anillamiento o ajusta los filtros superiores.</p>
+      </div>
+
+      <!-- CONTENEDOR DE GRÁFICAS -->
+      <div id="contenedor-graficas" class="row g-4" style="display: none;">
+        <div class="col-md-6">
+          <div class="card p-3 shadow-sm border-0 bg-light">
+            <h6 class="text-secondary fw-bold text-center mb-3">Aves Anilladas por Localidad</h6>
+            <div style="height: 280px; position: relative;"><canvas id="chartLocalidades"></canvas></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3 shadow-sm border-0 bg-light">
+            <h6 class="text-secondary fw-bold text-center mb-3">Evolución de Capturas por Año</h6>
+            <div style="height: 280px; position: relative;"><canvas id="chartAnos"></canvas></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3 shadow-sm border-0 bg-light">
+            <h6 class="text-secondary fw-bold text-center mb-3">Proporción de Sexos</h6>
+            <div style="height: 280px; position: relative;"><canvas id="chartSexos"></canvas></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-3 shadow-sm border-0 bg-light">
+            <h6 class="text-secondary fw-bold text-center mb-3">Distribución por Edades EURING</h6>
+            <div style="height: 280px; position: relative;"><canvas id="chartEdades"></canvas></div>
+          </div>
+        </div>
+        <div class="col-lg-12">
+          <div class="card p-3 shadow-sm border-0 bg-light">
+            <h6 class="text-secondary fw-bold text-center mb-3">Biometría: Peso Promedio según el Sexo (g)</h6>
+            <div style="height: 300px; position: relative;"><canvas id="chartPesoSexo"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
+    var chartLocInstance, chartAnoInstance, chartSexInstance, chartEdadInstance, chartPesoSexoInstance;
+
+    window.onload = function() {
+      generarGraficas();
+    };
+
+    function generarGraficas() {
+      var fFecha = document.getElementById('filtro-fecha').value;
+      var fLocalidad = document.getElementById('filtro-localidad').value.toLowerCase().trim();
+      var fSexo = document.getElementById('filtro-sexo').value;
+      var fEdad = document.getElementById('filtro-edad').value;
+      var fPeso = parseFloat(document.getElementById('filtro-peso').value);
+
+      var datosFiltrados = anillamientos.filter(item => {
+        if (fFecha && item.fecha !== fFecha) return false;
+        if (fLocalidad && !item.localidad.toLowerCase().includes(fLocalidad)) return false;
+        if (fSexo !== "TODOS" && item.sexo !== fSexo) return false;
+        if (fEdad !== "TODAS" && String(item.edad) !== fEdad) return false;
+        if (!isNaN(fPeso) && parseFloat(String(item.peso).replace(',', '.')) !== fPeso) return false;
+        return true;
+      });
+
+      var contenedor = document.getElementById('contenedor-graficas');
+      var aviso = document.getElementById('sin-datos-aviso');
+
+      if (datosFiltrados.length === 0) {
+        contenedor.style.display = 'none';
+        aviso.style.display = 'block';
+        return;
+      }
+
+      contenedor.style.display = 'flex';
+      aviso.style.display = 'none';
+
+      var conteoLocalidades = {};
+      var conteoAnos = {};
+      var conteoSexos = { "Macho": 0, "Hembra": 0, "Desconocido": 0 };
+      var conteoEdades = {};
+      var pesoPorSexo = {
+        "Macho": { suma: 0, cuenta: 0 },
+        "Hembra": { suma: 0, cuenta: 0 },
+        "Desconocido": { suma: 0, cuenta: 0 }
+      };
+
+      datosFiltrados.forEach(item => {
+        var loc = item.localidad ? item.localidad.split('/')[0].trim() : "Desconocida";
+        conteoLocalidades[loc] = (conteoLocalidades[loc] || 0) + 1;
+
+        if (item.fecha) {
+          var ano = item.fecha.split('-')[0];
+          conteoAnos[ano] = (conteoAnos[ano] || 0) + 1;
+        }
+
+        var sexRaw = item.sexo;
+        var sexCat = "Desconocido";
+        if (sexRaw === "M" || sexRaw === "Macho") { sexCat = "Macho"; conteoSexos["Macho"]++; }
+        else if (sexRaw === "F" || sexRaw === "Hembra") { sexCat = "Hembra"; conteoSexos["Hembra"]++; }
+        else { conteoSexos["Desconocido"]++; }
+
+        var pesoNum = parseFloat(String(item.peso).replace(',', '.'));
+        if (!isNaN(pesoNum) && pesoNum > 0) {
+          pesoPorSexo[sexCat].suma += pesoNum;
+          pesoPorSexo[sexCat].cuenta++;
+        }
+
+        var edad = "EURING " + item.edad;
+        conteoEdades[edad] = (conteoEdades[edad] || 0) + 1;
+      });
+
+      var promedioPesos = [
+        pesoPorSexo["Macho"].cuenta > 0 ? (pesoPorSexo["Macho"].suma / pesoPorSexo["Macho"].cuenta).toFixed(1) : 0,
+        pesoPorSexo["Hembra"].cuenta > 0 ? (pesoPorSexo["Hembra"].suma / pesoPorSexo["Hembra"].cuenta).toFixed(1) : 0,
+        pesoPorSexo["Desconocido"].cuenta > 0 ? (pesoPorSexo["Desconocido"].suma / pesoPorSexo["Desconocido"].cuenta).toFixed(1) : 0
+      ];
+
+      if (chartLocInstance) chartLocInstance.destroy();
+      chartLocInstance = new Chart(document.getElementById('chartLocalidades').getContext('2d'), {
+        type: 'bar',
+        data: { labels: Object.keys(conteoLocalidades), datasets: [{ label: 'Aves Anilladas', data: Object.values(conteoLocalidades), backgroundColor: '#28a745', borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      if (chartAnoInstance) chartAnoInstance.destroy();
+      chartAnoInstance = new Chart(document.getElementById('chartAnos').getContext('2d'), {
+        type: 'line',
+        data: { labels: Object.keys(conteoAnos).sort(), datasets: [{ label: 'Capturas por Año', data: Object.values(conteoAnos), borderColor: '#ffc107', backgroundColor: 'rgba(255, 193, 7, 0.2)', fill: true, tension: 0.2 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      if (chartSexInstance) chartSexInstance.destroy();
+      chartSexInstance = new Chart(document.getElementById('chartSexos').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: Object.keys(conteoSexos), datasets: [{ data: Object.values(conteoSexos), backgroundColor: ['#007bff', '#e83e8c', '#6c757d'] }] },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      if (chartEdadInstance) chartEdadInstance.destroy();
+      chartEdadInstance = new Chart(document.getElementById('chartEdades').getContext('2d'), {
+        type: 'bar',
+        data: { labels: Object.keys(conteoEdades), datasets: [{ label: 'Registros', data: Object.values(conteoEdades), backgroundColor: '#17a2b8', borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      if (chartPesoSexoInstance) chartPesoSexoInstance.destroy();
+      chartPesoSexoInstance = new Chart(document.getElementById('chartPesoSexo').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ['Macho', 'Hembra', 'Desconocido'], datasets: [{ label: 'Peso Promedio (g)', data: promedioPesos, backgroundColor: ['#007bff', '#e83e8c', '#6c757d'], borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { title: { display: true, text: 'Gramos (g)' } } } }
+      });
+    }
+  </script>
+</body>
+</html>
