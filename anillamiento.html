@@ -219,6 +219,14 @@
                 </tbody>
               </table>
             </div>
+
+            <!-- CONTROLES DE PAGINACIÓN -->
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" id="paginacion-container" style="display: none !important;">
+              <button class="btn btn-outline-primary btn-sm px-3" id="btn-anterior" onclick="cambiarPagina(-1)">&larr; Anterior</button>
+              <span id="info-paginacion" class="small fw-semibold text-muted">Página 1 de 1</span>
+              <button class="btn btn-outline-primary btn-sm px-3" id="btn-siguiente" onclick="cambiarPagina(1)">Siguiente &rarr;</button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -229,6 +237,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     var mapAnil, markerAnil, capaAnil;
+    var paginaActual = 1;
+    var registrosPorPagina = 15;
 
     function obtenerLocalidad(lat, lng, targetInputId) {
       fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
@@ -314,30 +324,85 @@
 
       anillamientos.push(item);
       localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+      
+      // Ir a la última página al guardar para ver el nuevo registro
+      paginaActual = Math.ceil(anillamientos.length / registrosPorPagina);
       renderizarAnillamientos();
       alert("¡Captura guardada correctamente!");
     }
 
-    function eliminarUltimoAnil() { if(anillamientos.length > 0 && confirm("¿Borrar última captura?")) { anillamientos.pop(); localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); renderizarAnillamientos(); } }
-    function vaciarTodoAnil() { if(confirm("¿Vaciar capturas locales?")) { anillamientos = []; localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); renderizarAnillamientos(); } }
+    function eliminarUltimoAnil() { 
+      if(anillamientos.length > 0 && confirm("¿Borrar última captura?")) { 
+        anillamientos.pop(); 
+        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); 
+        renderizarAnillamientos(); 
+      } 
+    }
+
+    function vaciarTodoAnil() { 
+      if(confirm("¿Vaciar capturas locales?")) { 
+        anillamientos = []; 
+        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); 
+        paginaActual = 1;
+        renderizarAnillamientos(); 
+      } 
+    }
+
+    function cambiarPagina(direccion) {
+      var totalPaginas = Math.ceil(anillamientos.length / registrosPorPagina) || 1;
+      paginaActual += direccion;
+      if (paginaActual < 1) paginaActual = 1;
+      if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+      renderizarTablaPaginada();
+    }
 
     function renderizarAnillamientos() {
       if(!capaAnil) return;
       capaAnil.clearLayers();
 
+      // Dibujar todos los marcadores en el mapa interactivo
       anillamientos.forEach(r => {
         L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: '#28a745', color: '#fff', weight: 2, fillOpacity: 0.9 })
          .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | Peso: ${r.peso} g`)
          .addTo(capaAnil);
       });
 
+      renderizarTablaPaginada();
+    }
+
+    function renderizarTablaPaginada() {
       var tbody = document.getElementById('tabla-registros-anil');
+      var pagContainer = document.getElementById('paginacion-container');
       if(!tbody) return;
-      tbody.innerHTML = anillamientos.length === 0 ? '<tr><td colspan="10" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>' : '';
-      anillamientos.forEach(r => {
+
+      if (anillamientos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
+        if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
+        return;
+      }
+
+      var totalPaginas = Math.ceil(anillamientos.length / registrosPorPagina);
+      if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+      var inicio = (paginaActual - 1) * registrosPorPagina;
+      var fin = inicio + registrosPorPagina;
+      var registrosPagina = anillamientos.slice(inicio, fin);
+
+      tbody.innerHTML = '';
+      registrosPagina.forEach(r => {
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
         tbody.innerHTML += `<tr><td><b>#${r.id}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${pesoTxt}</td></tr>`;
       });
+
+      // Mostrar u ocultar controles de paginación según la cantidad de registros
+      if (anillamientos.length > registrosPorPagina) {
+        pagContainer.style.setProperty('display', 'flex', 'important');
+        document.getElementById('info-paginacion').innerText = `Página ${paginaActual} de ${totalPaginas} (${anillamientos.length} registros)`;
+        document.getElementById('btn-anterior').disabled = (paginaActual === 1);
+        document.getElementById('btn-siguiente').disabled = (paginaActual === totalPaginas);
+      } else {
+        pagContainer.style.setProperty('display', 'none', 'important');
+      }
     }
 
     /* --- IMPORTAR ARCHIVO (JSON / CSV) --- */
@@ -358,11 +423,12 @@
                 anillamientos = anillamientos.concat(datosImportados);
                 anillamientos.forEach((item, index) => item.id = index + 1);
                 localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+                paginaActual = 1;
                 renderizarAnillamientos();
                 alert("¡Datos JSON importados y actualizados con éxito!");
               }
             } else {
-              alert("El archivo JSON no tiene un formato de lista válido.");
+              alert("El archivo JSON no tiene un formato válido.");
             }
           } catch (err) {
             alert("Error al leer el archivo JSON: " + err.message);
@@ -370,23 +436,17 @@
         } else if (extension === 'csv') {
           try {
             var lineas = contenido.split(/\r\n|\n/);
-            if (lineas.length < 2) return alert("El archivo CSV está vacío o no tiene registros.");
+            if (lineas.length < 2) return alert("El archivo CSV está vacío.");
 
-            // Detectar separador (coma o punto y coma)
             var separador = lineas[0].includes(';') ? ';' : ',';
-            var cabeceras = lineas[0].split(separador).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-
             var nuevosRegistros = [];
             for (var i = 1; i < lineas.length; i++) {
               var linea = lineas[i].trim();
               if (!linea) continue;
 
-              // Parsear columnas respetando comillas si las hubiera
               var cols = linea.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
               if (cols.length < 3) continue;
 
-              // Mapeo flexible basado en las columnas exportadas por la aplicación
-              // Estructura esperada por orden de exportación: ID;Fecha;Lugar;Metal;PVC;Especie;Edad;Sexo;Ala;P8;Cola;R5;Tarso;Peso;Grasa;Anillador;Lat;Lng
               var item = {
                 id: 0,
                 fecha: cols[1] || new Date().toISOString().slice(0,10),
@@ -415,6 +475,7 @@
                 anillamientos = anillamientos.concat(nuevosRegistros);
                 anillamientos.forEach((item, index) => item.id = index + 1);
                 localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+                paginaActual = 1;
                 renderizarAnillamientos();
                 alert("¡Datos CSV importados y actualizados con éxito!");
               }
@@ -425,9 +486,8 @@
             alert("Error al procesar el archivo CSV: " + err.message);
           }
         } else {
-          alert("Formato de archivo no compatible. Sube un archivo .json o .csv");
+          alert("Sube un archivo .json o .csv");
         }
-        // Limpiar el input para permitir volver a subir el mismo archivo si es necesario
         event.target.value = '';
       };
       reader.readAsText(file);
