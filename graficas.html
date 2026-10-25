@@ -21,7 +21,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
           <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica por Sexo y Medias</h2>
-          <p class="text-muted mb-0">Selecciona el rango de fechas, la métrica y desglosa las comparativas por sexo.</p>
+          <p class="text-muted mb-0">Selecciona el rango de fechas, la métrica, desglosa las comparativas y descarga tus gráficas.</p>
         </div>
         <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
       </div>
@@ -82,7 +82,7 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas separadas por sexo y calcular sus medias.</p>
+        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas separadas por sexo, calcular sus medias y descargar la gráfica.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
@@ -120,9 +120,12 @@
           </div>
         </div>
 
-        <!-- GRÁFICA -->
+        <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
         <div class="card p-3 shadow-sm border-0 bg-light">
-          <h6 id="titulo-grafica" class="text-secondary fw-bold text-center mb-3">Evolución Biométrica Separada por Sexo</h6>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Biométrica Separada por Sexo</h6>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica</button>
+          </div>
           <div style="height: 400px; position: relative;">
             <canvas id="chartDinamica"></canvas>
           </div>
@@ -185,6 +188,14 @@
       aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las líneas separadas por sexo y ver sus estadísticas.</p>`;
     }
 
+    function descargarGrafica() {
+      if (!chartDinamicaInstance) return alert("No hay ninguna gráfica generada para descargar.");
+      var enlace = document.createElement('a');
+      enlace.href = chartDinamicaInstance.toBase64Image();
+      enlace.download = 'grafica_biometria_ornitologica.png';
+      enlace.click();
+    }
+
     function actualizarGrafica() {
       var fechaDesdeVal = document.getElementById('filtro-desde').value;
       var fechaHastaVal = document.getElementById('filtro-hasta').value;
@@ -210,7 +221,6 @@
       if (dDesde) dDesde.setHours(0,0,0,0);
       if (dHasta) dHasta.setHours(23,59,59,999);
 
-      // Clasificar cada registro y filtrar por fechas y checkboxes activos
       var datosProcesados = [];
 
       anillamientos.forEach(item => {
@@ -225,7 +235,6 @@
         var val = parseFloat(valorLimpio);
         if (isNaN(val) || val <= 0) return;
 
-        // Determinar categoría / sexo
         var esPollo = (String(item.edad) === "1");
         var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
         
@@ -238,7 +247,6 @@
           categoria = "Hembra";
         }
 
-        // Comprobar si el usuario marcó esta categoría en los checkboxes
         if (categoria === "Macho" && !aceptarMacho) return;
         if (categoria === "Hembra" && !aceptarHembra) return;
         if (categoria === "Pollo" && !aceptarPollo) return;
@@ -263,13 +271,10 @@
       contenedor.style.display = 'block';
       aviso.style.display = 'none';
 
-      // Ordenar cronológicamente todos los datos
       datosProcesados.sort((a, b) => a.fechaObj - b.fechaObj);
 
-      // Obtener todas las fechas únicas ordenadas para el eje X de la gráfica
       var fechasUnicas = [...new Set(datosProcesados.map(d => d.fechaStr))];
 
-      // Calcular estadísticas globales
       var todosValores = datosProcesados.map(d => d.valor);
       var mediaGlobal = (todosValores.reduce((a, b) => a + b, 0) / todosValores.length).toFixed(1);
       var minGlobal = Math.min(...todosValores);
@@ -280,7 +285,6 @@
       document.getElementById('stat-max').innerText = maxGlobal;
       document.getElementById('stat-count').innerText = datosProcesados.length;
 
-      // Calcular desglose estadístico por cada categoría/sexo presente
       var categoriasActivas = ["Macho", "Hembra", "Pollo", "Desconocido"];
       var desgloseMediaHtml = "";
       var desgloseMinHtml = "";
@@ -307,7 +311,6 @@
       document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
       document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
 
-      // Configurar datasets separados por color para cada sexo/categoría en Chart.js
       var configuracionCat = {
         "Macho": { color: "#007bff", bg: "rgba(0, 123, 255, 0.1)" },
         "Hembra": { color: "#e83e8c", bg: "rgba(232, 62, 140, 0.1)" },
@@ -319,7 +322,6 @@
       categoriasActivas.forEach(cat => {
         var itemsCat = datosProcesados.filter(d => d.categoria === cat);
         if (itemsCat.length > 0) {
-          // Mapear los valores alineados con las fechas únicas del eje X
           var dataPuntos = fechasUnicas.map(fStr => {
             var encontrado = itemsCat.find(d => d.fechaStr === fStr);
             return encontrado ? encontrado.valor : null;
