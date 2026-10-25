@@ -11,6 +11,7 @@
     .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 25px; }
     .stat-card { background: #e8f5e9; border-left: 4px solid #28a745; border-radius: 8px; padding: 15px; }
     .checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; padding-top: 5px; }
+    .sub-desglose { font-size: 0.75rem; color: #555; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
   </style>
 </head>
 <body>
@@ -19,8 +20,8 @@
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica y Cálculo de Medias</h2>
-          <p class="text-muted mb-0">Selecciona un rango de fechas, marca las categorías y elige una métrica para visualizar los datos.</p>
+          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica por Sexo y Medias</h2>
+          <p class="text-muted mb-0">Selecciona el rango de fechas, la métrica y desglosa las comparativas por sexo.</p>
         </div>
         <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
       </div>
@@ -52,10 +53,10 @@
           </div>
         </div>
 
-        <!-- FILTROS DE CATEGORÍA / SEXO / EDAD CON CHECKBOXES -->
+        <!-- FILTROS DE CATEGORÍA / SEXO CON CHECKBOXES -->
         <div class="row mt-3 pt-3 border-top">
           <div class="col-12">
-            <label class="form-label fw-bold small text-secondary d-block mb-1">Filtrar por Grupo / Categoría (Opcional):</label>
+            <label class="form-label fw-bold small text-secondary d-block mb-1">Mostrar en la Gráfica / Filtrar:</label>
             <div class="checkbox-group">
               <div class="form-check">
                 <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="actualizarGrafica()">
@@ -81,44 +82,48 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros de 2024.</p>
+        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas separadas por sexo y calcular sus medias.</p>
       </div>
 
-      <!-- CONTENEDOR DE ESTADÍSTICAS (MEDIAS) Y GRÁFICA -->
+      <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
       <div id="contenedor-resultados" style="display: none;">
         
-        <!-- TARJETA DE RESUMEN DE MEDIAS -->
+        <!-- TARJETAS DE RESUMEN Y MEDIAS POR SEXO -->
         <div class="row g-3 mb-4">
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center">
-              <span class="text-muted small fw-bold d-block">VALOR MEDIO</span>
+              <span class="text-muted small fw-bold d-block">VALOR MEDIO GLOBAL</span>
               <h3 id="stat-media" class="fw-bold text-success mb-0">0</h3>
+              <div id="desglose-media" class="sub-desglose">Desglose por sexo...</div>
             </div>
           </div>
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center" style="border-left-color: #007bff; background: #e3f2fd;">
               <span class="text-muted small fw-bold d-block">VALOR MÍNIMO</span>
               <h3 id="stat-min" class="fw-bold text-primary mb-0">0</h3>
+              <div id="desglose-min" class="sub-desglose">Mínimos por sexo...</div>
             </div>
           </div>
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center" style="border-left-color: #ffc107; background: #fff9c4;">
               <span class="text-muted small fw-bold d-block">VALOR MÁXIMO</span>
               <h3 id="stat-max" class="fw-bold text-dark mb-0">0</h3>
+              <div id="desglose-max" class="sub-desglose">Máximos por sexo...</div>
             </div>
           </div>
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center" style="border-left-color: #6c757d; background: #f8f9fa;">
-              <span class="text-muted small fw-bold d-block">MUESTRAS (N)</span>
+              <span class="text-muted small fw-bold d-block">TOTAL MUESTRAS (N)</span>
               <h3 id="stat-count" class="fw-bold text-secondary mb-0">0</h3>
+              <div id="desglose-count" class="sub-desglose">Muestras por sexo...</div>
             </div>
           </div>
         </div>
 
         <!-- GRÁFICA -->
         <div class="card p-3 shadow-sm border-0 bg-light">
-          <h6 id="titulo-grafica" class="text-secondary fw-bold text-center mb-3">Representación Biométrica</h6>
-          <div style="height: 380px; position: relative;">
+          <h6 id="titulo-grafica" class="text-secondary fw-bold text-center mb-3">Evolución Biométrica Separada por Sexo</h6>
+          <div style="height: 400px; position: relative;">
             <canvas id="chartDinamica"></canvas>
           </div>
         </div>
@@ -133,32 +138,26 @@
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
     var chartDinamicaInstance = null;
 
-    // Función auxiliar para parsear fechas tanto en formato YYYY-MM-DD como DD/MM/YYYY
     function parsearFecha(strFecha) {
       if (!strFecha) return null;
       strFecha = strFecha.trim();
-      // Si viene en formato DD/MM/YYYY
       if (strFecha.includes('/')) {
         var p = strFecha.split('/');
         if (p.length === 3) {
           return new Date(p[2], p[1] - 1, p[0]);
         }
       }
-      // Formato estandar YYYY-MM-DD
       var d = new Date(strFecha);
       return isNaN(d.getTime()) ? null : d;
     }
 
     window.onload = function() {
       if (anillamientos.length > 0) {
-        // Encontrar la fecha mínima y máxima interpretando correctamente el formato
         var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
         if (fechasValidas.length > 0) {
           fechasValidas.sort((a, b) => a - b);
-          var minF = fechasValidas[0].toISOString().slice(0,10);
-          var maxF = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
-          document.getElementById('filtro-desde').value = minF;
-          document.getElementById('filtro-hasta').value = maxF;
+          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
+          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
         }
       }
     };
@@ -183,7 +182,7 @@
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros de 2024.</p>`;
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las líneas separadas por sexo y ver sus estadísticas.</p>`;
     }
 
     function actualizarGrafica() {
@@ -211,65 +210,135 @@
       if (dDesde) dDesde.setHours(0,0,0,0);
       if (dHasta) dHasta.setHours(23,59,59,999);
 
-      var datosFiltrados = anillamientos.filter(item => {
+      // Clasificar cada registro y filtrar por fechas y checkboxes activos
+      var datosProcesados = [];
+
+      anillamientos.forEach(item => {
         var dItem = parsearFecha(item.fecha);
-        if (!dItem) return false;
+        if (!dItem) return;
         dItem.setHours(12,0,0,0);
 
-        if (dDesde && dItem < dDesde) return false;
-        if (dHasta && dItem > dHasta) return false;
-        
+        if (dDesde && dItem < dDesde) return;
+        if (dHasta && dItem > dHasta) return;
+
+        var valorLimpio = String(item[metrica] || "").replace(/[^\d.,]/g, '').replace(',', '.');
+        var val = parseFloat(valorLimpio);
+        if (isNaN(val) || val <= 0) return;
+
+        // Determinar categoría / sexo
         var esPollo = (String(item.edad) === "1");
         var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
         
-        var esMacho = (sexoItem === "m" || sexoItem === "macho");
-        var esHembra = (sexoItem === "f" || sexoItem === "hembra");
-        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?" || sexoItem === "-");
-
-        var todoMarcado = (aceptarMacho && aceptarHembra && aceptarPollo && aceptarDesconocido);
-        var todoDesmarcado = (!aceptarMacho && !aceptarHembra && !aceptarPollo && !aceptarDesconocido);
-
-        if (!todoMarcado && !todoDesmarcado) {
-          var cumpleFiltro = false;
-          if (esPollo && aceptarPollo) cumpleFiltro = true;
-          else if (!esPollo) {
-            if (esMacho && aceptarMacho) cumpleFiltro = true;
-            else if (esHembra && aceptarHembra) cumpleFiltro = true;
-            else if (esDesc && aceptarDesconocido) cumpleFiltro = true;
-          }
-          if (!cumpleFiltro) return false;
+        var categoria = "Desconocido";
+        if (esPollo) {
+          categoria = "Pollo";
+        } else if (sexoItem === "m" || sexoItem === "macho") {
+          categoria = "Macho";
+        } else if (sexoItem === "f" || sexoItem === "hembra") {
+          categoria = "Hembra";
         }
 
-        // Extraer número limpio de la métrica (por ejemplo quitando la 'g' de los gramos si la hubiera)
-        var valorLimpio = String(item[metrica] || "").replace(/[^\d.,]/g, '').replace(',', '.');
-        var val = parseFloat(valorLimpio);
-        return !isNaN(val) && val > 0;
+        // Comprobar si el usuario marcó esta categoría en los checkboxes
+        if (categoria === "Macho" && !aceptarMacho) return;
+        if (categoria === "Hembra" && !aceptarHembra) return;
+        if (categoria === "Pollo" && !aceptarPollo) return;
+        if (categoria === "Desconocido" && !aceptarDesconocido) return;
+
+        datosProcesados.push({
+          fechaObj: dItem,
+          fechaStr: item.fecha,
+          metal: item.metal || 'S/N',
+          valor: val,
+          categoria: categoria
+        });
       });
 
-      if (datosFiltrados.length === 0) {
+      if (datosProcesados.length === 0) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>No hay registros válidos para <b>${metrica.toUpperCase()}</b> en el rango de fechas seleccionado.</h4><p class="small">Revisa las fechas introducidas para asegurarte de que abarcan tus días de anillamiento de 2024.</p>`;
+        aviso.innerHTML = `<h4>No hay registros válidos para <b>${metrica.toUpperCase()}</b> con las categorías seleccionadas.</h4><p class="small">Prueba a marcar más casillas de grupo o ampliar el rango de fechas.</p>`;
         return;
       }
 
       contenedor.style.display = 'block';
       aviso.style.display = 'none';
 
-      datosFiltrados.sort((a, b) => parsearFecha(a.fecha) - parsearFecha(b.fecha));
+      // Ordenar cronológicamente todos los datos
+      datosProcesados.sort((a, b) => a.fechaObj - b.fechaObj);
 
-      var valores = datosFiltrados.map(item => parseFloat(String(item[metrica]).replace(/[^\d.,]/g, '').replace(',', '.')));
-      var labels = datosFiltrados.map(item => `${item.fecha} (${item.metal || 'S/N'})`);
+      // Obtener todas las fechas únicas ordenadas para el eje X de la gráfica
+      var fechasUnicas = [...new Set(datosProcesados.map(d => d.fechaStr))];
 
-      var suma = valores.reduce((acc, val) => acc + val, 0);
-      var media = (suma / valores.length).toFixed(1);
-      var minimo = Math.min(...valores);
-      var maximo = Math.max(...valores);
+      // Calcular estadísticas globales
+      var todosValores = datosProcesados.map(d => d.valor);
+      var mediaGlobal = (todosValores.reduce((a, b) => a + b, 0) / todosValores.length).toFixed(1);
+      var minGlobal = Math.min(...todosValores);
+      var maxGlobal = Math.max(...todosValores);
 
-      document.getElementById('stat-media').innerText = media;
-      document.getElementById('stat-min').innerText = minimo;
-      document.getElementById('stat-max').innerText = maximo;
-      document.getElementById('stat-count').innerText = valores.length;
+      document.getElementById('stat-media').innerText = mediaGlobal;
+      document.getElementById('stat-min').innerText = minGlobal;
+      document.getElementById('stat-max').innerText = maxGlobal;
+      document.getElementById('stat-count').innerText = datosProcesados.length;
+
+      // Calcular desglose estadístico por cada categoría/sexo presente
+      var categoriasActivas = ["Macho", "Hembra", "Pollo", "Desconocido"];
+      var desgloseMediaHtml = "";
+      var desgloseMinHtml = "";
+      var desgloseMaxHtml = "";
+      var desgloseCountHtml = "";
+
+      categoriasActivas.forEach(cat => {
+        var itemsCat = datosProcesados.filter(d => d.categoria === cat);
+        if (itemsCat.length > 0) {
+          var valsCat = itemsCat.map(d => d.valor);
+          var mediaCat = (valsCat.reduce((a, b) => a + b, 0) / valsCat.length).toFixed(1);
+          var minCat = Math.min(...valsCat);
+          var maxCat = Math.max(...valsCat);
+
+          desgloseMediaHtml += `<b>${cat}:</b> ${mediaCat} <br>`;
+          desgloseMinHtml += `<b>${cat}:</b> ${minCat} <br>`;
+          desgloseMaxHtml += `<b>${cat}:</b> ${maxCat} <br>`;
+          desgloseCountHtml += `<b>${cat}:</b> N = ${itemsCat.length} <br>`;
+        }
+      });
+
+      document.getElementById('desglose-media').innerHTML = desgloseMediaHtml || "Sin datos";
+      document.getElementById('desglose-min').innerHTML = desgloseMinHtml || "Sin datos";
+      document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
+      document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
+
+      // Configurar datasets separados por color para cada sexo/categoría en Chart.js
+      var configuracionCat = {
+        "Macho": { color: "#007bff", bg: "rgba(0, 123, 255, 0.1)" },
+        "Hembra": { color: "#e83e8c", bg: "rgba(232, 62, 140, 0.1)" },
+        "Pollo": { color: "#ffc107", bg: "rgba(255, 193, 7, 0.1)" },
+        "Desconocido": { color: "#6c757d", bg: "rgba(108, 117, 125, 0.1)" }
+      };
+
+      var datasets = [];
+      categoriasActivas.forEach(cat => {
+        var itemsCat = datosProcesados.filter(d => d.categoria === cat);
+        if (itemsCat.length > 0) {
+          // Mapear los valores alineados con las fechas únicas del eje X
+          var dataPuntos = fechasUnicas.map(fStr => {
+            var encontrado = itemsCat.find(d => d.fechaStr === fStr);
+            return encontrado ? encontrado.valor : null;
+          });
+
+          datasets.push({
+            label: `${cat} (Media: ${(itemsCat.reduce((a,b)=>a+b.valor,0)/itemsCat.length).toFixed(1)})`,
+            data: dataPuntos,
+            borderColor: configuracionCat[cat].color,
+            backgroundColor: configuracionCat[cat].bg,
+            borderWidth: 2,
+            pointRadius: 5,
+            pointBackgroundColor: configuracionCat[cat].color,
+            fill: false,
+            tension: 0.1,
+            spanGaps: true
+          });
+        }
+      });
 
       var nombresMetricas = {
         peso: "Masa / Peso (g)",
@@ -278,7 +347,7 @@
         tarso: "Tarso (mm)"
       };
 
-      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} (2024)`;
+      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} por Sexo / Categoría`;
 
       if (chartDinamicaInstance) {
         chartDinamicaInstance.destroy();
@@ -288,18 +357,8 @@
       chartDinamicaInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
-          datasets: [{
-            label: nombresMetricas[metrica],
-            data: valores,
-            borderColor: '#28a745',
-            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-            borderWidth: 2,
-            pointRadius: 5,
-            pointBackgroundColor: '#28a745',
-            fill: true,
-            tension: 0.1
-          }]
+          labels: fechasUnicas,
+          datasets: datasets
         },
         options: {
           responsive: true,
@@ -312,7 +371,7 @@
               title: { display: true, text: nombresMetricas[metrica] }
             },
             x: {
-              title: { display: true, text: 'Fecha y Anilla' }
+              title: { display: true, text: 'Fechas de Captura' }
             }
           }
         }
