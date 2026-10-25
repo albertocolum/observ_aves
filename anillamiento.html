@@ -207,6 +207,7 @@
                     <th>Metálica</th>
                     <th>PVC</th>
                     <th>Especie</th>
+                    <th>Edad</th>
                     <th>Ala</th>
                     <th>P8</th>
                     <th>Cola</th>
@@ -215,7 +216,7 @@
                   </tr>
                 </thead>
                 <tbody id="tabla-registros-anil">
-                  <tr><td colspan="10" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
+                  <tr><td colspan="11" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -361,7 +362,7 @@
 
       anillamientos.forEach(r => {
         L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: '#28a745', color: '#fff', weight: 2, fillOpacity: 0.9 })
-         .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | Peso: ${r.peso} g`)
+         .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Edad EURING: ${esc(r.edad)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | Peso: ${r.peso} g`)
          .addTo(capaAnil);
       });
 
@@ -374,7 +375,7 @@
       if(!tbody) return;
 
       if (anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
@@ -397,7 +398,29 @@
         var numReal = datosOrdenados.length - (inicio + idx);
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
         var tarsoTxt = r.tarso !== "-" ? r.tarso : "-";
-        tbody.innerHTML += `<tr><td><b>#${numReal}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${tarsoTxt}</td><td>${pesoTxt}</td></tr>`;
+        
+        // Mapeo legible opcional para códigos EURING de edad
+        var edadTexto = r.edad;
+        if (edadTexto === "1") edadTexto = "1 (Pullus)";
+        else if (edadTexto === "2") edadTexto = "2 (Volantón)";
+        else if (edadTexto === "3") edadTexto = "3 (1er año)";
+        else if (edadTexto === "4") edadTexto = "4 (+1 año)";
+        else if (edadTexto === "5") edadTexto = "5 (2º año)";
+        else if (edadTexto === "6") edadTexto = "6 (Adulto)";
+
+        tbody.innerHTML += `<tr>
+          <td><b>#${numReal}</b></td>
+          <td>${r.fecha}</td>
+          <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
+          <td><span class="badge bg-success">${esc(r.pvc)}</span></td>
+          <td><i>${esc(r.especie)}</i></td>
+          <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
+          <td>${r.ala}</td>
+          <td>${r.p8}</td>
+          <td>${r.cola}</td>
+          <td>${tarsoTxt}</td>
+          <td>${pesoTxt}</td>
+        </tr>`;
       });
 
       if (datosOrdenados.length > registrosPorPagina) {
@@ -446,7 +469,6 @@
             var separador = lineas[0].includes(';') ? ';' : ',';
             var cabeceras = lineas[0].split(separador).map(h => h.trim().replace(/^[\ufeff"]+|["']+$/g, '').toLowerCase());
 
-            // Mapear posiciones de columnas por nombre de cabecera
             var idxFecha = cabeceras.findIndex(h => h.includes('fecha'));
             var idxLugar = cabeceras.findIndex(h => h.includes('lugar') || h.includes('estacion'));
             var idxMetal = cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla'));
