@@ -45,6 +45,7 @@
               <option value="peso">Masa / Peso (g)</option>
               <option value="ala">Ala Máx (mm)</option>
               <option value="cola">Cola (mm)</option>
+              <option value="r5">R5 (mm)</option>
               <option value="tarso">Tarso (mm)</option>
             </select>
           </div>
@@ -212,7 +213,7 @@
       if (!metrica) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>Selecciona una métrica biométrica.</h4><p class="small">Elige entre Peso, Ala, Cola o Tarso en el desplegable superior.</p>`;
+        aviso.innerHTML = `<h4>Selecciona una métrica biométrica.</h4><p class="small">Elige entre Peso, Ala, Cola, R5 o Tarso en el desplegable superior.</p>`;
         return;
       }
 
@@ -346,6 +347,7 @@
         peso: "Masa / Peso (g)",
         ala: "Ala Máx (mm)",
         cola: "Cola (mm)",
+        r5: "R5 (mm)",
         tarso: "Tarso (mm)"
       };
 
