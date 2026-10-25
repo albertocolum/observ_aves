@@ -58,19 +58,19 @@
             <label class="form-label fw-bold small text-secondary d-block mb-1">Filtrar por Grupo / Categoría:</label>
             <div class="checkbox-group">
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="actualizarGrafica()">
                 <label class="form-check-label small fw-semibold" for="chk-macho">Macho</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" checked onchange="actualizarGrafica()">
                 <label class="form-check-label small fw-semibold" for="chk-hembra">Hembra</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" checked onchange="actualizarGrafica()">
                 <label class="form-check-label small fw-semibold" for="chk-pollo">Pollo / Pullus (EURING 1)</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="actualizarGrafica()">
                 <label class="form-check-label small fw-semibold" for="chk-desconocido">Desconocido / Sin especificar</label>
               </div>
             </div>
@@ -81,7 +81,7 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel limpio y listo para consultar.</h4>
-        <p class="small">Selecciona una <b>Fecha de Inicio</b>, una <b>Fecha de Fin</b>, marca al menos una <b>categoría</b> y elige una <b>métrica</b> para generar la gráfica.</p>
+        <p class="small">Selecciona una <b>Fecha de Inicio</b>, una <b>Fecha de Fin</b> y elige una <b>métrica</b> para generar la gráfica.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS (MEDIAS) Y GRÁFICA -->
@@ -133,9 +133,13 @@
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
     var chartDinamicaInstance = null;
 
-    // Al entrar, la página se queda completamente limpia sin ejecutar búsquedas automáticas
     window.onload = function() {
-      // No hacemos nada automático para que el panel luzca limpio de inicio
+      // Opcional: si hay datos, autocompletar el rango de fechas al cargar para facilitar la visualización
+      if (anillamientos.length > 0) {
+        anillamientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        document.getElementById('filtro-desde').value = anillamientos[0].fecha;
+        document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+      }
     };
 
     function limpiarFiltros() {
@@ -144,12 +148,12 @@
       document.getElementById('filtro-metrica').value = "";
       
       var checks = document.querySelectorAll('.chk-filtro');
-      checks.forEach(chk => chk.checked = false);
+      checks.forEach(chk => chk.checked = true);
 
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel limpio y listo para consultar.</h4><p class="small">Selecciona una <b>Fecha de Inicio</b>, una <b>Fecha de Fin</b>, marca al menos una <b>categoría</b> y elige una <b>métrica</b> para generar la gráfica.</p>`;
+      aviso.innerHTML = `<h4>Panel limpio y listo para consultar.</h4><p class="small">Selecciona una <b>Fecha de Inicio</b>, una <b>Fecha de Fin</b> y elige una <b>métrica</b> para generar la gráfica.</p>`;
     }
 
     function actualizarGrafica() {
@@ -165,44 +169,48 @@
       var aviso = document.getElementById('sin-datos-aviso');
       var contenedor = document.getElementById('contenedor-resultados');
 
-      // Comprobación de seguridad: si falta algún filtro esencial, mantenemos limpio
-      if (!fechaDesde || !fechaHasta || !metrica || (!aceptarMacho && !aceptarHembra && !aceptarPollo && !aceptarDesconocido)) {
+      if (!fechaDesde || !fechaHasta || !metrica) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>Faltan parámetros por seleccionar.</h4><p class="small">Asegúrate de rellenar fechas, métrica y marcar al menos una categoría de grupo.</p>`;
+        aviso.innerHTML = `<h4>Selecciona fechas y métrica biométrica.</h4><p class="small">Rellena la fecha de inicio, fecha de fin y elige el parámetro (ej. Peso, Cola, etc.) para ver la gráfica.</p>`;
         return;
       }
 
       var datosFiltrados = anillamientos.filter(item => {
         if (!item.fecha) return false;
+        
+        // Comparativa de fechas segura en formato string YYYY-MM-DD
         if (fechaDesde && item.fecha < fechaDesde) return false;
         if (fechaHasta && item.fecha > fechaHasta) return false;
         
         var esPollo = (String(item.edad) === "1");
-        var sexoItem = item.sexo ? String(item.sexo).trim() : "Desconocido";
-        if (sexoItem === "M" || sexoItem === "Macho") sexoItem = "Macho";
-        else if (sexoItem === "F" || sexoItem === "Hembra") sexoItem = "Hembra";
-        else sexoItem = "Desconocido";
+        var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
+        
+        var esMacho = (sexoItem === "m" || sexoItem === "macho");
+        var esHembra = (sexoItem === "f" || sexoItem === "hembra");
+        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?");
 
         var cumpleFiltro = false;
         if (esPollo && aceptarPollo) {
           cumpleFiltro = true;
         } else if (!esPollo) {
-          if (sexoItem === "Macho" && aceptarMacho) cumpleFiltro = true;
-          else if (sexoItem === "Hembra" && aceptarHembra) cumpleFiltro = true;
-          else if ((sexoItem === "Desconocido" || !item.sexo || item.sexo === "Desconocido") && aceptarDesconocido) cumpleFiltro = true;
+          if (esMacho && aceptarMacho) cumpleFiltro = true;
+          else if (esHembra && aceptarHembra) cumpleFiltro = true;
+          else if (esDesc && aceptarDesconocido) cumpleFiltro = true;
         }
 
         if (!cumpleFiltro) return false;
 
-        var val = parseFloat(String(item[metrica]).replace(',', '.'));
+        // Validar que la métrica elegida contenga un número válido (ej. que no sea "-" o esté vacío)
+        var valorStr = String(item[metrica] || "").replace(',', '.');
+        var val = parseFloat(valorStr);
         return !isNaN(val) && val > 0;
       });
 
       if (datosFiltrados.length === 0) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>No hay registros que coincidan con los filtros seleccionados.</h4><p class="small">Prueba a ampliar el rango de fechas o marcar otras categorías.</p>`;
+        aviso.innerHTML = `<h4>No hay registros que coincidan con los filtros seleccionados.</h4><p class="small">Comprueba que existan datos de <b>${metrica.toUpperCase()}</b> guardados en el año ${fechaDesde.slice(0,4)} y que las casillas de categoría estén marcadas.</p>`;
         return;
       }
 
