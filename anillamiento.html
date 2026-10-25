@@ -325,8 +325,8 @@
       anillamientos.push(item);
       localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
       
-      // Ir a la última página al guardar para ver el nuevo registro
-      paginaActual = Math.ceil(anillamientos.length / registrosPorPagina);
+      // Al guardar, ir a la página 1 para ver el nuevo registro arriba del todo
+      paginaActual = 1;
       renderizarAnillamientos();
       alert("¡Captura guardada correctamente!");
     }
@@ -360,7 +360,6 @@
       if(!capaAnil) return;
       capaAnil.clearLayers();
 
-      // Dibujar todos los marcadores en el mapa interactivo
       anillamientos.forEach(r => {
         L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: '#28a745', color: '#fff', weight: 2, fillOpacity: 0.9 })
          .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | Peso: ${r.peso} g`)
@@ -381,23 +380,30 @@
         return;
       }
 
-      var totalPaginas = Math.ceil(anillamientos.length / registrosPorPagina);
+      // Crear una copia ordenada de más reciente a más antigua para la visualización
+      var datosOrdenados = [...anillamientos].sort((a, b) => {
+        var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
+        var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
+        return fb - fa; // Orden inverso: más reciente primero
+      });
+
+      var totalPaginas = Math.ceil(datosOrdenados.length / registrosPorPagina);
       if (paginaActual > totalPaginas) paginaActual = totalPaginas;
 
       var inicio = (paginaActual - 1) * registrosPorPagina;
       var fin = inicio + registrosPorPagina;
-      var registrosPagina = anillamientos.slice(inicio, fin);
+      var registrosPagina = datosOrdenados.slice(inicio, fin);
 
       tbody.innerHTML = '';
-      registrosPagina.forEach(r => {
+      registrosPagina.forEach((r, idx) => {
+        var numReal = datosOrdenados.length - (inicio + idx);
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
-        tbody.innerHTML += `<tr><td><b>#${r.id}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${pesoTxt}</td></tr>`;
+        tbody.innerHTML += `<tr><td><b>#${numReal}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${pesoTxt}</td></tr>`;
       });
 
-      // Mostrar u ocultar controles de paginación según la cantidad de registros
-      if (anillamientos.length > registrosPorPagina) {
+      if (datosOrdenados.length > registrosPorPagina) {
         pagContainer.style.setProperty('display', 'flex', 'important');
-        document.getElementById('info-paginacion').innerText = `Página ${paginaActual} de ${totalPaginas} (${anillamientos.length} registros)`;
+        document.getElementById('info-paginacion').innerText = `Página ${paginaActual} de ${totalPaginas} (${datosOrdenados.length} registros)`;
         document.getElementById('btn-anterior').disabled = (paginaActual === 1);
         document.getElementById('btn-siguiente').disabled = (paginaActual === totalPaginas);
       } else {
