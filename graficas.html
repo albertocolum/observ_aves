@@ -81,7 +81,7 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros.</p>
+        <p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros de 2024.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS (MEDIAS) Y GRÁFICA -->
@@ -133,18 +133,44 @@
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
     var chartDinamicaInstance = null;
 
+    // Función auxiliar para parsear fechas tanto en formato YYYY-MM-DD como DD/MM/YYYY
+    function parsearFecha(strFecha) {
+      if (!strFecha) return null;
+      strFecha = strFecha.trim();
+      // Si viene en formato DD/MM/YYYY
+      if (strFecha.includes('/')) {
+        var p = strFecha.split('/');
+        if (p.length === 3) {
+          return new Date(p[2], p[1] - 1, p[0]);
+        }
+      }
+      // Formato estandar YYYY-MM-DD
+      var d = new Date(strFecha);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
     window.onload = function() {
       if (anillamientos.length > 0) {
-        anillamientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-        document.getElementById('filtro-desde').value = anillamientos[0].fecha;
-        document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+        // Encontrar la fecha mínima y máxima interpretando correctamente el formato
+        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
+        if (fechasValidas.length > 0) {
+          fechasValidas.sort((a, b) => a - b);
+          var minF = fechasValidas[0].toISOString().slice(0,10);
+          var maxF = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
+          document.getElementById('filtro-desde').value = minF;
+          document.getElementById('filtro-hasta').value = maxF;
+        }
       }
     };
 
     function limpiarFiltros() {
       if (anillamientos.length > 0) {
-        document.getElementById('filtro-desde').value = anillamientos[0].fecha;
-        document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
+        if (fechasValidas.length > 0) {
+          fechasValidas.sort((a, b) => a - b);
+          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
+          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
+        }
       } else {
         document.getElementById('filtro-desde').value = "";
         document.getElementById('filtro-hasta').value = "";
@@ -157,7 +183,7 @@
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros.</p>`;
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros de 2024.</p>`;
     }
 
     function actualizarGrafica() {
@@ -180,18 +206,15 @@
         return;
       }
 
-      // Convertir fechas de filtro a objetos Date (ignorando horas para comparar solo días)
       var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
       var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
       if (dDesde) dDesde.setHours(0,0,0,0);
       if (dHasta) dHasta.setHours(23,59,59,999);
 
       var datosFiltrados = anillamientos.filter(item => {
-        if (!item.fecha) return false;
-        
-        // Convertir la fecha del registro de forma robusta
-        var dItem = new Date(item.fecha);
-        dItem.setHours(12,0,0,0); // Evita desfases horarios
+        var dItem = parsearFecha(item.fecha);
+        if (!dItem) return false;
+        dItem.setHours(12,0,0,0);
 
         if (dDesde && dItem < dDesde) return false;
         if (dHasta && dItem > dHasta) return false;
@@ -201,7 +224,7 @@
         
         var esMacho = (sexoItem === "m" || sexoItem === "macho");
         var esHembra = (sexoItem === "f" || sexoItem === "hembra");
-        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?" || sexoItem === "desconocido");
+        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?" || sexoItem === "-");
 
         var todoMarcado = (aceptarMacho && aceptarHembra && aceptarPollo && aceptarDesconocido);
         var todoDesmarcado = (!aceptarMacho && !aceptarHembra && !aceptarPollo && !aceptarDesconocido);
@@ -217,24 +240,25 @@
           if (!cumpleFiltro) return false;
         }
 
-        var valorStr = String(item[metrica] || "").replace(',', '.');
-        var val = parseFloat(valorStr);
+        // Extraer número limpio de la métrica (por ejemplo quitando la 'g' de los gramos si la hubiera)
+        var valorLimpio = String(item[metrica] || "").replace(/[^\d.,]/g, '').replace(',', '.');
+        var val = parseFloat(valorLimpio);
         return !isNaN(val) && val > 0;
       });
 
       if (datosFiltrados.length === 0) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>No hay registros con datos válidos para <b>${metrica.toUpperCase()}</b> en el rango de fechas seleccionado.</h4><p class="small">Prueba a ampliar el intervalo de fechas o comprobar que existan datos guardados.</p>`;
+        aviso.innerHTML = `<h4>No hay registros válidos para <b>${metrica.toUpperCase()}</b> en el rango de fechas seleccionado.</h4><p class="small">Revisa las fechas introducidas para asegurarte de que abarcan tus días de anillamiento de 2024.</p>`;
         return;
       }
 
       contenedor.style.display = 'block';
       aviso.style.display = 'none';
 
-      datosFiltrados.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+      datosFiltrados.sort((a, b) => parsearFecha(a.fecha) - parsearFecha(b.fecha));
 
-      var valores = datosFiltrados.map(item => parseFloat(String(item[metrica]).replace(',', '.')));
+      var valores = datosFiltrados.map(item => parseFloat(String(item[metrica]).replace(/[^\d.,]/g, '').replace(',', '.')));
       var labels = datosFiltrados.map(item => `${item.fecha} (${item.metal || 'S/N'})`);
 
       var suma = valores.reduce((acc, val) => acc + val, 0);
@@ -254,7 +278,7 @@
         tarso: "Tarso (mm)"
       };
 
-      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]}`;
+      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} (2024)`;
 
       if (chartDinamicaInstance) {
         chartDinamicaInstance.destroy();
