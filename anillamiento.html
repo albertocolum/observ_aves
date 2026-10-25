@@ -42,7 +42,7 @@
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.85rem; }
     .required-asterisk { color: #e53e3e; }
     
-    .table-history { font-size: 0.8rem; }
+    .table-history { font-size: 0.78rem; }
   </style>
 </head>
 <body>
@@ -217,15 +217,18 @@
                     <th>Tipo</th>
                     <th>Fecha</th>
                     <th>Metálica</th>
-                    <th>PVC</th>
                     <th>Especie</th>
                     <th>Edad</th>
                     <th>Ala</th>
+                    <th>P8</th>
+                    <th>Cola</th>
+                    <th>Tarso</th>
+                    <th>R5</th>
                     <th>Peso</th>
                   </tr>
                 </thead>
                 <tbody id="tabla-registros-anil">
-                  <tr><td colspan="9" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
+                  <tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -378,9 +381,9 @@
       capaAnil.clearLayers();
 
       anillamientos.forEach(r => {
-        var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745"; // Amarillo para recaptura, verde para anillamiento
+        var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745";
         L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
-         .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Peso: ${r.peso} g`)
+         .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>Especie: ${esc(r.especie)}<br>Ala: ${r.ala} | P8: ${r.p8} | Cola: ${r.cola} | Tarso: ${r.tarso} | R5: ${r.r5} | Peso: ${r.peso} g`)
          .addTo(capaAnil);
       });
 
@@ -393,7 +396,7 @@
       if(!tbody) return;
 
       if (anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
@@ -414,6 +417,12 @@
       tbody.innerHTML = '';
       registrosPagina.forEach((r, idx) => {
         var numReal = datosOrdenados.length - (inicio + idx);
+        
+        var alaTxt = r.ala !== "-" ? r.ala : "-";
+        var p8Txt = r.p8 !== "-" ? r.p8 : "-";
+        var colaTxt = r.cola !== "-" ? r.cola : "-";
+        var tarsoTxt = r.tarso !== "-" ? r.tarso : "-";
+        var r5Txt = r.r5 !== "-" ? r.r5 : "-";
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
         
         var edadTexto = r.edad;
@@ -431,10 +440,13 @@
           <td>${tipoBadge}</td>
           <td>${r.fecha}</td>
           <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
-          <td><span class="badge bg-success">${esc(r.pvc)}</span></td>
           <td><i>${esc(r.especie)}</i></td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
-          <td>${r.ala}</td>
+          <td>${alaTxt}</td>
+          <td>${p8Txt}</td>
+          <td>${colaTxt}</td>
+          <td>${tarsoTxt}</td>
+          <td>${r5Txt}</td>
           <td>${pesoTxt}</td>
         </tr>`;
       });
@@ -467,7 +479,7 @@
                 anillamientos = anillamientos.concat(datosImportados);
                 anillamientos.forEach((item, index) => {
                   item.id = index + 1;
-                  if (!item.tipoCaptura) item.tipoCaptura = "Anillamiento"; // Valor por defecto si viene de un JSON antiguo
+                  if (!item.tipoCaptura) item.tipoCaptura = "Anillamiento";
                 });
                 localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
                 paginaActual = 1;
