@@ -3,566 +3,382 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anillamiento y Biometría - Tracking Ornitológico</title>
-  
-  <!-- Estilos Bootstrap 5 -->
+  <title>Estadísticas y Gráficas Dinámicas - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-
-    .map-header-container {
-      position: relative;
-      height: 320px;
-      width: 100%;
-      border-bottom: 3px solid #2b6cb0;
-    }
-    .map-instance { height: 100%; width: 100%; }
-
-    .main-container {
-      max-width: 1400px;
-      margin: -30px auto 40px auto;
-      position: relative;
-      z-index: 1000;
-    }
-
-    .card-panel {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-      padding: 25px;
-      height: 100%;
-    }
-
-    .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.25rem; }
-    .section-subtitle { font-size: 0.85rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 15px; margin-bottom: 10px; }
-    .form-label { font-weight: 600; color: #4a5568; font-size: 0.85rem; }
-    .required-asterisk { color: #e53e3e; }
-    
-    .table-history { font-size: 0.82rem; }
+    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 25px; }
+    .stat-card { background: #e8f5e9; border-left: 4px solid #28a745; border-radius: 8px; padding: 15px; }
+    .checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; padding-top: 5px; }
+    .sub-desglose { font-size: 0.75rem; color: #555; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
   </style>
 </head>
 <body>
 
-  <!-- ================= VISTA DE ANILLAMIENTO Y BIOMETRÍA ================= -->
-  <div id="vista-anillamiento">
-    <div class="map-header-container">
-      <div id="map-anillamiento" class="map-instance"></div>
-    </div>
+  <div class="container my-5" style="max-width: 1200px;">
+    <div class="card-panel">
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica por Sexo y Medias</h2>
+          <p class="text-muted mb-0">Selecciona el rango de fechas, la métrica, desglosa las comparativas y descarga tus gráficas.</p>
+        </div>
+        <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
+      </div>
 
-    <div class="container-fluid main-container">
-      <div class="row g-4">
-        <!-- COLUMNA IZQUIERDA: FORMULARIO DE CAPTURA -->
-        <div class="col-lg-5">
-          <div class="card-panel">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h4 class="form-title mb-0" style="border:none; padding:0;">Anillamiento y Biometría</h4>
-              <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Volver al Inicio</a>
-            </div>
-            <hr class="mt-2 mb-3">
-
-            <form id="form-anillamiento">
-              <div class="section-subtitle">1. Estación y Ubicación</div>
-              <div class="row g-2 mb-2">
-                <div class="col-md-7">
-                  <label class="form-label">Coordenadas (Lat, Long) <span class="required-asterisk">*</span></label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="input-coords-anil" class="form-control" value="39.7709, -0.1840" onchange="actualizarMapaAnilDesdeCoords()">
-                    <button class="btn btn-outline-secondary" type="button" onclick="actualizarMapaAnilDesdeCoords()">Centrar</button>
-                  </div>
-                </div>
-                <div class="col-md-5">
-                  <label class="form-label">Fecha <span class="required-asterisk">*</span></label>
-                  <input type="date" id="input-fecha-anil" class="form-control form-control-sm" required>
-                </div>
-              </div>
-
-              <div class="mb-2">
-                <label class="form-label">Lugar / Estación de Anillamiento <span class="required-asterisk">*</span></label>
-                <input type="text" id="input-localidad-anil" class="form-control form-control-sm" placeholder="Se autocompletará con las coordenadas..." required>
-              </div>
-
-              <div class="section-subtitle">2. Marcaje e Identificación</div>
-              <div class="row g-2 mb-2">
-                <div class="col-md-6">
-                  <label class="form-label">Anilla Metálica <span class="required-asterisk">*</span></label>
-                  <input type="text" id="input-metal-anil" class="form-control form-control-sm" placeholder="Ej: Icona N-12345" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Anilla PVC / Marca Alar</label>
-                  <input type="text" id="input-pvc-anil" class="form-control form-control-sm" placeholder="Ej: A5J (Verde)">
-                </div>
-              </div>
-
-              <div class="row g-2 mb-2">
-                <div class="col-md-6">
-                  <label class="form-label">Especie <span class="required-asterisk">*</span></label>
-                  <select id="input-especie-anil" class="form-select form-select-sm" required>
-                    <option value="Tyto alba" selected>Lechuza común (Tyto alba)</option>
-                    <option value="Falco tinnunculus">Cernícalo vulgar (Falco tinnunculus)</option>
-                    <option value="Athene noctua">Mochuelo europeo (Athene noctua)</option>
-                    <option value="Otus scops">Autillo europeo (Otus scops)</option>
-                    <option value="Asio otus">Búho chico (Asio otus)</option>
-                    <option value="Strix aluco">Cárabo común (Strix aluco)</option>
-                  </select>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Edad EURING</label>
-                  <select id="input-edad-anil" class="form-select form-select-sm">
-                    <option value="1">1 (Pullus)</option>
-                    <option value="2">2 (Volantón)</option>
-                    <option value="3" selected>3 (1er año)</option>
-                    <option value="4">4 (+1 año)</option>
-                    <option value="5">5 (2º año)</option>
-                    <option value="6">6 (Adulto)</option>
-                  </select>
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Sexo</label>
-                  <select id="input-sexo-anil" class="form-select form-select-sm">
-                    <option value="Desconocido">? (Doubtful)</option>
-                    <option value="Macho">Macho (M)</option>
-                    <option value="Hembra">Hembra (F)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="section-subtitle">3. Datos Biométricos</div>
-              <div class="row g-2 mb-2">
-                <div class="col-md-3">
-                  <label class="form-label">Ala Máx (mm)</label>
-                  <input type="number" step="0.1" id="input-ala-anil" class="form-control form-control-sm" placeholder="mm">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">P8 (mm)</label>
-                  <input type="number" step="0.1" id="input-p8-anil" class="form-control form-control-sm" placeholder="mm">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">Cola (mm)</label>
-                  <input type="number" step="0.1" id="input-cola-anil" class="form-control form-control-sm" placeholder="mm">
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label">R5 (mm / %)</label>
-                  <input type="text" id="input-r5-anil" class="form-control form-control-sm" placeholder="Muestreo R5">
-                </div>
-              </div>
-
-              <div class="row g-2 mb-2">
-                <div class="col-md-4">
-                  <label class="form-label">Tarso (mm)</label>
-                  <input type="number" step="0.1" id="input-tarso-anil" class="form-control form-control-sm" placeholder="mm">
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Masa / Peso (g)</label>
-                  <input type="number" step="0.1" id="input-peso-anil" class="form-control form-control-sm" placeholder="g">
-                </div>
-                <div class="col-md-4">
-                  <label class="form-label">Grasa / Músculo</label>
-                  <input type="text" id="input-grasa-anil" class="form-control form-control-sm" placeholder="Ej: G2 / M3">
-                </div>
-              </div>
-
-              <div class="mb-2">
-                <label class="form-label">Anillador</label>
-                <input type="text" id="input-anillador-anil" class="form-control form-control-sm" value="Alberto de la Rosa">
-              </div>
-
-              <button type="button" class="btn btn-success w-100 fw-bold mt-3" onclick="guardarAnillamiento()">
-                + Guardar Captura y Biometría
-              </button>
-            </form>
+      <!-- PANEL DE FILTRADO CON CHECKBOXES -->
+      <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
+        <h5 class="fw-bold text-dark mb-3">⚙️ Configuración de Filtros y Métrica</h5>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label fw-bold small">Fecha Inicio</label>
+            <input type="date" id="filtro-desde" class="form-control form-control-sm" onchange="actualizarGrafica()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold small">Fecha Fin</label>
+            <input type="date" id="filtro-hasta" class="form-control form-control-sm" onchange="actualizarGrafica()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold small">Métrica Biométrica</label>
+            <select id="filtro-metrica" class="form-select form-select-sm fw-bold text-success" onchange="actualizarGrafica()">
+              <option value="" disabled selected>-- Elige métrica biométrica --</option>
+              <option value="peso">Masa / Peso (g)</option>
+              <option value="ala">Ala Máx (mm)</option>
+              <option value="cola">Cola (mm)</option>
+              <option value="tarso">Tarso (mm)</option>
+            </select>
+          </div>
+          <div class="col-md-2 text-end">
+            <button class="btn btn-outline-dark btn-sm w-100" onclick="limpiarFiltros()">🔄 Restablecer</button>
           </div>
         </div>
 
-        <!-- COLUMNA DERECHA: TABLA Y ACCIONES -->
-        <div class="col-lg-7">
-          <div class="card-panel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <h4 class="form-title mb-1" style="border:none; padding:0;">Capturas y Registros Biométricos</h4>
-                <small class="text-muted">Base de datos de anillamiento científico</small>
+        <!-- FILTROS DE CATEGORÍA / SEXO CON CHECKBOXES -->
+        <div class="row mt-3 pt-3 border-top">
+          <div class="col-12">
+            <label class="form-label fw-bold small text-secondary d-block mb-1">Mostrar en la Gráfica / Filtrar:</label>
+            <div class="checkbox-group">
+              <div class="form-check">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="actualizarGrafica()">
+                <label class="form-check-label small fw-semibold" for="chk-macho">Macho</label>
               </div>
-              <div class="btn-group">
-                <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoAnil()" title="Borrar último registro">🗑️</button>
-                <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodoAnil()" title="Vaciar toda la base local">⚠️ Vaciar</button>
-                
-                <!-- BOTÓN DE IMPORTAR (JSON y CSV) -->
-                <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('input-file-json').click()" title="Cargar datos JSON o CSV">📥 Importar</button>
-                <input type="file" id="input-file-json" accept=".json,.csv" style="display:none;" onchange="importarArchivoAnil(event)">
-
-                <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
-                <button class="btn btn-outline-primary btn-sm" onclick="exportarKMLAnil()">🌍 KML</button>
+              <div class="form-check">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" checked onchange="actualizarGrafica()">
+                <label class="form-check-label small fw-semibold" for="chk-hembra">Hembra</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" checked onchange="actualizarGrafica()">
+                <label class="form-check-label small fw-semibold" for="chk-pollo">Pollo / Pullus (EURING 1)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="actualizarGrafica()">
+                <label class="form-check-label small fw-semibold" for="chk-desconocido">Desconocido / Sin especificar</label>
               </div>
             </div>
-
-            <div class="table-responsive">
-              <table class="table table-hover align-middle table-history">
-                <thead class="table-light">
-                  <tr>
-                    <th>#</th>
-                    <th>Fecha</th>
-                    <th>Metálica</th>
-                    <th>PVC</th>
-                    <th>Especie</th>
-                    <th>Edad</th>
-                    <th>Ala</th>
-                    <th>P8</th>
-                    <th>Cola</th>
-                    <th>Tarso</th>
-                    <th>Peso</th>
-                  </tr>
-                </thead>
-                <tbody id="tabla-registros-anil">
-                  <tr><td colspan="11" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- CONTROLES DE PAGINACIÓN -->
-            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" id="paginacion-container" style="display: none !important;">
-              <button class="btn btn-outline-primary btn-sm px-3" id="btn-anterior" onclick="cambiarPagina(-1)">&larr; Anterior</button>
-              <span id="info-paginacion" class="small fw-semibold text-muted">Página 1 de 1</span>
-              <button class="btn btn-outline-primary btn-sm px-3" id="btn-siguiente" onclick="cambiarPagina(1)">Siguiente &rarr;</button>
-            </div>
-
           </div>
         </div>
       </div>
+
+      <!-- MENSAJE INICIAL / SIN DATOS -->
+      <div id="sin-datos-aviso" class="text-center py-5 text-muted">
+        <h4>Panel listo para consultar.</h4>
+        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas separadas por sexo, calcular sus medias y descargar la gráfica.</p>
+      </div>
+
+      <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
+      <div id="contenedor-resultados" style="display: none;">
+        
+        <!-- TARJETAS DE RESUMEN Y MEDIAS POR SEXO -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card shadow-sm text-center">
+              <span class="text-muted small fw-bold d-block">VALOR MEDIO GLOBAL</span>
+              <h3 id="stat-media" class="fw-bold text-success mb-0">0</h3>
+              <div id="desglose-media" class="sub-desglose">Desglose por sexo...</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card shadow-sm text-center" style="border-left-color: #007bff; background: #e3f2fd;">
+              <span class="text-muted small fw-bold d-block">VALOR MÍNIMO</span>
+              <h3 id="stat-min" class="fw-bold text-primary mb-0">0</h3>
+              <div id="desglose-min" class="sub-desglose">Mínimos por sexo...</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card shadow-sm text-center" style="border-left-color: #ffc107; background: #fff9c4;">
+              <span class="text-muted small fw-bold d-block">VALOR MÁXIMO</span>
+              <h3 id="stat-max" class="fw-bold text-dark mb-0">0</h3>
+              <div id="desglose-max" class="sub-desglose">Máximos por sexo...</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card shadow-sm text-center" style="border-left-color: #6c757d; background: #f8f9fa;">
+              <span class="text-muted small fw-bold d-block">TOTAL MUESTRAS (N)</span>
+              <h3 id="stat-count" class="fw-bold text-secondary mb-0">0</h3>
+              <div id="desglose-count" class="sub-desglose">Muestras por sexo...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
+        <div class="card p-3 shadow-sm border-0 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Biométrica Separada por Sexo</h6>
+            <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica</button>
+          </div>
+          <div style="height: 400px; position: relative;">
+            <canvas id="chartDinamica"></canvas>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   </div>
 
-  <!-- SCRIPT Y LÓGICA DE FUNCIONAMIENTO -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    var mapAnil, markerAnil, capaAnil;
-    var paginaActual = 1;
-    var registrosPorPagina = 15;
-
-    function obtenerLocalidad(lat, lng, targetInputId) {
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.display_name) {
-            var address = data.address || {};
-            var lugar = address.city || address.town || address.village || address.municipality || address.county || data.display_name.split(',')[0];
-            var provincia = address.province || address.state || '';
-            var pais = address.country_code ? address.country_code.toUpperCase() : '';
-            document.getElementById(targetInputId).value = provincia ? `${lugar} / ${provincia} (${pais})` : `${lugar} (${pais})`;
-          }
-        })
-        .catch(err => console.error('No se pudo obtener la localidad:', err));
-    }
-
-    var todayStr = new Date().toISOString().slice(0,10);
-    document.getElementById('input-fecha-anil').value = todayStr;
-
-    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
+    var chartDinamicaInstance = null;
 
-    function initMapaAnillamiento() {
-      mapAnil = L.map('map-anillamiento').setView([39.7709, -0.1840], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(mapAnil);
-      
-      markerAnil = L.marker([39.7709, -0.1840], {draggable: true}).addTo(mapAnil);
-
-      mapAnil.on('click', function(e) {
-        markerAnil.setLatLng(e.latlng);
-        document.getElementById('input-coords-anil').value = e.latlng.lat.toFixed(4) + ", " + e.latlng.lng.toFixed(4);
-        obtenerLocalidad(e.latlng.lat, e.latlng.lng, 'input-localidad-anil');
-      });
-
-      markerAnil.on('dragend', function(e) {
-        var ll = markerAnil.getLatLng();
-        document.getElementById('input-coords-anil').value = ll.lat.toFixed(4) + ", " + ll.lng.toFixed(4);
-        obtenerLocalidad(ll.lat, ll.lng, 'input-localidad-anil');
-      });
-
-      capaAnil = L.layerGroup().addTo(mapAnil);
-      renderizarAnillamientos();
-    }
-
-    function actualizarMapaAnilDesdeCoords() {
-      var p = document.getElementById('input-coords-anil').value.split(',');
-      if (p.length === 2 && !isNaN(parseFloat(p[0])) && !isNaN(parseFloat(p[1]))) {
-        var lat = parseFloat(p[0]), lng = parseFloat(p[1]);
-        markerAnil.setLatLng([lat, lng]);
-        mapAnil.setView([lat, lng], 13);
-        obtenerLocalidad(lat, lng, 'input-localidad-anil');
-      } else {
-        alert("Introduce coordenadas válidas separadas por coma.");
+    function parsearFecha(strFecha) {
+      if (!strFecha) return null;
+      strFecha = strFecha.trim();
+      if (strFecha.includes('/')) {
+        var p = strFecha.split('/');
+        if (p.length === 3) {
+          return new Date(p[2], p[1] - 1, p[0]);
+        }
       }
+      var d = new Date(strFecha);
+      return isNaN(d.getTime()) ? null : d;
     }
 
-    function guardarAnillamiento() {
-      var c = document.getElementById('input-coords-anil').value.split(',');
-      var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
-      if (isNaN(lat) || isNaN(lng)) return alert("Coordenadas no válidas.");
-      if (!document.getElementById('input-fecha-anil').value || !document.getElementById('input-localidad-anil').value.trim() || !document.getElementById('input-metal-anil').value.trim()) return alert("Rellena fecha, lugar y anilla metálica.");
+    window.onload = function() {
+      if (anillamientos.length > 0) {
+        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
+        if (fechasValidas.length > 0) {
+          fechasValidas.sort((a, b) => a - b);
+          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
+          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
+        }
+      }
+    };
 
-      var item = {
-        id: anillamientos.reduce(function(m,a){return Math.max(m,a.id||0);},0) + 1,
-        fecha: document.getElementById('input-fecha-anil').value,
-        localidad: document.getElementById('input-localidad-anil').value,
-        metal: document.getElementById('input-metal-anil').value.trim(),
-        pvc: document.getElementById('input-pvc-anil').value.trim() || "-",
-        especie: document.getElementById('input-especie-anil').value,
-        edad: document.getElementById('input-edad-anil').value,
-        sexo: document.getElementById('input-sexo-anil').value,
-        ala: document.getElementById('input-ala-anil').value || "-",
-        p8: document.getElementById('input-p8-anil').value || "-",
-        cola: document.getElementById('input-cola-anil').value || "-",
-        r5: document.getElementById('input-r5-anil').value || "-",
-        tarso: document.getElementById('input-tarso-anil').value || "-",
-        peso: document.getElementById('input-peso-anil').value || "-",
-        grasa: document.getElementById('input-grasa-anil').value || "-",
-        anillador: document.getElementById('input-anillador-anil').value,
-        lat: lat, lng: lng
-      };
-
-      anillamientos.push(item);
-      localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+    function limpiarFiltros() {
+      if (anillamientos.length > 0) {
+        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
+        if (fechasValidas.length > 0) {
+          fechasValidas.sort((a, b) => a - b);
+          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
+          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
+        }
+      } else {
+        document.getElementById('filtro-desde').value = "";
+        document.getElementById('filtro-hasta').value = "";
+      }
+      document.getElementById('filtro-metrica').value = "";
       
-      paginaActual = 1;
-      renderizarAnillamientos();
-      alert("¡Captura guardada correctamente!");
+      var checks = document.querySelectorAll('.chk-filtro');
+      checks.forEach(chk => chk.checked = true);
+
+      document.getElementById('contenedor-resultados').style.display = 'none';
+      var aviso = document.getElementById('sin-datos-aviso');
+      aviso.style.display = 'block';
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las líneas separadas por sexo y ver sus estadísticas.</p>`;
     }
 
-    function eliminarUltimoAnil() { 
-      if(anillamientos.length > 0 && confirm("¿Borrar última captura?")) { 
-        anillamientos.pop(); 
-        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); 
-        renderizarAnillamientos(); 
-      } 
+    function descargarGrafica() {
+      if (!chartDinamicaInstance) return alert("No hay ninguna gráfica generada para descargar.");
+      var enlace = document.createElement('a');
+      enlace.href = chartDinamicaInstance.toBase64Image();
+      enlace.download = 'grafica_biometria_ornitologica.png';
+      enlace.click();
     }
 
-    function vaciarTodoAnil() { 
-      if(confirm("¿Vaciar capturas locales?")) { 
-        anillamientos = []; 
-        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); 
-        paginaActual = 1;
-        renderizarAnillamientos(); 
-      } 
-    }
+    function actualizarGrafica() {
+      var fechaDesdeVal = document.getElementById('filtro-desde').value;
+      var fechaHastaVal = document.getElementById('filtro-hasta').value;
+      var metrica = document.getElementById('filtro-metrica').value;
 
-    function cambiarPagina(direccion) {
-      var totalPaginas = Math.ceil(anillamientos.length / registrosPorPagina) || 1;
-      paginaActual += direccion;
-      if (paginaActual < 1) paginaActual = 1;
-      if (paginaActual > totalPaginas) paginaActual = totalPaginas;
-      renderizarTablaPaginada();
-    }
+      var aceptarMacho = document.getElementById('chk-macho').checked;
+      var aceptarHembra = document.getElementById('chk-hembra').checked;
+      var aceptarPollo = document.getElementById('chk-pollo').checked;
+      var aceptarDesconocido = document.getElementById('chk-desconocido').checked;
 
-    function renderizarAnillamientos() {
-      if(!capaAnil) return;
-      capaAnil.clearLayers();
+      var aviso = document.getElementById('sin-datos-aviso');
+      var contenedor = document.getElementById('contenedor-resultados');
 
-      anillamientos.forEach(r => {
-        L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: '#28a745', color: '#fff', weight: 2, fillOpacity: 0.9 })
-         .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Edad EURING: ${esc(r.edad)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | Peso: ${r.peso} g`)
-         .addTo(capaAnil);
-      });
-
-      renderizarTablaPaginada();
-    }
-
-    function renderizarTablaPaginada() {
-      var tbody = document.getElementById('tabla-registros-anil');
-      var pagContainer = document.getElementById('paginacion-container');
-      if(!tbody) return;
-
-      if (anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
-        if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
+      if (!metrica) {
+        contenedor.style.display = 'none';
+        aviso.style.display = 'block';
+        aviso.innerHTML = `<h4>Selecciona una métrica biométrica.</h4><p class="small">Elige entre Peso, Ala, Cola o Tarso en el desplegable superior.</p>`;
         return;
       }
 
-      var datosOrdenados = [...anillamientos].sort((a, b) => {
-        var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
-        var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
-        return fb - fa;
-      });
+      var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
+      var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
+      if (dDesde) dDesde.setHours(0,0,0,0);
+      if (dHasta) dHasta.setHours(23,59,59,999);
 
-      var totalPaginas = Math.ceil(datosOrdenados.length / registrosPorPagina);
-      if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+      var datosProcesados = [];
 
-      var inicio = (paginaActual - 1) * registrosPorPagina;
-      var fin = inicio + registrosPorPagina;
-      var registrosPagina = datosOrdenados.slice(inicio, fin);
+      anillamientos.forEach(item => {
+        var dItem = parsearFecha(item.fecha);
+        if (!dItem) return;
+        dItem.setHours(12,0,0,0);
 
-      tbody.innerHTML = '';
-      registrosPagina.forEach((r, idx) => {
-        var numReal = datosOrdenados.length - (inicio + idx);
-        var pesoTxt = r.peso !== "-" ? r.peso : "-";
-        var tarsoTxt = r.tarso !== "-" ? r.tarso : "-";
+        if (dDesde && dItem < dDesde) return;
+        if (dHasta && dItem > dHasta) return;
+
+        var valorLimpio = String(item[metrica] || "").replace(/[^\d.,]/g, '').replace(',', '.');
+        var val = parseFloat(valorLimpio);
+        if (isNaN(val) || val <= 0) return;
+
+        var esPollo = (String(item.edad) === "1");
+        var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
         
-        // Mapeo legible opcional para códigos EURING de edad
-        var edadTexto = r.edad;
-        if (edadTexto === "1") edadTexto = "1 (Pullus)";
-        else if (edadTexto === "2") edadTexto = "2 (Volantón)";
-        else if (edadTexto === "3") edadTexto = "3 (1er año)";
-        else if (edadTexto === "4") edadTexto = "4 (+1 año)";
-        else if (edadTexto === "5") edadTexto = "5 (2º año)";
-        else if (edadTexto === "6") edadTexto = "6 (Adulto)";
+        var categoria = "Desconocido";
+        if (esPollo) {
+          categoria = "Pollo";
+        } else if (sexoItem === "m" || sexoItem === "macho") {
+          categoria = "Macho";
+        } else if (sexoItem === "f" || sexoItem === "hembra") {
+          categoria = "Hembra";
+        }
 
-        tbody.innerHTML += `<tr>
-          <td><b>#${numReal}</b></td>
-          <td>${r.fecha}</td>
-          <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
-          <td><span class="badge bg-success">${esc(r.pvc)}</span></td>
-          <td><i>${esc(r.especie)}</i></td>
-          <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
-          <td>${r.ala}</td>
-          <td>${r.p8}</td>
-          <td>${r.cola}</td>
-          <td>${tarsoTxt}</td>
-          <td>${pesoTxt}</td>
-        </tr>`;
+        if (categoria === "Macho" && !aceptarMacho) return;
+        if (categoria === "Hembra" && !aceptarHembra) return;
+        if (categoria === "Pollo" && !aceptarPollo) return;
+        if (categoria === "Desconocido" && !aceptarDesconocido) return;
+
+        datosProcesados.push({
+          fechaObj: dItem,
+          fechaStr: item.fecha,
+          metal: item.metal || 'S/N',
+          valor: val,
+          categoria: categoria
+        });
       });
 
-      if (datosOrdenados.length > registrosPorPagina) {
-        pagContainer.style.setProperty('display', 'flex', 'important');
-        document.getElementById('info-paginacion').innerText = `Página ${paginaActual} de ${totalPaginas} (${datosOrdenados.length} registros)`;
-        document.getElementById('btn-anterior').disabled = (paginaActual === 1);
-        document.getElementById('btn-siguiente').disabled = (paginaActual === totalPaginas);
-      } else {
-        pagContainer.style.setProperty('display', 'none', 'important');
+      if (datosProcesados.length === 0) {
+        contenedor.style.display = 'none';
+        aviso.style.display = 'block';
+        aviso.innerHTML = `<h4>No hay registros válidos para <b>${metrica.toUpperCase()}</b> con las categorías seleccionadas.</h4><p class="small">Prueba a marcar más casillas de grupo o ampliar el rango de fechas.</p>`;
+        return;
       }
-    }
 
-    /* --- IMPORTAR ARCHIVO INTELIGENTE (JSON / CSV POR CABECERAS) --- */
-    function importarArchivoAnil(event) {
-      var file = event.target.files[0];
-      if (!file) return;
+      contenedor.style.display = 'block';
+      aviso.style.display = 'none';
 
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var contenido = e.target.result;
-        var extension = file.name.split('.').pop().toLowerCase();
+      datosProcesados.sort((a, b) => a.fechaObj - b.fechaObj);
 
-        if (extension === 'json') {
-          try {
-            var datosImportados = JSON.parse(contenido);
-            if (Array.isArray(datosImportados)) {
-              if (confirm(`Se han encontrado ${datosImportados.length} capturas. ¿Deseas añadirlas a tus datos existentes?`)) {
-                anillamientos = anillamientos.concat(datosImportados);
-                anillamientos.forEach((item, index) => item.id = index + 1);
-                localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
-                paginaActual = 1;
-                renderizarAnillamientos();
-                alert("¡Datos JSON importados y actualizados con éxito!");
-              }
-            } else {
-              alert("El archivo JSON no tiene un formato válido.");
-            }
-          } catch (err) {
-            alert("Error al leer el archivo JSON: " + err.message);
-          }
-        } else if (extension === 'csv') {
-          try {
-            var lineas = contenido.split(/\r\n|\n/);
-            if (lineas.length < 2) return alert("El archivo CSV está vacío.");
+      var fechasUnicas = [...new Set(datosProcesados.map(d => d.fechaStr))];
 
-            var separador = lineas[0].includes(';') ? ';' : ',';
-            var cabeceras = lineas[0].split(separador).map(h => h.trim().replace(/^[\ufeff"]+|["']+$/g, '').toLowerCase());
+      var todosValores = datosProcesados.map(d => d.valor);
+      var mediaGlobal = (todosValores.reduce((a, b) => a + b, 0) / todosValores.length).toFixed(1);
+      var minGlobal = Math.min(...todosValores);
+      var maxGlobal = Math.max(...todosValores);
 
-            var idxFecha = cabeceras.findIndex(h => h.includes('fecha'));
-            var idxLugar = cabeceras.findIndex(h => h.includes('lugar') || h.includes('estacion'));
-            var idxMetal = cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla'));
-            var idxPvc = cabeceras.findIndex(h => h.includes('pvc') || h.includes('alar'));
-            var idxEspecie = cabeceras.findIndex(h => h.includes('especie') || h.includes('esp'));
-            var idxEdad = cabeceras.findIndex(h => h.includes('edad'));
-            var idxSexo = cabeceras.findIndex(h => h.includes('sexo'));
-            var idxAla = cabeceras.findIndex(h => h.includes('ala'));
-            var idxP8 = cabeceras.findIndex(h => h.includes('p8'));
-            var idxCola = cabeceras.findIndex(h => h.includes('cola'));
-            var idxTarso = cabeceras.findIndex(h => h.includes('tarso'));
-            var idxR5 = cabeceras.findIndex(h => h.includes('r5'));
-            var idxPeso = cabeceras.findIndex(h => h.includes('peso') || h.includes('masa'));
-            var idxGrasa = cabeceras.findIndex(h => h.includes('grasa') || h.includes('musculo'));
-            var idxAnillador = cabeceras.findIndex(h => h.includes('anillador'));
-            var idxLat = cabeceras.findIndex(h => h.includes('lat'));
-            var idxLng = cabeceras.findIndex(h => h.includes('lng') || h.includes('lon'));
+      document.getElementById('stat-media').innerText = mediaGlobal;
+      document.getElementById('stat-min').innerText = minGlobal;
+      document.getElementById('stat-max').innerText = maxGlobal;
+      document.getElementById('stat-count').innerText = datosProcesados.length;
 
-            var nuevosRegistros = [];
-            for (var i = 1; i < lineas.length; i++) {
-              var linea = lineas[i].trim();
-              if (!linea) continue;
+      var categoriasActivas = ["Macho", "Hembra", "Pollo", "Desconocido"];
+      var desgloseMediaHtml = "";
+      var desgloseMinHtml = "";
+      var desgloseMaxHtml = "";
+      var desgloseCountHtml = "";
 
-              var cols = linea.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
-              if (cols.length < 3) continue;
+      categoriasActivas.forEach(cat => {
+        var itemsCat = datosProcesados.filter(d => d.categoria === cat);
+        if (itemsCat.length > 0) {
+          var valsCat = itemsCat.map(d => d.valor);
+          var mediaCat = (valsCat.reduce((a, b) => a + b, 0) / valsCat.length).toFixed(1);
+          var minCat = Math.min(...valsCat);
+          var maxCat = Math.max(...valsCat);
 
-              var item = {
-                id: 0,
-                fecha: (idxFecha !== -1 && cols[idxFecha]) ? cols[idxFecha] : new Date().toISOString().slice(0,10),
-                localidad: (idxLugar !== -1 && cols[idxLugar]) ? cols[idxLugar] : "Estación de Anillamiento",
-                metal: (idxMetal !== -1 && cols[idxMetal]) ? cols[idxMetal] : (cols[3] || "S/N"),
-                pvc: (idxPvc !== -1 && cols[idxPvc]) ? cols[idxPvc] : "-",
-                especie: (idxEspecie !== -1 && cols[idxEspecie]) ? cols[idxEspecie] : "Tyto alba",
-                edad: (idxEdad !== -1 && cols[idxEdad]) ? cols[idxEdad] : "3",
-                sexo: (idxSexo !== -1 && cols[idxSexo]) ? cols[idxSexo] : "Desconocido",
-                ala: (idxAla !== -1 && cols[idxAla]) ? cols[idxAla] : "-",
-                p8: (idxP8 !== -1 && cols[idxP8]) ? cols[idxP8] : "-",
-                cola: (idxCola !== -1 && cols[idxCola]) ? cols[idxCola] : "-",
-                r5: (idxR5 !== -1 && cols[idxR5]) ? cols[idxR5] : "-",
-                tarso: (idxTarso !== -1 && cols[idxTarso]) ? cols[idxTarso] : "-",
-                peso: (idxPeso !== -1 && cols[idxPeso]) ? cols[idxPeso] : "-",
-                grasa: (idxGrasa !== -1 && cols[idxGrasa]) ? cols[idxGrasa] : "-",
-                anillador: (idxAnillador !== -1 && cols[idxAnillador]) ? cols[idxAnillador] : "Anillador",
-                lat: (idxLat !== -1 && !isNaN(parseFloat(cols[idxLat]))) ? parseFloat(cols[idxLat]) : 39.7709,
-                lng: (idxLng !== -1 && !isNaN(parseFloat(cols[idxLng]))) ? parseFloat(cols[idxLng]) : -0.1840
-              };
-              nuevosRegistros.push(item);
-            }
-
-            if (nuevosRegistros.length > 0) {
-              if (confirm(`Se han detectado ${nuevosRegistros.length} registros en el CSV. ¿Deseas importarlos?`)) {
-                anillamientos = anillamientos.concat(nuevosRegistros);
-                anillamientos.forEach((item, index) => item.id = index + 1);
-                localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
-                paginaActual = 1;
-                renderizarAnillamientos();
-                alert("¡Datos CSV importados y actualizados con éxito!");
-              }
-            } else {
-              alert("No se han podido extraer registros válidos del archivo CSV.");
-            }
-          } catch (err) {
-            alert("Error al procesar el archivo CSV: " + err.message);
-          }
-        } else {
-          alert("Sube un archivo .json o .csv");
+          desgloseMediaHtml += `<b>${cat}:</b> ${mediaCat} <br>`;
+          desgloseMinHtml += `<b>${cat}:</b> ${minCat} <br>`;
+          desgloseMaxHtml += `<b>${cat}:</b> ${maxCat} <br>`;
+          desgloseCountHtml += `<b>${cat}:</b> N = ${itemsCat.length} <br>`;
         }
-        event.target.value = '';
+      });
+
+      document.getElementById('desglose-media').innerHTML = desgloseMediaHtml || "Sin datos";
+      document.getElementById('desglose-min').innerHTML = desgloseMinHtml || "Sin datos";
+      document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
+      document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
+
+      var configuracionCat = {
+        "Macho": { color: "#007bff", bg: "rgba(0, 123, 255, 0.1)" },
+        "Hembra": { color: "#e83e8c", bg: "rgba(232, 62, 140, 0.1)" },
+        "Pollo": { color: "#ffc107", bg: "rgba(255, 193, 7, 0.1)" },
+        "Desconocido": { color: "#6c757d", bg: "rgba(108, 117, 125, 0.1)" }
       };
-      reader.readAsText(file);
-    }
 
-    /* --- EXPORTACIÓN EXCEL / CSV Y KML --- */
-    function exportarExcelAnil() {
-      if (!anillamientos.length) return alert("Sin datos.");
-      var h = "ID;Fecha;Lugar;Metal;PVC;Especie;Edad EURING;Sexo;Ala Max(mm);P8(mm);Cola(mm);R5;Tarso(mm);Peso(g);Grasa;Anillador;Lat;Lng\n";
-      var r = anillamientos.map(a => `${a.id};"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};"${a.r5}";${a.tarso};${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
-      var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
-      link.download = "anillamiento_biometria_excel.csv"; link.click();
-    }
+      var datasets = [];
+      categoriasActivas.forEach(cat => {
+        var itemsCat = datosProcesados.filter(d => d.categoria === cat);
+        if (itemsCat.length > 0) {
+          var dataPuntos = fechasUnicas.map(fStr => {
+            var encontrado = itemsCat.find(d => d.fechaStr === fStr);
+            return encontrado ? encontrado.valor : null;
+          });
 
-    function exportarKMLAnil() {
-      if (!anillamientos.length) return alert("Sin datos.");
-      var kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Anillamiento</name>${anillamientos.map(a => `<Placemark><name>${a.metal} (${a.especie})</name><Point><coordinates>${a.lng},${a.lat},0</coordinates></Point></Placemark>`).join("")}</Document></kml>`;
-      var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' }));
-      link.download = "anillamientos_estacion.kml"; link.click();
-    }
+          datasets.push({
+            label: `${cat} (Media: ${(itemsCat.reduce((a,b)=>a+b.valor,0)/itemsCat.length).toFixed(1)})`,
+            data: dataPuntos,
+            borderColor: configuracionCat[cat].color,
+            backgroundColor: configuracionCat[cat].bg,
+            borderWidth: 2,
+            pointRadius: 5,
+            pointBackgroundColor: configuracionCat[cat].color,
+            fill: false,
+            tension: 0.1,
+            spanGaps: true
+          });
+        }
+      });
 
-    // Inicialización al cargar la página
-    window.onload = function() {
-      initMapaAnillamiento();
-      obtenerLocalidad(39.7709, -0.1840, 'input-localidad-anil');
-    };
+      var nombresMetricas = {
+        peso: "Masa / Peso (g)",
+        ala: "Ala Máx (mm)",
+        cola: "Cola (mm)",
+        tarso: "Tarso (mm)"
+      };
+
+      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} por Sexo / Categoría`;
+
+      if (chartDinamicaInstance) {
+        chartDinamicaInstance.destroy();
+      }
+
+      var ctx = document.getElementById('chartDinamica').getContext('2d');
+      chartDinamicaInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: fechasUnicas,
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top' }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: nombresMetricas[metrica] }
+            },
+            x: {
+              title: { display: true, text: 'Fechas de Captura' }
+            }
+          }
+        }
+      });
+    }
   </script>
-
 </body>
 </html>
