@@ -42,7 +42,7 @@
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.85rem; }
     .required-asterisk { color: #e53e3e; }
     
-    .table-history { font-size: 0.82rem; }
+    .table-history { font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -146,7 +146,7 @@
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">R5 (mm / %)</label>
-                  <input type="text" id="input-r5-anil" class="form-control form-control-sm" placeholder="Muestreo R5">
+                  <input type="text" id="input-r5-anil" class="form-control form-control-sm" placeholder="R5">
                 </div>
               </div>
 
@@ -212,11 +212,12 @@
                     <th>P8</th>
                     <th>Cola</th>
                     <th>Tarso</th>
+                    <th>R5</th>
                     <th>Peso</th>
                   </tr>
                 </thead>
                 <tbody id="tabla-registros-anil">
-                  <tr><td colspan="11" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
+                  <tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -362,7 +363,7 @@
 
       anillamientos.forEach(r => {
         L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: '#28a745', color: '#fff', weight: 2, fillOpacity: 0.9 })
-         .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Edad EURING: ${esc(r.edad)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | Peso: ${r.peso} g`)
+         .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Edad EURING: ${esc(r.edad)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | R5: ${r.r5} mm | Peso: ${r.peso} g`)
          .addTo(capaAnil);
       });
 
@@ -375,7 +376,7 @@
       if(!tbody) return;
 
       if (anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
@@ -398,8 +399,8 @@
         var numReal = datosOrdenados.length - (inicio + idx);
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
         var tarsoTxt = r.tarso !== "-" ? r.tarso : "-";
+        var r5Txt = r.r5 !== "-" ? r.r5 : "-";
         
-        // Mapeo legible opcional para códigos EURING de edad
         var edadTexto = r.edad;
         if (edadTexto === "1") edadTexto = "1 (Pullus)";
         else if (edadTexto === "2") edadTexto = "2 (Volantón)";
@@ -419,6 +420,7 @@
           <td>${r.p8}</td>
           <td>${r.cola}</td>
           <td>${tarsoTxt}</td>
+          <td>${r5Txt}</td>
           <td>${pesoTxt}</td>
         </tr>`;
       });
@@ -544,8 +546,8 @@
     /* --- EXPORTACIÓN EXCEL / CSV Y KML --- */
     function exportarExcelAnil() {
       if (!anillamientos.length) return alert("Sin datos.");
-      var h = "ID;Fecha;Lugar;Metal;PVC;Especie;Edad EURING;Sexo;Ala Max(mm);P8(mm);Cola(mm);R5;Tarso(mm);Peso(g);Grasa;Anillador;Lat;Lng\n";
-      var r = anillamientos.map(a => `${a.id};"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};"${a.r5}";${a.tarso};${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
+      var h = "ID;Fecha;Lugar;Metal;PVC;Especie;Edad EURING;Sexo;Ala Max(mm);P8(mm);Cola(mm);Tarso(mm);R5;Peso(g);Grasa;Anillador;Lat;Lng\n";
+      var r = anillamientos.map(a => `${a.id};"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
       link.download = "anillamiento_biometria_excel.csv"; link.click();
     }
