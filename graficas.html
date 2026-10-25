@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas y Gráficas Dinámicas - Tracking Ornitológico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 25px; }
+  </style>
+</head>
+<body>
+
+  <div class="container my-5" style="max-width: 1200px;">
+    <div class="card-panel">
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica por Rango de Fechas</h2>
+          <p class="text-muted mb-0">Selecciona el intervalo de días y el parámetro que deseas representar.</p>
+        </div>
+        <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
+      </div>
+
+      <!-- PANEL DE FILTRADO POR FECHAS Y MÉTRICA -->
+      <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
+        <h5 class="fw-bold text-dark mb-3">⚙️ Configuración de la Representación</h5>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-bold small">Fecha Inicio</label>
+            <input type="date" id="filtro-desde" class="form-control form-control-sm" onchange="actualizarGrafica()">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold small">Fecha Fin</label>
+            <input type="date" id="filtro-hasta" class="form-control form-control-sm" onchange="actualizarGrafica()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold small">Dato / Métrica Biométrica</label>
+            <select id="filtro-metrica" class="form-select form-select-sm fw-bold text-success" onchange="actualizarGrafica()">
+              <option value="peso" selected>Masa / Peso (g)</option>
+              <option value="ala">Ala Máx (mm)</option>
+              <option value="cola">Cola (mm)</option>
+              <option value="tarso">Tarso (mm)</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-outline-dark btn-sm w-100" onclick="limpiarFiltros()">🔄 Limpiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENSAJE SI NO HAY DATOS O FILTROS -->
+      <div id="sin-datos-aviso" class="text-center py-5 text-muted">
+        <h4>Introduce un rango de fechas válido o registra datos en el módulo de anillamiento.</h4>
+        <p class="small">La gráfica se generará automáticamente al detectar registros en el periodo seleccionado.</p>
+      </div>
+
+      <!-- CONTENEDOR DE LA GRÁFICA DINÁMICA -->
+      <div id="contenedor-grafica" class="card p-3 shadow-sm border-0 bg-light" style="display: none;">
+        <h6 id="titulo-grafica" class="text-secondary fw-bold text-center mb-3">Representación Biométrica</h6>
+        <div style="height: 380px; position: relative;">
+          <canvas id="chartDinamica"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
+    var chartDinamicaInstance = null;
+
+    window.onload = function() {
+      // Si hay registros, poner por defecto el rango completo o dejar libre
+      if (anillamientos.length > 0) {
+        anillamientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        document.getElementById('filtro-desde').value = anillamientos[0].fecha;
+        document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+        actualizarGrafica();
+      }
+    };
+
+    function limpiarFiltros() {
+      document.getElementById('filtro-desde').value = "";
+      document.getElementById('filtro-hasta').value = "";
+      document.getElementById('filtro-metrica').value = "peso";
+      actualizarGrafica();
+    }
+
+    function actualizarGrafica() {
+      var fechaDesde = document.getElementById('filtro-desde').value;
+      var fechaHasta = document.getElementById('filtro-hasta').value;
+      var metrica = document.getElementById('filtro-metrica').value;
+
+      // Filtrar datos por rango de fechas si están definidas
+      var datosFiltrados = anillamientos.filter(item => {
+        if (!item.fecha) return false;
+        if (fechaDesde && item.fecha < fechaDesde) return false;
+        if (fechaHasta && item.fecha > fechaHasta) return false;
+        
+        // Comprobar que el valor de la métrica elegida sea numérico válido
+        var val = parseFloat(String(item[metrica]).replace(',', '.'));
+        return !isNaN(val) && val > 0;
+      });
+
+      var contenedor = document.getElementById('contenedor-grafica');
+      var aviso = document.getElementById('sin-datos-aviso');
+
+      if (datosFiltrados.length === 0) {
+        contenedor.style.display = 'none';
+        aviso.style.display = 'block';
+        return;
+      }
+
+      contenedor.style.display = 'block';
+      aviso.style.display = 'none';
+
+      // Ordenar cronológicamente
+      datosFiltrados.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+      var labels = datosFiltrados.map(item => `${item.fecha} (${item.metal || 'S/N'})`);
+      var valores = datosFiltrados.map(item => parseFloat(String(item[metrica]).replace(',', '.')));
+
+      var nombresMetricas = {
+        peso: "Masa / Peso (g)",
+        ala: "Ala Máx (mm)",
+        cola: "Cola (mm)",
+        tarso: "Tarso (mm)"
+      };
+
+      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} entre ${fechaDesde || 'inicio'} y ${fechaHasta || 'fin'}`;
+
+      if (chartDinamicaInstance) {
+        chartDinamicaInstance.destroy();
+      }
+
+      var ctx = document.getElementById('chartDinamica').getContext('2d');
+      chartDinamicaInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: nombresMetricas[metrica],
+            data: valores,
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            borderWidth: 2,
+            pointRadius: 5,
+            pointBackgroundColor: '#28a745',
+            fill: true,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top' }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: nombresMetricas[metrica] }
+            },
+            x: {
+              title: { display: true, text: 'Fecha y Anilla' }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
