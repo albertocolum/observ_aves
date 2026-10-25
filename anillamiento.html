@@ -189,9 +189,9 @@
                 <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoAnil()" title="Borrar último registro">🗑️</button>
                 <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodoAnil()" title="Vaciar toda la base local">⚠️ Vaciar</button>
                 
-                <!-- BOTÓN DE IMPORTAR JSON -->
-                <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('input-file-json').click()" title="Cargar datos">📥 Importar</button>
-                <input type="file" id="input-file-json" accept=".json" style="display:none;" onchange="importarJSONAnil(event)">
+                <!-- BOTÓN DE IMPORTAR (JSON y CSV) -->
+                <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('input-file-json').click()" title="Cargar datos JSON o CSV">📥 Importar</button>
+                <input type="file" id="input-file-json" accept=".json,.csv" style="display:none;" onchange="importarArchivoAnil(event)">
 
                 <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
                 <button class="btn btn-outline-primary btn-sm" onclick="exportarKMLAnil()">🌍 KML</button>
@@ -335,34 +335,100 @@
       if(!tbody) return;
       tbody.innerHTML = anillamientos.length === 0 ? '<tr><td colspan="10" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>' : '';
       anillamientos.forEach(r => {
-        var pesoTxt = r.peso !== "-" ? r.peso + " g" : "-";
+        var pesoTxt = r.peso !== "-" ? r.peso : "-";
         tbody.innerHTML += `<tr><td><b>#${r.id}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${pesoTxt}</td></tr>`;
       });
     }
 
-    /* --- IMPORTAR JSON --- */
-    function importarJSONAnil(event) {
+    /* --- IMPORTAR ARCHIVO (JSON / CSV) --- */
+    function importarArchivoAnil(event) {
       var file = event.target.files[0];
       if (!file) return;
 
       var reader = new FileReader();
       reader.onload = function(e) {
-        try {
-          var datosImportados = JSON.parse(e.target.result);
-          if (Array.isArray(datosImportados)) {
-            if (confirm(`Se han encontrado ${datosImportados.length} capturas. ¿Deseas añadirlas a tus datos existentes?`)) {
-              anillamientos = anillamientos.concat(datosImportados);
-              anillamientos.forEach((item, index) => item.id = index + 1);
-              localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
-              renderizarAnillamientos();
-              alert("¡Datos importados y actualizados con éxito!");
+        var contenido = e.target.result;
+        var extension = file.name.split('.').pop().toLowerCase();
+
+        if (extension === 'json') {
+          try {
+            var datosImportados = JSON.parse(contenido);
+            if (Array.isArray(datosImportados)) {
+              if (confirm(`Se han encontrado ${datosImportados.length} capturas. ¿Deseas añadirlas a tus datos existentes?`)) {
+                anillamientos = anillamientos.concat(datosImportados);
+                anillamientos.forEach((item, index) => item.id = index + 1);
+                localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+                renderizarAnillamientos();
+                alert("¡Datos JSON importados y actualizados con éxito!");
+              }
+            } else {
+              alert("El archivo JSON no tiene un formato de lista válido.");
             }
-          } else {
-            alert("El archivo subido no tiene un formato válido.");
+          } catch (err) {
+            alert("Error al leer el archivo JSON: " + err.message);
           }
-        } catch (err) {
-          alert("Error al leer el archivo JSON: " + err.message);
+        } else if (extension === 'csv') {
+          try {
+            var lineas = contenido.split(/\r\n|\n/);
+            if (lineas.length < 2) return alert("El archivo CSV está vacío o no tiene registros.");
+
+            // Detectar separador (coma o punto y coma)
+            var separador = lineas[0].includes(';') ? ';' : ',';
+            var cabeceras = lineas[0].split(separador).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            var nuevosRegistros = [];
+            for (var i = 1; i < lineas.length; i++) {
+              var linea = lineas[i].trim();
+              if (!linea) continue;
+
+              // Parsear columnas respetando comillas si las hubiera
+              var cols = linea.split(separador).map(c => c.trim().replace(/^"|"$/g, ''));
+              if (cols.length < 3) continue;
+
+              // Mapeo flexible basado en las columnas exportadas por la aplicación
+              // Estructura esperada por orden de exportación: ID;Fecha;Lugar;Metal;PVC;Especie;Edad;Sexo;Ala;P8;Cola;R5;Tarso;Peso;Grasa;Anillador;Lat;Lng
+              var item = {
+                id: 0,
+                fecha: cols[1] || new Date().toISOString().slice(0,10),
+                localidad: cols[2] || "Estación de Anillamiento",
+                metal: cols[3] || cols[0] || "S/N",
+                pvc: cols[4] || "-",
+                especie: cols[5] || "Tyto alba",
+                edad: cols[6] || "3",
+                sexo: cols[7] || "Desconocido",
+                ala: cols[8] || "-",
+                p8: cols[9] || "-",
+                cola: cols[10] || "-",
+                r5: cols[11] || "-",
+                tarso: cols[12] || "-",
+                peso: cols[13] || "-",
+                grasa: cols[14] || "-",
+                anillador: cols[15] || "Anillador",
+                lat: parseFloat(cols[16]) || 39.7709,
+                lng: parseFloat(cols[17]) || -0.1840
+              };
+              nuevosRegistros.push(item);
+            }
+
+            if (nuevosRegistros.length > 0) {
+              if (confirm(`Se han detectado ${nuevosRegistros.length} registros en el CSV. ¿Deseas importarlos?`)) {
+                anillamientos = anillamientos.concat(nuevosRegistros);
+                anillamientos.forEach((item, index) => item.id = index + 1);
+                localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+                renderizarAnillamientos();
+                alert("¡Datos CSV importados y actualizados con éxito!");
+              }
+            } else {
+              alert("No se han podido extraer registros válidos del archivo CSV.");
+            }
+          } catch (err) {
+            alert("Error al procesar el archivo CSV: " + err.message);
+          }
+        } else {
+          alert("Formato de archivo no compatible. Sube un archivo .json o .csv");
         }
+        // Limpiar el input para permitir volver a subir el mismo archivo si es necesario
+        event.target.value = '';
       };
       reader.readAsText(file);
     }
