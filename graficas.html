@@ -20,8 +20,8 @@
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica por Sexo y Medias</h2>
-          <p class="text-muted mb-0">Selecciona el rango de fechas, la métrica, desglosa las comparativas y descarga tus gráficas.</p>
+          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica y Criterios R5</h2>
+          <p class="text-muted mb-0">Selecciona fechas, métrica biométrica (con clasificación automática Adulto/Joven para R5), filtra y descarga tus gráficas.</p>
         </div>
         <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
       </div>
@@ -45,7 +45,7 @@
               <option value="peso">Masa / Peso (g)</option>
               <option value="ala">Ala Máx (mm)</option>
               <option value="cola">Cola (mm)</option>
-              <option value="r5">R5 (mm)</option>
+              <option value="r5">R5 (mm) [Joven ≤19mm / Adulto ≥19.1mm]</option>
               <option value="tarso">Tarso (mm)</option>
             </select>
           </div>
@@ -54,7 +54,7 @@
           </div>
         </div>
 
-        <!-- FILTROS DE CATEGORÍA / SEXO CON CHECKBOXES -->
+        <!-- FILTROS DE CATEGORÍA / SEXO / EDAD CON CHECKBOXES -->
         <div class="row mt-3 pt-3 border-top">
           <div class="col-12">
             <label class="form-label fw-bold small text-secondary d-block mb-1">Mostrar en la Gráfica / Filtrar:</label>
@@ -72,8 +72,16 @@
                 <label class="form-check-label small fw-semibold" for="chk-pollo">Pollo / Pullus (EURING 1)</label>
               </div>
               <div class="form-check">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Joven" id="chk-joven" checked onchange="actualizarGrafica()">
+                <label class="form-check-label small fw-semibold" for="chk-joven">Joven (R5 ≤ 19mm)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Adulto" id="chk-adulto" checked onchange="actualizarGrafica()">
+                <label class="form-check-label small fw-semibold" for="chk-adulto">Adulto (R5 ≥ 19.1mm)</label>
+              </div>
+              <div class="form-check">
                 <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="actualizarGrafica()">
-                <label class="form-check-label small fw-semibold" for="chk-desconocido">Desconocido / Sin especificar</label>
+                <label class="form-check-label small fw-semibold" for="chk-desconocido">Desconocido</label>
               </div>
             </div>
           </div>
@@ -83,40 +91,40 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas separadas por sexo, calcular sus medias y descargar la gráfica.</p>
+        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas comparativas, calcular medias y descargar la gráfica.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
       <div id="contenedor-resultados" style="display: none;">
         
-        <!-- TARJETAS DE RESUMEN Y MEDIAS POR SEXO -->
+        <!-- TARJETAS DE RESUMEN Y MEDIAS -->
         <div class="row g-3 mb-4">
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center">
               <span class="text-muted small fw-bold d-block">VALOR MEDIO GLOBAL</span>
               <h3 id="stat-media" class="fw-bold text-success mb-0">0</h3>
-              <div id="desglose-media" class="sub-desglose">Desglose por sexo...</div>
+              <div id="desglose-media" class="sub-desglose">Desglose...</div>
             </div>
           </div>
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center" style="border-left-color: #007bff; background: #e3f2fd;">
               <span class="text-muted small fw-bold d-block">VALOR MÍNIMO</span>
               <h3 id="stat-min" class="fw-bold text-primary mb-0">0</h3>
-              <div id="desglose-min" class="sub-desglose">Mínimos por sexo...</div>
+              <div id="desglose-min" class="sub-desglose">Mínimos...</div>
             </div>
           </div>
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center" style="border-left-color: #ffc107; background: #fff9c4;">
               <span class="text-muted small fw-bold d-block">VALOR MÁXIMO</span>
               <h3 id="stat-max" class="fw-bold text-dark mb-0">0</h3>
-              <div id="desglose-max" class="sub-desglose">Máximos por sexo...</div>
+              <div id="desglose-max" class="sub-desglose">Máximos...</div>
             </div>
           </div>
           <div class="col-md-3">
             <div class="stat-card shadow-sm text-center" style="border-left-color: #6c757d; background: #f8f9fa;">
               <span class="text-muted small fw-bold d-block">TOTAL MUESTRAS (N)</span>
               <h3 id="stat-count" class="fw-bold text-secondary mb-0">0</h3>
-              <div id="desglose-count" class="sub-desglose">Muestras por sexo...</div>
+              <div id="desglose-count" class="sub-desglose">Muestras...</div>
             </div>
           </div>
         </div>
@@ -124,7 +132,7 @@
         <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
         <div class="card p-3 shadow-sm border-0 bg-light">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Biométrica Separada por Sexo</h6>
+            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Biométrica</h6>
             <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica</button>
           </div>
           <div style="height: 400px; position: relative;">
@@ -186,7 +194,7 @@
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las líneas separadas por sexo y ver sus estadísticas.</p>`;
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las líneas comparativas y ver sus estadísticas.</p>`;
     }
 
     function descargarGrafica() {
@@ -205,6 +213,8 @@
       var aceptarMacho = document.getElementById('chk-macho').checked;
       var aceptarHembra = document.getElementById('chk-hembra').checked;
       var aceptarPollo = document.getElementById('chk-pollo').checked;
+      var aceptarJoven = document.getElementById('chk-joven').checked;
+      var aceptarAdulto = document.getElementById('chk-adulto').checked;
       var aceptarDesconocido = document.getElementById('chk-desconocido').checked;
 
       var aviso = document.getElementById('sin-datos-aviso');
@@ -236,21 +246,32 @@
         var val = parseFloat(valorLimpio);
         if (isNaN(val) || val <= 0) return;
 
+        var categoria = "Desconocido";
         var esPollo = (String(item.edad) === "1");
         var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
-        
-        var categoria = "Desconocido";
-        if (esPollo) {
-          categoria = "Pollo";
-        } else if (sexoItem === "m" || sexoItem === "macho") {
-          categoria = "Macho";
-        } else if (sexoItem === "f" || sexoItem === "hembra") {
-          categoria = "Hembra";
+
+        if (metrica === "r5") {
+          // Criterio específico R5: <= 19 joven, >= 19.1 adulto
+          if (val <= 19.0) {
+            categoria = "Joven";
+          } else if (val >= 19.1) {
+            categoria = "Adulto";
+          }
+        } else {
+          if (esPollo) {
+            categoria = "Pollo";
+          } else if (sexoItem === "m" || sexoItem === "macho") {
+            categoria = "Macho";
+          } else if (sexoItem === "f" || sexoItem === "hembra") {
+            categoria = "Hembra";
+          }
         }
 
         if (categoria === "Macho" && !aceptarMacho) return;
         if (categoria === "Hembra" && !aceptarHembra) return;
         if (categoria === "Pollo" && !aceptarPollo) return;
+        if (categoria === "Joven" && !aceptarJoven) return;
+        if (categoria === "Adulto" && !aceptarAdulto) return;
         if (categoria === "Desconocido" && !aceptarDesconocido) return;
 
         datosProcesados.push({
@@ -286,7 +307,7 @@
       document.getElementById('stat-max').innerText = maxGlobal;
       document.getElementById('stat-count').innerText = datosProcesados.length;
 
-      var categoriasActivas = ["Macho", "Hembra", "Pollo", "Desconocido"];
+      var categoriasActivas = ["Macho", "Hembra", "Pollo", "Joven", "Adulto", "Desconocido"];
       var desgloseMediaHtml = "";
       var desgloseMinHtml = "";
       var desgloseMaxHtml = "";
@@ -316,6 +337,8 @@
         "Macho": { color: "#007bff", bg: "rgba(0, 123, 255, 0.1)" },
         "Hembra": { color: "#e83e8c", bg: "rgba(232, 62, 140, 0.1)" },
         "Pollo": { color: "#ffc107", bg: "rgba(255, 193, 7, 0.1)" },
+        "Joven": { color: "#17a2b8", bg: "rgba(23, 162, 184, 0.1)" },
+        "Adulto": { color: "#28a745", bg: "rgba(40, 167, 69, 0.1)" },
         "Desconocido": { color: "#6c757d", bg: "rgba(108, 117, 125, 0.1)" }
       };
 
@@ -347,11 +370,11 @@
         peso: "Masa / Peso (g)",
         ala: "Ala Máx (mm)",
         cola: "Cola (mm)",
-        r5: "R5 (mm)",
+        r5: "R5 (mm) [Joven ≤19 / Adulto ≥19.1]",
         tarso: "Tarso (mm)"
       };
 
-      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} por Sexo / Categoría`;
+      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]}`;
 
       if (chartDinamicaInstance) {
         chartDinamicaInstance.destroy();
