@@ -325,7 +325,6 @@
       anillamientos.push(item);
       localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
       
-      // Al guardar, ir a la página 1 para ver el nuevo registro arriba del todo
       paginaActual = 1;
       renderizarAnillamientos();
       alert("¡Captura guardada correctamente!");
@@ -380,11 +379,10 @@
         return;
       }
 
-      // Crear una copia ordenada de más reciente a más antigua para la visualización
       var datosOrdenados = [...anillamientos].sort((a, b) => {
         var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
         var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
-        return fb - fa; // Orden inverso: más reciente primero
+        return fb - fa;
       });
 
       var totalPaginas = Math.ceil(datosOrdenados.length / registrosPorPagina);
@@ -398,7 +396,8 @@
       registrosPagina.forEach((r, idx) => {
         var numReal = datosOrdenados.length - (inicio + idx);
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
-        tbody.innerHTML += `<tr><td><b>#${numReal}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${pesoTxt}</td></tr>`;
+        var tarsoTxt = r.tarso !== "-" ? r.tarso : "-";
+        tbody.innerHTML += `<tr><td><b>#${numReal}</b></td><td>${r.fecha}</td><td><span class="badge bg-dark">${esc(r.metal)}</span></td><td><span class="badge bg-success">${esc(r.pvc)}</span></td><td><i>${esc(r.especie)}</i></td><td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${tarsoTxt}</td><td>${pesoTxt}</td></tr>`;
       });
 
       if (datosOrdenados.length > registrosPorPagina) {
@@ -411,7 +410,7 @@
       }
     }
 
-    /* --- IMPORTAR ARCHIVO (JSON / CSV) --- */
+    /* --- IMPORTAR ARCHIVO INTELIGENTE (JSON / CSV POR CABECERAS) --- */
     function importarArchivoAnil(event) {
       var file = event.target.files[0];
       if (!file) return;
@@ -445,6 +444,27 @@
             if (lineas.length < 2) return alert("El archivo CSV está vacío.");
 
             var separador = lineas[0].includes(';') ? ';' : ',';
+            var cabeceras = lineas[0].split(separador).map(h => h.trim().replace(/^[\ufeff"]+|["']+$/g, '').toLowerCase());
+
+            // Mapear posiciones de columnas por nombre de cabecera
+            var idxFecha = cabeceras.findIndex(h => h.includes('fecha'));
+            var idxLugar = cabeceras.findIndex(h => h.includes('lugar') || h.includes('estacion'));
+            var idxMetal = cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla'));
+            var idxPvc = cabeceras.findIndex(h => h.includes('pvc') || h.includes('alar'));
+            var idxEspecie = cabeceras.findIndex(h => h.includes('especie') || h.includes('esp'));
+            var idxEdad = cabeceras.findIndex(h => h.includes('edad'));
+            var idxSexo = cabeceras.findIndex(h => h.includes('sexo'));
+            var idxAla = cabeceras.findIndex(h => h.includes('ala'));
+            var idxP8 = cabeceras.findIndex(h => h.includes('p8'));
+            var idxCola = cabeceras.findIndex(h => h.includes('cola'));
+            var idxTarso = cabeceras.findIndex(h => h.includes('tarso'));
+            var idxR5 = cabeceras.findIndex(h => h.includes('r5'));
+            var idxPeso = cabeceras.findIndex(h => h.includes('peso') || h.includes('masa'));
+            var idxGrasa = cabeceras.findIndex(h => h.includes('grasa') || h.includes('musculo'));
+            var idxAnillador = cabeceras.findIndex(h => h.includes('anillador'));
+            var idxLat = cabeceras.findIndex(h => h.includes('lat'));
+            var idxLng = cabeceras.findIndex(h => h.includes('lng') || h.includes('lon'));
+
             var nuevosRegistros = [];
             for (var i = 1; i < lineas.length; i++) {
               var linea = lineas[i].trim();
@@ -455,23 +475,23 @@
 
               var item = {
                 id: 0,
-                fecha: cols[1] || new Date().toISOString().slice(0,10),
-                localidad: cols[2] || "Estación de Anillamiento",
-                metal: cols[3] || cols[0] || "S/N",
-                pvc: cols[4] || "-",
-                especie: cols[5] || "Tyto alba",
-                edad: cols[6] || "3",
-                sexo: cols[7] || "Desconocido",
-                ala: cols[8] || "-",
-                p8: cols[9] || "-",
-                cola: cols[10] || "-",
-                r5: cols[11] || "-",
-                tarso: cols[12] || "-",
-                peso: cols[13] || "-",
-                grasa: cols[14] || "-",
-                anillador: cols[15] || "Anillador",
-                lat: parseFloat(cols[16]) || 39.7709,
-                lng: parseFloat(cols[17]) || -0.1840
+                fecha: (idxFecha !== -1 && cols[idxFecha]) ? cols[idxFecha] : new Date().toISOString().slice(0,10),
+                localidad: (idxLugar !== -1 && cols[idxLugar]) ? cols[idxLugar] : "Estación de Anillamiento",
+                metal: (idxMetal !== -1 && cols[idxMetal]) ? cols[idxMetal] : (cols[3] || "S/N"),
+                pvc: (idxPvc !== -1 && cols[idxPvc]) ? cols[idxPvc] : "-",
+                especie: (idxEspecie !== -1 && cols[idxEspecie]) ? cols[idxEspecie] : "Tyto alba",
+                edad: (idxEdad !== -1 && cols[idxEdad]) ? cols[idxEdad] : "3",
+                sexo: (idxSexo !== -1 && cols[idxSexo]) ? cols[idxSexo] : "Desconocido",
+                ala: (idxAla !== -1 && cols[idxAla]) ? cols[idxAla] : "-",
+                p8: (idxP8 !== -1 && cols[idxP8]) ? cols[idxP8] : "-",
+                cola: (idxCola !== -1 && cols[idxCola]) ? cols[idxCola] : "-",
+                r5: (idxR5 !== -1 && cols[idxR5]) ? cols[idxR5] : "-",
+                tarso: (idxTarso !== -1 && cols[idxTarso]) ? cols[idxTarso] : "-",
+                peso: (idxPeso !== -1 && cols[idxPeso]) ? cols[idxPeso] : "-",
+                grasa: (idxGrasa !== -1 && cols[idxGrasa]) ? cols[idxGrasa] : "-",
+                anillador: (idxAnillador !== -1 && cols[idxAnillador]) ? cols[idxAnillador] : "Anillador",
+                lat: (idxLat !== -1 && !isNaN(parseFloat(cols[idxLat]))) ? parseFloat(cols[idxLat]) : 39.7709,
+                lng: (idxLng !== -1 && !isNaN(parseFloat(cols[idxLng]))) ? parseFloat(cols[idxLng]) : -0.1840
               };
               nuevosRegistros.push(item);
             }
