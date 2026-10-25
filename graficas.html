@@ -48,14 +48,14 @@
             </select>
           </div>
           <div class="col-md-2 text-end">
-            <button class="btn btn-outline-dark btn-sm w-100" onclick="limpiarFiltros()">🔄 Limpiar</button>
+            <button class="btn btn-outline-dark btn-sm w-100" onclick="limpiarFiltros()">🔄 Restablecer</button>
           </div>
         </div>
 
         <!-- FILTROS DE CATEGORÍA / SEXO / EDAD CON CHECKBOXES -->
         <div class="row mt-3 pt-3 border-top">
           <div class="col-12">
-            <label class="form-label fw-bold small text-secondary d-block mb-1">Filtrar por Grupo / Categoría:</label>
+            <label class="form-label fw-bold small text-secondary d-block mb-1">Filtrar por Grupo / Categoría (Opcional):</label>
             <div class="checkbox-group">
               <div class="form-check">
                 <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="actualizarGrafica()">
@@ -80,8 +80,8 @@
 
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
-        <h4>Panel limpio y listo para consultar.</h4>
-        <p class="small">Selecciona una <b>Fecha de Inicio</b>, una <b>Fecha de Fin</b> y elige una <b>métrica</b> para generar la gráfica.</p>
+        <h4>Panel listo para consultar.</h4>
+        <p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS (MEDIAS) Y GRÁFICA -->
@@ -134,17 +134,23 @@
     var chartDinamicaInstance = null;
 
     window.onload = function() {
-      // Opcional: si hay datos, autocompletar el rango de fechas al cargar para facilitar la visualización
       if (anillamientos.length > 0) {
         anillamientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        // Autocompletar fechas con los límites reales de los datos almacenados
         document.getElementById('filtro-desde').value = anillamientos[0].fecha;
         document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+      } else {
+        var hoy = new Date().toISOString().slice(0,10);
+        document.getElementById('filtro-desde').value = "2024-01-01";
+        document.getElementById('filtro-hasta').value = hoy;
       }
     };
 
     function limpiarFiltros() {
-      document.getElementById('filtro-desde').value = "";
-      document.getElementById('filtro-hasta').value = "";
+      if (anillamientos.length > 0) {
+        document.getElementById('filtro-desde').value = anillamientos[0].fecha;
+        document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+      }
       document.getElementById('filtro-metrica').value = "";
       
       var checks = document.querySelectorAll('.chk-filtro');
@@ -153,7 +159,7 @@
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel limpio y listo para consultar.</h4><p class="small">Selecciona una <b>Fecha de Inicio</b>, una <b>Fecha de Fin</b> y elige una <b>métrica</b> para generar la gráfica.</p>`;
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar la gráfica y ver las estadísticas de tus registros.</p>`;
     }
 
     function actualizarGrafica() {
@@ -169,17 +175,17 @@
       var aviso = document.getElementById('sin-datos-aviso');
       var contenedor = document.getElementById('contenedor-resultados');
 
-      if (!fechaDesde || !fechaHasta || !metrica) {
+      if (!metrica) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>Selecciona fechas y métrica biométrica.</h4><p class="small">Rellena la fecha de inicio, fecha de fin y elige el parámetro (ej. Peso, Cola, etc.) para ver la gráfica.</p>`;
+        aviso.innerHTML = `<h4>Selecciona una métrica biométrica.</h4><p class="small">Elige entre Peso, Ala, Cola o Tarso en el desplegable superior.</p>`;
         return;
       }
 
       var datosFiltrados = anillamientos.filter(item => {
         if (!item.fecha) return false;
         
-        // Comparativa de fechas segura en formato string YYYY-MM-DD
+        // Filtrado por fecha opcional si están completas
         if (fechaDesde && item.fecha < fechaDesde) return false;
         if (fechaHasta && item.fecha > fechaHasta) return false;
         
@@ -188,20 +194,24 @@
         
         var esMacho = (sexoItem === "m" || sexoItem === "macho");
         var esHembra = (sexoItem === "f" || sexoItem === "hembra");
-        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?");
+        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?" || sexoItem === "desconocido (?)" || sexoItem === "desconocido");
 
-        var cumpleFiltro = false;
-        if (esPollo && aceptarPollo) {
-          cumpleFiltro = true;
-        } else if (!esPollo) {
-          if (esMacho && aceptarMacho) cumpleFiltro = true;
-          else if (esHembra && aceptarHembra) cumpleFiltro = true;
-          else if (esDesc && aceptarDesconocido) cumpleFiltro = true;
+        // Si todas las casillas están marcadas o ninguna, permitimos todo para evitar bloqueos
+        var todoMarcado = (aceptarMacho && aceptarHembra && aceptarPollo && aceptarDesconocido);
+        var todoDesmarcado = (!aceptarMacho && !aceptarHembra && !aceptarPollo && !aceptarDesconocido);
+
+        if (!todoMarcado && !todoDesmarcado) {
+          var cumpleFiltro = false;
+          if (esPollo && aceptarPollo) cumpleFiltro = true;
+          else if (!esPollo) {
+            if (esMacho && aceptarMacho) cumpleFiltro = true;
+            else if (esHembra && aceptarHembra) cumpleFiltro = true;
+            else if (esDesc && aceptarDesconocido) cumpleFiltro = true;
+          }
+          if (!cumpleFiltro) return false;
         }
 
-        if (!cumpleFiltro) return false;
-
-        // Validar que la métrica elegida contenga un número válido (ej. que no sea "-" o esté vacío)
+        // Validar que la métrica contenga un valor numérico válido mayor que 0
         var valorStr = String(item[metrica] || "").replace(',', '.');
         var val = parseFloat(valorStr);
         return !isNaN(val) && val > 0;
@@ -210,7 +220,7 @@
       if (datosFiltrados.length === 0) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>No hay registros que coincidan con los filtros seleccionados.</h4><p class="small">Comprueba que existan datos de <b>${metrica.toUpperCase()}</b> guardados en el año ${fechaDesde.slice(0,4)} y que las casillas de categoría estén marcadas.</p>`;
+        aviso.innerHTML = `<h4>No hay registros con datos válidos para <b>${metrica.toUpperCase()}</b> en el rango seleccionado.</h4><p class="small">Comprueba que en el módulo de anillamiento hayas introducido números en esta métrica para las fechas elegidas.</p>`;
         return;
       }
 
@@ -239,7 +249,7 @@
         tarso: "Tarso (mm)"
       };
 
-      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]} (${fechaDesde} a ${fechaHasta})`;
+      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]}`;
 
       if (chartDinamicaInstance) {
         chartDinamicaInstance.destroy();
