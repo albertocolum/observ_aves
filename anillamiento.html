@@ -66,6 +66,17 @@
 
             <form id="form-anillamiento">
               <div class="section-subtitle">1. Estación y Ubicación</div>
+              
+              <!-- TIPO DE CAPTURA (OBLIGATORIO) -->
+              <div class="mb-2">
+                <label class="form-label">Tipo de Captura <span class="required-asterisk">*</span></label>
+                <select id="input-tipo-captura" class="form-select form-select-sm fw-bold text-success" required>
+                  <option value="" disabled selected>-- Selecciona tipo de registro --</option>
+                  <option value="Anillamiento">Anillamiento (Ave sin anillar)</option>
+                  <option value="Recaptura">Recaptura (Control / Ave ya anillada)</option>
+                </select>
+              </div>
+
               <div class="row g-2 mb-2">
                 <div class="col-md-7">
                   <label class="form-label">Coordenadas (Lat, Long) <span class="required-asterisk">*</span></label>
@@ -203,21 +214,18 @@
                 <thead class="table-light">
                   <tr>
                     <th>#</th>
+                    <th>Tipo</th>
                     <th>Fecha</th>
                     <th>Metálica</th>
                     <th>PVC</th>
                     <th>Especie</th>
                     <th>Edad</th>
                     <th>Ala</th>
-                    <th>P8</th>
-                    <th>Cola</th>
-                    <th>Tarso</th>
-                    <th>R5</th>
                     <th>Peso</th>
                   </tr>
                 </thead>
                 <tbody id="tabla-registros-anil">
-                  <tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
+                  <tr><td colspan="9" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -299,6 +307,13 @@
     }
 
     function guardarAnillamiento() {
+      var tipoCaptura = document.getElementById('input-tipo-captura').value;
+      if (!tipoCaptura) {
+        alert("Por favor, selecciona si es un Anillamiento o una Recaptura.");
+        document.getElementById('input-tipo-captura').focus();
+        return;
+      }
+
       var c = document.getElementById('input-coords-anil').value.split(',');
       var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
       if (isNaN(lat) || isNaN(lng)) return alert("Coordenadas no válidas.");
@@ -306,6 +321,7 @@
 
       var item = {
         id: anillamientos.reduce(function(m,a){return Math.max(m,a.id||0);},0) + 1,
+        tipoCaptura: tipoCaptura,
         fecha: document.getElementById('input-fecha-anil').value,
         localidad: document.getElementById('input-localidad-anil').value,
         metal: document.getElementById('input-metal-anil').value.trim(),
@@ -362,8 +378,9 @@
       capaAnil.clearLayers();
 
       anillamientos.forEach(r => {
-        L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: '#28a745', color: '#fff', weight: 2, fillOpacity: 0.9 })
-         .bindPopup(`<b>Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Edad EURING: ${esc(r.edad)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Tarso: ${r.tarso} mm | R5: ${r.r5} mm | Peso: ${r.peso} g`)
+        var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745"; // Amarillo para recaptura, verde para anillamiento
+        L.circleMarker([r.lat, r.lng], { radius: 8, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
+         .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>PVC: ${esc(r.pvc)}<br>Especie: ${esc(r.especie)}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Peso: ${r.peso} g`)
          .addTo(capaAnil);
       });
 
@@ -376,7 +393,7 @@
       if(!tbody) return;
 
       if (anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
@@ -398,8 +415,6 @@
       registrosPagina.forEach((r, idx) => {
         var numReal = datosOrdenados.length - (inicio + idx);
         var pesoTxt = r.peso !== "-" ? r.peso : "-";
-        var tarsoTxt = r.tarso !== "-" ? r.tarso : "-";
-        var r5Txt = r.r5 !== "-" ? r.r5 : "-";
         
         var edadTexto = r.edad;
         if (edadTexto === "1") edadTexto = "1 (Pullus)";
@@ -409,18 +424,17 @@
         else if (edadTexto === "5") edadTexto = "5 (2º año)";
         else if (edadTexto === "6") edadTexto = "6 (Adulto)";
 
+        var tipoBadge = (r.tipoCaptura === "Recaptura") ? '<span class="badge bg-warning text-dark">Recaptura</span>' : '<span class="badge bg-success">Anillamiento</span>';
+
         tbody.innerHTML += `<tr>
           <td><b>#${numReal}</b></td>
+          <td>${tipoBadge}</td>
           <td>${r.fecha}</td>
           <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
           <td><span class="badge bg-success">${esc(r.pvc)}</span></td>
           <td><i>${esc(r.especie)}</i></td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
           <td>${r.ala}</td>
-          <td>${r.p8}</td>
-          <td>${r.cola}</td>
-          <td>${tarsoTxt}</td>
-          <td>${r5Txt}</td>
           <td>${pesoTxt}</td>
         </tr>`;
       });
@@ -451,7 +465,10 @@
             if (Array.isArray(datosImportados)) {
               if (confirm(`Se han encontrado ${datosImportados.length} capturas. ¿Deseas añadirlas a tus datos existentes?`)) {
                 anillamientos = anillamientos.concat(datosImportados);
-                anillamientos.forEach((item, index) => item.id = index + 1);
+                anillamientos.forEach((item, index) => {
+                  item.id = index + 1;
+                  if (!item.tipoCaptura) item.tipoCaptura = "Anillamiento"; // Valor por defecto si viene de un JSON antiguo
+                });
                 localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
                 paginaActual = 1;
                 renderizarAnillamientos();
@@ -471,6 +488,7 @@
             var separador = lineas[0].includes(';') ? ';' : ',';
             var cabeceras = lineas[0].split(separador).map(h => h.trim().replace(/^[\ufeff"]+|["']+$/g, '').toLowerCase());
 
+            var idxTipo = cabeceras.findIndex(h => h.includes('tipo') || h.includes('captura'));
             var idxFecha = cabeceras.findIndex(h => h.includes('fecha'));
             var idxLugar = cabeceras.findIndex(h => h.includes('lugar') || h.includes('estacion'));
             var idxMetal = cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla'));
@@ -499,6 +517,7 @@
 
               var item = {
                 id: 0,
+                tipoCaptura: (idxTipo !== -1 && cols[idxTipo]) ? cols[idxTipo] : "Anillamiento",
                 fecha: (idxFecha !== -1 && cols[idxFecha]) ? cols[idxFecha] : new Date().toISOString().slice(0,10),
                 localidad: (idxLugar !== -1 && cols[idxLugar]) ? cols[idxLugar] : "Estación de Anillamiento",
                 metal: (idxMetal !== -1 && cols[idxMetal]) ? cols[idxMetal] : (cols[3] || "S/N"),
@@ -546,15 +565,15 @@
     /* --- EXPORTACIÓN EXCEL / CSV Y KML --- */
     function exportarExcelAnil() {
       if (!anillamientos.length) return alert("Sin datos.");
-      var h = "ID;Fecha;Lugar;Metal;PVC;Especie;Edad EURING;Sexo;Ala Max(mm);P8(mm);Cola(mm);Tarso(mm);R5;Peso(g);Grasa;Anillador;Lat;Lng\n";
-      var r = anillamientos.map(a => `${a.id};"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
+      var h = "ID;TipoCaptura;Fecha;Lugar;Metal;PVC;Especie;Edad EURING;Sexo;Ala Max(mm);P8(mm);Cola(mm);Tarso(mm);R5;Peso(g);Grasa;Anillador;Lat;Lng\n";
+      var r = anillamientos.map(a => `${a.id};"${a.tipoCaptura || 'Anillamiento'}";"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
       link.download = "anillamiento_biometria_excel.csv"; link.click();
     }
 
     function exportarKMLAnil() {
       if (!anillamientos.length) return alert("Sin datos.");
-      var kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Anillamiento</name>${anillamientos.map(a => `<Placemark><name>${a.metal} (${a.especie})</name><Point><coordinates>${a.lng},${a.lat},0</coordinates></Point></Placemark>`).join("")}</Document></kml>`;
+      var kml = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Anillamiento</name>${anillamientos.map(a => `<Placemark><name>[${a.tipoCaptura || 'Anillamiento'}] ${a.metal} (${a.especie})</name><Point><coordinates>${a.lng},${a.lat},0</coordinates></Point></Placemark>`).join("")}</Document></kml>`;
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' }));
       link.download = "anillamientos_estacion.kml"; link.click();
     }
