@@ -136,13 +136,8 @@
     window.onload = function() {
       if (anillamientos.length > 0) {
         anillamientos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-        // Autocompletar fechas con los límites reales de los datos almacenados
         document.getElementById('filtro-desde').value = anillamientos[0].fecha;
         document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
-      } else {
-        var hoy = new Date().toISOString().slice(0,10);
-        document.getElementById('filtro-desde').value = "2024-01-01";
-        document.getElementById('filtro-hasta').value = hoy;
       }
     };
 
@@ -150,6 +145,9 @@
       if (anillamientos.length > 0) {
         document.getElementById('filtro-desde').value = anillamientos[0].fecha;
         document.getElementById('filtro-hasta').value = anillamientos[anillamientos.length - 1].fecha;
+      } else {
+        document.getElementById('filtro-desde').value = "";
+        document.getElementById('filtro-hasta').value = "";
       }
       document.getElementById('filtro-metrica').value = "";
       
@@ -163,8 +161,8 @@
     }
 
     function actualizarGrafica() {
-      var fechaDesde = document.getElementById('filtro-desde').value;
-      var fechaHasta = document.getElementById('filtro-hasta').value;
+      var fechaDesdeVal = document.getElementById('filtro-desde').value;
+      var fechaHastaVal = document.getElementById('filtro-hasta').value;
       var metrica = document.getElementById('filtro-metrica').value;
 
       var aceptarMacho = document.getElementById('chk-macho').checked;
@@ -182,21 +180,29 @@
         return;
       }
 
+      // Convertir fechas de filtro a objetos Date (ignorando horas para comparar solo días)
+      var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
+      var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
+      if (dDesde) dDesde.setHours(0,0,0,0);
+      if (dHasta) dHasta.setHours(23,59,59,999);
+
       var datosFiltrados = anillamientos.filter(item => {
         if (!item.fecha) return false;
         
-        // Filtrado por fecha opcional si están completas
-        if (fechaDesde && item.fecha < fechaDesde) return false;
-        if (fechaHasta && item.fecha > fechaHasta) return false;
+        // Convertir la fecha del registro de forma robusta
+        var dItem = new Date(item.fecha);
+        dItem.setHours(12,0,0,0); // Evita desfases horarios
+
+        if (dDesde && dItem < dDesde) return false;
+        if (dHasta && dItem > dHasta) return false;
         
         var esPollo = (String(item.edad) === "1");
         var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
         
         var esMacho = (sexoItem === "m" || sexoItem === "macho");
         var esHembra = (sexoItem === "f" || sexoItem === "hembra");
-        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?" || sexoItem === "desconocido (?)" || sexoItem === "desconocido");
+        var esDesc = (!sexoItem || sexoItem === "desconocido" || sexoItem === "?" || sexoItem === "desconocido");
 
-        // Si todas las casillas están marcadas o ninguna, permitimos todo para evitar bloqueos
         var todoMarcado = (aceptarMacho && aceptarHembra && aceptarPollo && aceptarDesconocido);
         var todoDesmarcado = (!aceptarMacho && !aceptarHembra && !aceptarPollo && !aceptarDesconocido);
 
@@ -211,7 +217,6 @@
           if (!cumpleFiltro) return false;
         }
 
-        // Validar que la métrica contenga un valor numérico válido mayor que 0
         var valorStr = String(item[metrica] || "").replace(',', '.');
         var val = parseFloat(valorStr);
         return !isNaN(val) && val > 0;
@@ -220,7 +225,7 @@
       if (datosFiltrados.length === 0) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>No hay registros con datos válidos para <b>${metrica.toUpperCase()}</b> en el rango seleccionado.</h4><p class="small">Comprueba que en el módulo de anillamiento hayas introducido números en esta métrica para las fechas elegidas.</p>`;
+        aviso.innerHTML = `<h4>No hay registros con datos válidos para <b>${metrica.toUpperCase()}</b> en el rango de fechas seleccionado.</h4><p class="small">Prueba a ampliar el intervalo de fechas o comprobar que existan datos guardados.</p>`;
         return;
       }
 
