@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estadísticas y Gráficas por Meses - Tracking Ornitológico</title>
+  <title>Estadísticas y Gráficas Fenológicas - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -20,8 +20,8 @@
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Gráfica Fenológica y Biométrica por Meses</h2>
-          <p class="text-muted mb-0">Análisis estacional agrupado por meses, con desglose por sexo/edad y criterios R5.</p>
+          <h2 class="fw-bold text-success mb-1">📊 Gráfica Fenológica Global por Meses</h2>
+          <p class="text-muted mb-0">Ciclo estacional de Enero a Diciembre (agrupando todos los años), con desglose por sexo/edad y criterios R5.</p>
         </div>
         <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
       </div>
@@ -91,7 +91,7 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales y ver su evolución estacional.</p>
+        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
@@ -132,7 +132,7 @@
         <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
         <div class="card p-3 shadow-sm border-0 bg-light">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Mensual</h6>
+            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Ciclo Fenológico Mensual</h6>
             <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica</button>
           </div>
           <div style="height: 400px; position: relative;">
@@ -196,14 +196,14 @@
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las medias mensuales y ver su evolución estacional.</p>`;
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las medias mensuales globales y ver su ciclo estacional.</p>`;
     }
 
     function descargarGrafica() {
       if (!chartDinamicaInstance) return alert("No hay ninguna gráfica generada para descargar.");
       var enlace = document.createElement('a');
       enlace.href = chartDinamicaInstance.toBase64Image();
-      enlace.download = 'grafica_mensual_ornitologica.png';
+      enlace.download = 'grafica_ciclo_mensual_ornitologico.png';
       enlace.click();
     }
 
@@ -330,7 +330,7 @@
       document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
       document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
 
-      // Meses ordenados de Enero a Diciembre que tengan al menos algún registro analizado
+      // Obtener meses únicos con datos ordenados cronológicamente (Enero a Diciembre)
       var mesesConDatosIndices = [...new Set(datosProcesados.map(d => d.mesIndex))].sort((a, b) => a - b);
       var etiquetasMeses = mesesConDatosIndices.map(idx => nombresMeses[idx]);
 
@@ -347,7 +347,6 @@
       categoriasActivas.forEach(cat => {
         var itemsCat = datosProcesados.filter(d => d.categoria === cat);
         if (itemsCat.length > 0) {
-          // Calcular la media mensual para cada mes presente
           var dataMediasMensuales = mesesConDatosIndices.map(mIdx => {
             var itemsMes = itemsCat.filter(d => d.mesIndex === mIdx);
             if (itemsMes.length === 0) return null;
@@ -378,7 +377,7 @@
         tarso: "Tarso Medio (mm)"
       };
 
-      document.getElementById('titulo-grafica').innerText = `Evolución Mensual de ${nombresMetricas[metrica]}`;
+      document.getElementById('titulo-grafica').innerText = `Ciclo Fenológico Mensual de ${nombresMetricas[metrica]}`;
 
       if (chartDinamicaInstance) {
         chartDinamicaInstance.destroy();
