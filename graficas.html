@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estadísticas y Gráficas Dinámicas - Tracking Ornitológico</title>
+  <title>Estadísticas y Gráficas por Meses - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -20,8 +20,8 @@
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Gráfica Biométrica y Criterios R5</h2>
-          <p class="text-muted mb-0">Selecciona fechas, métrica biométrica (con clasificación automática Adulto/Joven para R5), filtra y descarga tus gráficas.</p>
+          <h2 class="fw-bold text-success mb-1">📊 Gráfica Fenológica y Biométrica por Meses</h2>
+          <p class="text-muted mb-0">Análisis estacional agrupado por meses, con desglose por sexo/edad y criterios R5.</p>
         </div>
         <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
       </div>
@@ -91,7 +91,7 @@
       <!-- MENSAJE INICIAL / SIN DATOS -->
       <div id="sin-datos-aviso" class="text-center py-5 text-muted">
         <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las líneas comparativas, calcular medias y descargar la gráfica.</p>
+        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales y ver su evolución estacional.</p>
       </div>
 
       <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
@@ -132,7 +132,7 @@
         <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
         <div class="card p-3 shadow-sm border-0 bg-light">
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Biométrica</h6>
+            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Evolución Mensual</h6>
             <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica</button>
           </div>
           <div style="height: 400px; position: relative;">
@@ -149,6 +149,8 @@
   <script>
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
     var chartDinamicaInstance = null;
+
+    const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
     function parsearFecha(strFecha) {
       if (!strFecha) return null;
@@ -194,14 +196,14 @@
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las líneas comparativas y ver sus estadísticas.</p>`;
+      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las medias mensuales y ver su evolución estacional.</p>`;
     }
 
     function descargarGrafica() {
       if (!chartDinamicaInstance) return alert("No hay ninguna gráfica generada para descargar.");
       var enlace = document.createElement('a');
       enlace.href = chartDinamicaInstance.toBase64Image();
-      enlace.download = 'grafica_biometria_ornitologica.png';
+      enlace.download = 'grafica_mensual_ornitologica.png';
       enlace.click();
     }
 
@@ -237,7 +239,6 @@
       anillamientos.forEach(item => {
         var dItem = parsearFecha(item.fecha);
         if (!dItem) return;
-        dItem.setHours(12,0,0,0);
 
         if (dDesde && dItem < dDesde) return;
         if (dHasta && dItem > dHasta) return;
@@ -251,7 +252,6 @@
         var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
 
         if (metrica === "r5") {
-          // Criterio específico R5: <= 19 joven, >= 19.1 adulto
           if (val <= 19.0) {
             categoria = "Joven";
           } else if (val >= 19.1) {
@@ -274,10 +274,11 @@
         if (categoria === "Adulto" && !aceptarAdulto) return;
         if (categoria === "Desconocido" && !aceptarDesconocido) return;
 
+        var mesIndex = dItem.getMonth(); // 0 = Enero, 11 = Diciembre
+
         datosProcesados.push({
-          fechaObj: dItem,
-          fechaStr: item.fecha,
-          metal: item.metal || 'S/N',
+          mesIndex: mesIndex,
+          mesNombre: nombresMeses[mesIndex],
           valor: val,
           categoria: categoria
         });
@@ -292,10 +293,6 @@
 
       contenedor.style.display = 'block';
       aviso.style.display = 'none';
-
-      datosProcesados.sort((a, b) => a.fechaObj - b.fechaObj);
-
-      var fechasUnicas = [...new Set(datosProcesados.map(d => d.fechaStr))];
 
       var todosValores = datosProcesados.map(d => d.valor);
       var mediaGlobal = (todosValores.reduce((a, b) => a + b, 0) / todosValores.length).toFixed(1);
@@ -333,6 +330,10 @@
       document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
       document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
 
+      // Meses ordenados de Enero a Diciembre que tengan al menos algún registro analizado
+      var mesesConDatosIndices = [...new Set(datosProcesados.map(d => d.mesIndex))].sort((a, b) => a - b);
+      var etiquetasMeses = mesesConDatosIndices.map(idx => nombresMeses[idx]);
+
       var configuracionCat = {
         "Macho": { color: "#007bff", bg: "rgba(0, 123, 255, 0.1)" },
         "Hembra": { color: "#e83e8c", bg: "rgba(232, 62, 140, 0.1)" },
@@ -346,35 +347,38 @@
       categoriasActivas.forEach(cat => {
         var itemsCat = datosProcesados.filter(d => d.categoria === cat);
         if (itemsCat.length > 0) {
-          var dataPuntos = fechasUnicas.map(fStr => {
-            var encontrado = itemsCat.find(d => d.fechaStr === fStr);
-            return encontrado ? encontrado.valor : null;
+          // Calcular la media mensual para cada mes presente
+          var dataMediasMensuales = mesesConDatosIndices.map(mIdx => {
+            var itemsMes = itemsCat.filter(d => d.mesIndex === mIdx);
+            if (itemsMes.length === 0) return null;
+            var sum = itemsMes.reduce((acc, curr) => acc + curr.valor, 0);
+            return parseFloat((sum / itemsMes.length).toFixed(1));
           });
 
           datasets.push({
-            label: `${cat} (Media: ${(itemsCat.reduce((a,b)=>a+b.valor,0)/itemsCat.length).toFixed(1)})`,
-            data: dataPuntos,
+            label: `${cat} (Media Gen: ${(itemsCat.reduce((a,b)=>a+b.valor,0)/itemsCat.length).toFixed(1)})`,
+            data: dataMediasMensuales,
             borderColor: configuracionCat[cat].color,
             backgroundColor: configuracionCat[cat].bg,
-            borderWidth: 2,
-            pointRadius: 5,
+            borderWidth: 2.5,
+            pointRadius: 6,
             pointBackgroundColor: configuracionCat[cat].color,
             fill: false,
-            tension: 0.1,
+            tension: 0.2,
             spanGaps: true
           });
         }
       });
 
       var nombresMetricas = {
-        peso: "Masa / Peso (g)",
-        ala: "Ala Máx (mm)",
-        cola: "Cola (mm)",
-        r5: "R5 (mm) [Joven ≤19 / Adulto ≥19.1]",
-        tarso: "Tarso (mm)"
+        peso: "Masa / Peso Medio (g)",
+        ala: "Ala Máx Media (mm)",
+        cola: "Cola Media (mm)",
+        r5: "R5 Media (mm) [Joven ≤19 / Adulto ≥19.1]",
+        tarso: "Tarso Medio (mm)"
       };
 
-      document.getElementById('titulo-grafica').innerText = `Evolución de ${nombresMetricas[metrica]}`;
+      document.getElementById('titulo-grafica').innerText = `Evolución Mensual de ${nombresMetricas[metrica]}`;
 
       if (chartDinamicaInstance) {
         chartDinamicaInstance.destroy();
@@ -384,7 +388,7 @@
       chartDinamicaInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: fechasUnicas,
+          labels: etiquetasMeses,
           datasets: datasets
         },
         options: {
@@ -398,7 +402,7 @@
               title: { display: true, text: nombresMetricas[metrica] }
             },
             x: {
-              title: { display: true, text: 'Fechas de Captura' }
+              title: { display: true, text: 'Meses del Año' }
             }
           }
         }
