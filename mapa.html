@@ -19,7 +19,7 @@
       <h4 class="fw-bold text-success mb-0">🌍 Mapa General de Anillamiento y Capturas</h4>
       <div class="d-flex align-items-center gap-2">
         <label class="form-label mb-0 fw-semibold small">Año:</label>
-        <select id="filtro-ano" class="form-select form-select-sm fw-bold text-primary" style="width: 130px;" onchange="filtrarYRenderizarMapa()">
+        <select id="filtro-ano" class="form-select form-select-sm fw-bold text-primary" style="width: 140px;" onchange="filtrarYRenderizarMapa()">
           <option value="todos">Todos los años</option>
         </select>
       </div>
@@ -38,38 +38,28 @@
     var capaMarcadores;
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
 
-    // Función robusta para extraer el año independientemente del formato de fecha (YYYY-MM-DD o DD/MM/YYYY)
     function extraerAnio(strFecha) {
       if (!strFecha) return null;
       strFecha = String(strFecha).trim();
       
-      // Si tiene formato YYYY-MM-DD
       if (strFecha.includes('-')) {
         var partes = strFecha.split('-');
-        if (partes.length >= 1 && partes[0].length === 4) {
-          return partes[0];
-        }
+        if (partes.length >= 1 && partes[0].length === 4) return partes[0];
       }
-      
-      // Si tiene formato DD/MM/YYYY
       if (strFecha.includes('/')) {
         var partes = strFecha.split('/');
-        if (partes.length === 3) {
-          return partes[2];
-        }
+        if (partes.length === 3) return partes[2];
       }
-
-      // Intentar extraer con Date por si acaso
       var d = new Date(strFecha);
       return !isNaN(d.getFullYear()) ? String(d.getFullYear()) : null;
     }
 
     function inicializarMapa() {
-      map = L.map('mapa-contenedor').setView([39.7709, -0.1840], 11);
+      map = L.map('mapa-contenedor').setView([39.7709, -0.1840], 9);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
       capaMarcadores = L.layerGroup().addTo(map);
 
-      // Poblar desplegable de años con los datos disponibles
+      // Extraer años únicos de forma limpia
       var anosSet = new Set();
       anillamientos.forEach(item => {
         var anio = extraerAnio(item.fecha);
@@ -77,8 +67,10 @@
       });
 
       var selectAnio = document.getElementById('filtro-ano');
-      var anosArray = Array.from(anosSet).sort().reverse();
+      // Limpiar opciones previas por seguridad y dejar la opción por defecto
+      selectAnio.innerHTML = '<option value="todos">Todos los años</option>';
       
+      var anosArray = Array.from(anosSet).sort().reverse();
       anosArray.forEach(anio => {
         var opt = document.createElement('option');
         opt.value = anio;
@@ -97,20 +89,22 @@
 
       var anoSeleccionado = document.getElementById('filtro-ano').value;
       var puntosVisibles = 0;
+      var bounds = [];
 
       anillamientos.forEach(r => {
         var anioR = extraerAnio(r.fecha);
         
-        // Si hay un año seleccionado y no coincide, lo saltamos
+        // Filtrar si se ha seleccionado un año específico
         if (anoSeleccionado !== "todos" && anioR !== anoSeleccionado) return;
 
-        puntosVisibles++;
-        var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745"; // Amarillo recaptura, verde anillamiento
-
-        // Validar que las coordenadas sean numéricas válidas
         var lat = parseFloat(r.lat);
         var lng = parseFloat(r.lng);
         if (isNaN(lat) || isNaN(lng)) return;
+
+        puntosVisibles++;
+        bounds.push([lat, lng]);
+
+        var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745";
 
         L.circleMarker([lat, lng], { radius: 9, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
          .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>Especie: <i>${esc(r.especie)}</i><br>Fecha: ${r.fecha}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Peso: ${r.peso} g`)
@@ -118,6 +112,11 @@
       });
 
       document.getElementById('contador-puntos').innerText = `${puntosVisibles} registros`;
+
+      // Ajustar el zoom automáticamente a los puntos filtrados si los hay
+      if (bounds.length > 0 && anoSeleccionado !== "todos") {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+      }
     }
 
     window.onload = function() {
