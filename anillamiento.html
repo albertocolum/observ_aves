@@ -375,21 +375,80 @@
       var file = event.target.files[0];
       if (!file) return;
       var reader = new FileReader();
+      
       reader.onload = function(e) {
+        var contenido = e.target.result;
         try {
-          var datos = JSON.parse(e.target.result);
-          if (Array.isArray(datos)) {
-            if (confirm(`¿Añadir ${datos.length} registros?`)) {
-              anillamientos = anillamientos.concat(datos);
-              anillamientos.forEach((item, i) => item.id = i + 1);
+          var datosImportados = [];
+
+          if (file.name.endsWith('.json') || contenido.trim().startsWith('[')) {
+            datosImportados = JSON.parse(contenido);
+          } else {
+            var lineas = contenido.split(/\r\n|\n/);
+            if (lineas.length < 2) throw new Error("El archivo CSV está vacío o no tiene formato válido.");
+            
+            var cabecera = lineas[0];
+            var separador = cabecera.includes(';') ? ';' : ',';
+            var headers = cabecera.split(separador).map(h => h.replace(/"/g, '').trim());
+
+            for (var i = 1; i < lineas.length; i++) {
+              var linea = lineas[i].trim();
+              if (!linea) continue;
+
+              var valores = linea.split(separador);
+              var obj = {};
+              headers.forEach((h, index) => {
+                var val = valores[index] !== undefined ? valores[index].trim() : "";
+                if (val.startsWith('"') && val.endsWith('"')) {
+                  val = val.substring(1, val.length - 1);
+                }
+                obj[h] = val;
+              });
+
+              var registro = {
+                id: parseInt(obj['ID'] || obj['\ufeffID'] || (i)),
+                tipoCaptura: obj['TipoCaptura'] || 'Anillamiento',
+                fecha: obj['Fecha'] || '',
+                localidad: obj['Lugar'] || '',
+                metal: obj['Metal'] || '',
+                pvc: obj['PVC'] || '-',
+                especie: obj['Especie'] || 'Falco tinnunculus',
+                edad: String(obj['Edad EURING'] || obj['Edad'] || '3'),
+                sexo: obj['Sexo'] || 'Desconocido',
+                ala: obj['Ala Max(mm)'] || obj['ala'] || '-',
+                p8: obj['P8(mm)'] || obj['p8'] || '-',
+                cola: obj['Cola(mm)'] || obj['cola'] || '-',
+                tarso: obj['Tarso(mm)'] || obj['tarso'] || '-',
+                r5: obj['R5'] || obj['r5'] || '-',
+                peso: obj['Peso(g)'] || obj['peso'] || '-',
+                grasa: obj['Grasa'] || obj['grasa'] || '-',
+                anillador: obj['Anillador'] || 'Alberto de la Rosa',
+                lat: parseFloat(obj['Lat']) || 39.7709,
+                lng: parseFloat(obj['Lng']) || -0.1840
+              };
+
+              datosImportados.push(registro);
+            }
+          }
+
+          if (Array.isArray(datosImportados) && datosImportados.length > 0) {
+            if (confirm(`¿Deseas importar y añadir ${datosImportados.length} registros a la base de datos?`)) {
+              anillamientos = anillamientos.concat(datosImportados);
+              anillamientos.forEach((item, idx) => item.id = idx + 1);
               localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
               paginaActual = 1;
               renderizarTablaPaginada();
-              alert("¡Importado con éxito!");
+              alert("¡Archivo importado con éxito!");
             }
+          } else {
+            alert("No se han encontrado registros válidos en el archivo.");
           }
-        } catch (err) { alert("Error al importar: " + err.message); }
+        } catch (err) { 
+          alert("Error al procesar el archivo: " + err.message); 
+          console.error(err);
+        }
       };
+      
       reader.readAsText(file);
     }
 
