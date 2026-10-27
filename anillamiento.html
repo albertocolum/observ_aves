@@ -91,8 +91,8 @@
               <div class="col-md-6">
                 <label class="form-label">Especie <span class="required-asterisk">*</span></label>
                 <select id="input-especie-anil" class="form-select form-select-sm" required>
-                  <option value="Tyto alba" selected>Lechuza común (Tyto alba)</option>
-                  <option value="Falco tinnunculus">Cernícalo vulgar (Falco tinnunculus)</option>
+                  <option value="Tyto alba">Lechuza común (Tyto alba)</option>
+                  <option value="Falco tinnunculus" selected>Cernícalo vulgar (Falco tinnunculus)</option>
                   <option value="Athene noctua">Mochuelo europeo (Athene noctua)</option>
                   <option value="Otus scops">Autillo europeo (Otus scops)</option>
                   <option value="Asio otus">Búho chico (Asio otus)</option>
@@ -176,7 +176,8 @@
               <small class="text-muted">Base de datos de anillamiento científico</small>
             </div>
             <div class="btn-group">
-              <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Ver Mapa</a>
+              <a href="nidos.html" class="btn btn-outline-success btn-sm">🪹 Nidos</a>
+              <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
               <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoAnil()" title="Borrar último registro">🗑️</button>
               <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodoAnil()" title="Vaciar base local">⚠️ Vaciar</button>
               <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('input-file-json').click()" title="Cargar JSON o CSV">📥 Importar</button>
@@ -462,7 +463,18 @@
 
     window.onload = function() {
       renderizarTablaPaginada();
-      obtenerLocalidad(39.7709, -0.1840, 'input-localidad-anil');
+      
+      // Comprobar si hay un preset enviado desde el módulo de Nidos para anillar pullus
+      var presetNidada = JSON.parse(localStorage.getItem("preset_anillamiento_nidada"));
+      if (presetNidada) {
+        document.getElementById('input-especie-anil').value = presetNidada.especie || 'Falco tinnunculus';
+        document.getElementById('input-coords-anil').value = `${presetNidada.lat}, ${presetNidada.lng}`;
+        document.getElementById('input-localidad-anil').value = presetNidada.localidad || '';
+        document.getElementById('input-edad-anil').value = "1"; // Pullus (EURING 1)
+        localStorage.removeItem("preset_anillamiento_nidada");
+      } else {
+        obtenerLocalidad(39.7709, -0.1840, 'input-localidad-anil');
+      }
     };
   </script>
 </body>

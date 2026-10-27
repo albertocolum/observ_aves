@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Nidos y Puestas - Tracking Ornitológico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .main-container { max-width: 1400px; margin: 25px auto; }
+    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 22px; margin-bottom: 20px; }
+    .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-size: 1.2rem; }
+    .section-subtitle { font-size: 0.8rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; margin-bottom: 8px; }
+    .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
+    #mapa-nido-preliminar { height: 220px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; }
+    .table-history { font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+  <div class="container main-container">
+    
+    <!-- CABECERA DE MÓDULO -->
+    <div class="card-panel">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h4 class="fw-bold text-success mb-1">🪹 Control y Monitorización de Nidos / Cajas Nido</h4>
+          <small class="text-muted">Seguimiento de ocupación, puestas, fenología y éxito reproductor</small>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Ver Mapa</a>
+          <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Volver al Inicio</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      
+      <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / EDICIÓN -->
+      <div class="col-lg-5">
+        <div class="card-panel">
+          <h4 class="form-title">Registrar / Inspeccionar Nido</h4>
+          
+          <form id="form-nido">
+            <div class="section-subtitle">1. Ubicación e Identificación</div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-5">
+                <label class="form-label">Código Nido *</label>
+                <input type="text" id="input-codigo-nido" class="form-control form-control-sm fw-bold text-primary" placeholder="Ej: CN-FALTIN-01" required>
+              </div>
+              <div class="col-md-7">
+                <label class="form-label">Especie Principal *</label>
+                <select id="input-especie-nido" class="form-select form-select-sm" required>
+                  <option value="Falco tinnunculus" selected>Cernícalo vulgar (Falco tinnunculus)</option>
+                  <option value="Tyto alba">Lechuza común (Tyto alba)</option>
+                  <option value="Athene noctua">Mochuelo europeo (Athene noctua)</option>
+                  <option value="Otus scops">Autillo europeo (Otus scops)</option>
+                  <option value="Otra">Otra especie / Sin ocupar</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-2">
+              <div class="col-md-7">
+                <label class="form-label">Coordenadas (Lat, Lng) *</label>
+                <input type="text" id="input-coords-nido" class="form-control form-control-sm" value="40.1831, 0.0225" onchange="actualizarMapaFormulario()" required>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label">Tipo Estructura</label>
+                <select id="input-tipo-estructura" class="form-select form-select-sm">
+                  <option value="Caja Nido Madera">Caja Nido (Madera)</option>
+                  <option value="Caja Nido Hormigón">Caja Nido (Hormigón/Piedra)</option>
+                  <option value="Nido Natural Árbol">Nido Natural (Árbol)</option>
+                  <option value="Nidificación Edificio">Edificación / Masía</option>
+                  <option value="Cortado / Roquedo">Cortado / Roquedo</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Localidad / Paraje *</label>
+              <input type="text" id="input-lugar-nido" class="form-control form-control-sm" placeholder="Ej: Vall d'Alba / Masía de San Juan" required>
+            </div>
+
+            <div id="mapa-nido-preliminar"></div>
+
+            <div class="section-subtitle">2. Control de Reproducción (Temporada)</div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-4">
+                <label class="form-label">Año / Temporada</label>
+                <input type="number" id="input-temp-nido" class="form-control form-control-sm fw-bold" value="2026">
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">Estado de Ocupación</label>
+                <select id="input-estado-nido" class="form-select form-select-sm fw-bold text-success">
+                  <option value="Ocupado con Huevos">🥚 Ocupado (Incubando Puesta)</option>
+                  <option value="Ocupado con Pollos">🐣 Ocupado (Pollos en Nido)</option>
+                  <option value="Volantones Éxito">🦅 Éxito (Pollos Volados)</option>
+                  <option value="Desocupado">⚪ Desocupado / Vacío</option>
+                  <option value="Depredado / Fracaso">⚠️ Fracaso / Depredado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-2">
+              <div class="col-md-3">
+                <label class="form-label">Huevos</label>
+                <input type="number" id="input-huevos-nido" class="form-control form-control-sm" value="0">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Nacidos</label>
+                <input type="number" id="input-nacidos-nido" class="form-control form-control-sm" value="0">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Volados</label>
+                <input type="number" id="input-volados-nido" class="form-control form-control-sm" value="0">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Anillados</label>
+                <input type="number" id="input-anillados-nido" class="form-control form-control-sm" value="0">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Observaciones / Anillas Asignadas</label>
+              <textarea id="input-obs-nido" class="form-control form-control-sm" rows="2" placeholder="Notas sobre la inspección o anillas aplicadas..."></textarea>
+            </div>
+
+            <button type="button" class="btn btn-success w-100 fw-bold mt-2" onclick="guardarNido()">
+              💾 Guardar Registro de Nido
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- COLUMNA DERECHA: HISTORIAL Y LISTADO DE NIDOS -->
+      <div class="col-lg-7">
+        <div class="card-panel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="form-title mb-1" style="border:none; padding:0;">Inventario y Seguimiento de Nidos</h4>
+              <small class="text-muted">Cajas registradas y fenología de cría</small>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-outline-secondary btn-sm" onclick="exportarNidosCSV()">📊 Exportar CSV</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="vaciarNidos()" title="Borrar todo">⚠️ Vaciar</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-history">
+              <thead class="table-light">
+                <tr>
+                  <th>Código</th>
+                  <th>Especie</th>
+                  <th>Lugar</th>
+                  <th>Estado</th>
+                  <th>H / N / V</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-nidos">
+                <tr><td colspan="6" class="text-center text-muted py-3">No hay nidos registrados todavía.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    var nidos = JSON.parse(localStorage.getItem("ornito_nidos_data")) || [];
+    var mapForm;
+    var markerForm;
+
+    function initMapaForm() {
+      mapForm = L.map('mapa-nido-preliminar').setView([40.1831, 0.0225], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapForm);
+      markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
+      
+      markerForm.on('dragend', function(e) {
+        var coord = markerForm.getLatLng();
+        document.getElementById('input-coords-nido').value = `${coord.lat.toFixed(4)}, ${coord.lng.toFixed(4)}`;
+      });
+    }
+
+    function actualizarMapaFormulario() {
+      var parts = document.getElementById('input-coords-nido').value.split(',');
+      if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
+        var lat = parseFloat(parts[0]), lng = parseFloat(parts[1]);
+        markerForm.setLatLng([lat, lng]);
+        mapForm.panTo([lat, lng]);
+      }
+    }
+
+    function guardarNido() {
+      var codigo = document.getElementById('input-codigo-nido').value.trim();
+      var lugar = document.getElementById('input-lugar-nido').value.trim();
+      if (!codigo || !lugar) return alert("Rellena el código del nido y la localidad.");
+
+      var parts = document.getElementById('input-coords-nido').value.split(',');
+      var lat = parseFloat(parts[0]) || 40.1831;
+      var lng = parseFloat(parts[1]) || 0.0225;
+
+      var nidoObj = {
+        id: codigo,
+        especie: document.getElementById('input-especie-nido').value,
+        lat: lat,
+        lng: lng,
+        estructura: document.getElementById('input-tipo-estructura').value,
+        lugar: lugar,
+        temporada: document.getElementById('input-temp-nido').value,
+        estado: document.getElementById('input-estado-nido').value,
+        huevos: parseInt(document.getElementById('input-huevos-nido').value) || 0,
+        nacidos: parseInt(document.getElementById('input-nacidos-nido').value) || 0,
+        volados: parseInt(document.getElementById('input-volados-nido').value) || 0,
+        anillados: parseInt(document.getElementById('input-anillados-nido').value) || 0,
+        obs: document.getElementById('input-obs-nido').value
+      };
+
+      var idx = nidos.findIndex(n => n.id === codigo);
+      if (idx >= 0) {
+        nidos[idx] = nidoObj;
+      } else {
+        nidos.push(nidoObj);
+      }
+
+      localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+      renderTablaNidos();
+      alert("¡Nido registrado correctamente!");
+    }
+
+    function renderTablaNidos() {
+      var tbody = document.getElementById('tabla-nidos');
+      if (!tbody) return;
+
+      if (nidos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No hay nidos registrados todavía.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      nidos.forEach(n => {
+        var badgeColor = n.estado.includes('Pollos') ? 'bg-primary' : (n.estado.includes('Éxito') ? 'bg-success' : (n.estado.includes('Huevos') ? 'bg-warning text-dark' : 'bg-secondary'));
+        
+        tbody.innerHTML += `<tr>
+          <td><b class="text-primary">${n.id}</b></td>
+          <td><i>${n.especie}</i></td>
+          <td>${n.lugar}</td>
+          <td><span class="badge ${badgeColor}">${n.estado}</span></td>
+          <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V</td>
+          <td>
+            <button class="btn btn-sm btn-outline-success py-0 px-2" onclick="anillarNidada Directa('${n.id}')" title="Anillar Pollos">Anillar Nidada 🐣</button>
+          </td>
+        </tr>`;
+      });
+    }
+
+    function anillarNidadaDirecta(codigoNido) {
+      var n = nidos.find(x => x.id === codigoNido);
+      if (!n) return;
+      
+      // Guardar preset para que la página de anillamiento cargue los datos automáticos
+      var preset = {
+        especie: n.especie,
+        lat: n.lat,
+        lng: n.lng,
+        localidad: n.lugar,
+        edad: "1" // Pullus (EURING 1)
+      };
+      localStorage.setItem("preset_anillamiento_nidada", JSON.stringify(preset));
+      window.location.href = "anillamiento.html";
+    }
+
+    function vaciarNidos() {
+      if (confirm("¿Seguro que quieres borrar todos los registros de nidos?")) {
+        nidos = [];
+        localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+        renderTablaNidos();
+      }
+    }
+
+    function exportarNidosCSV() {
+      if (!nidos.length) return alert("Sin datos.");
+      var h = "Codigo;Especie;Estructura;Lugar;Temporada;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs\n";
+      var r = nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
+      var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
+      link.download = "seguimiento_nidos_cernicalo.csv"; link.click();
+    }
+
+    window.onload = function() {
+      initMapaForm();
+      renderTablaNidos();
+    };
+  </script>
+</body>
+</html>
