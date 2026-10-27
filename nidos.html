@@ -13,7 +13,7 @@
     .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-size: 1.2rem; }
     .section-subtitle { font-size: 0.8rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; margin-bottom: 8px; }
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
-    #mapa-nido-preliminar { height: 220px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; }
+    #mapa-nido-preliminar { height: 200px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; }
     .table-history { font-size: 0.8rem; }
   </style>
 </head>
@@ -37,10 +37,14 @@
 
     <div class="row g-4">
       
-      <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / EDICIÓN -->
+      <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / NUEVA VISITA -->
       <div class="col-lg-5">
         <div class="card-panel">
-          <h4 class="form-title">Registrar / Inspeccionar Nido</h4>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="form-title mb-0" style="border:none; padding:0;">Nueva Visita / Inspección</h4>
+            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="limpiarFormularioParaNuevo()" title="Limpiar formulario">🧹 Limpiar</button>
+          </div>
+          <hr class="mt-2 mb-3">
           
           <form id="form-nido">
             <div class="section-subtitle">1. Ubicación e Identificación</div>
@@ -91,7 +95,7 @@
             </div>
 
             <div class="mb-2">
-              <label class="form-label">Población / Localidad (Autocompleada) *</label>
+              <label class="form-label">Población / Localidad *</label>
               <input type="text" id="input-lugar-nido" class="form-control form-control-sm" placeholder="Se autocompletará con las coordenadas..." required>
             </div>
 
@@ -134,21 +138,22 @@
             </div>
 
             <button type="button" class="btn btn-success w-100 fw-bold mt-2" onclick="guardarNido()">
-              💾 Guardar / Actualizar Registro de Nido
+              💾 Guardar Visita / Inspección
             </button>
           </form>
         </div>
       </div>
 
-      <!-- COLUMNA DERECHA: HISTORIAL Y LISTADO DE NIDOS -->
+      <!-- COLUMNA DERECHA: HISTORIAL Y VISITAS DEL NIDO SELECCIONADO -->
       <div class="col-lg-7">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="form-title mb-1" style="border:none; padding:0;">Inventario y Seguimiento de Nidos</h4>
-              <small class="text-muted">Cajas registradas y fenología de cría</small>
+              <h4 class="form-title mb-1" style="border:none; padding:0;" id="titulo-tabla-historial">Historial General de Visitas</h4>
+              <small class="text-muted" id="subtitulo-tabla-historial">Mostrando todas las inspecciones registradas</small>
             </div>
             <div class="btn-group">
+              <button class="btn btn-outline-primary btn-sm" onclick="mostrarTodoElHistorial()" id="btn-ver-todos" style="display:none;">Ver Todos</button>
               <button class="btn btn-outline-secondary btn-sm" onclick="exportarNidosCSV()">📊 Exportar CSV</button>
               <button class="btn btn-outline-danger btn-sm" onclick="vaciarNidos()" title="Borrar todo">⚠️ Vaciar</button>
             </div>
@@ -184,8 +189,8 @@
     var mapForm;
     var markerForm;
     var modoCreacionNuevo = false;
+    var nidoSeleccionadoFiltro = null; // Para filtrar la tabla por nido activo
 
-    // Inicializar fecha de hoy por defecto
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
     function initMapaForm() {
@@ -201,17 +206,20 @@
 
       actualizarSelectNidos();
       obtenerPoblacionPorCoords(40.1831, 0.0225);
+      renderTablaNidos();
     }
 
     function actualizarSelectNidos() {
       var select = document.getElementById('select-codigo-nido');
       select.innerHTML = '<option value="" selected>-- ➕ Nuevo Nido (Crear código) --</option>';
       
-      // Obtener códigos únicos
-      var codigosUnicos = [...new Set(nidos.map(n => n.id))];
+      var codigosUnicos = [...new Set(nidos.map(n => n.id))].sort();
       codigosUnicos.forEach(cod => {
         select.innerHTML += `<option value="${cod}">${cod}</option>`;
       });
+      if (nidoSeleccionadoFiltro) {
+        select.value = nidoSeleccionadoFiltro;
+      }
     }
 
     function alternarModoNuevoNido() {
@@ -226,6 +234,8 @@
         input.value = '';
         input.focus();
         btn.innerText = 'Listar';
+        nidoSeleccionadoFiltro = null;
+        renderTablaNidos();
       } else {
         select.style.display = 'block';
         input.style.display = 'none';
@@ -234,26 +244,46 @@
       }
     }
 
+    function limpiarFormularioParaNuevo() {
+      modoCreacionNuevo = true;
+      alternarModoNuevoNido(); // Pone el input de texto limpio
+      document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
+      document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
+      document.getElementById('input-estado-nido').value = 'Ocupado con Huevos';
+      document.getElementById('input-huevos-nido').value = '0';
+      document.getElementById('input-nacidos-nido').value = '0';
+      document.getElementById('input-volados-nido').value = '0';
+      document.getElementById('input-anillados-nido').value = '0';
+      document.getElementById('input-obs-nido').value = '';
+      nidoSeleccionadoFiltro = null;
+      renderTablaNidos();
+    }
+
     function seleccionarNidoExistente(codigo) {
-      if (!codigo) return;
-      // Buscar el registro más reciente de este nido
-      var nido = nidos.find(n => n.id === codigo);
-      if (!nido) return;
+      if (!codigo) {
+        nidoSeleccionadoFiltro = null;
+        renderTablaNidos();
+        return;
+      }
 
-      document.getElementById('input-especie-nido').value = nido.especie || 'Falco tinnunculus';
-      document.getElementById('input-coords-nido').value = `${nido.lat}, ${nido.lng}`;
-      document.getElementById('input-tipo-estructura').value = nido.estructura || 'Caja Nido Madera';
-      document.getElementById('input-lugar-nido').value = nido.lugar || '';
-      document.getElementById('input-temp-nido').value = nido.temporada || new Date().toISOString().slice(0, 10);
-      document.getElementById('input-estado-nido').value = nido.estado || 'Desocupado';
-      document.getElementById('input-huevos-nido').value = nido.huevos || 0;
-      document.getElementById('input-nacidos-nido').value = nido.nacidos || 0;
-      document.getElementById('input-volados-nido').value = nido.volados || 0;
-      document.getElementById('input-anillados-nido').value = nido.anillados || 0;
-      document.getElementById('input-obs-nido').value = nido.obs || '';
+      nidoSeleccionadoFiltro = codigo;
+      
+      // Buscar la visita más reciente de este nido para autocompletar el formulario geográficamente
+      var visitasNido = nidos.filter(n => n.id === codigo);
+      if (visitasNido.length > 0) {
+        var ultimo = visitasNido[0]; // El más reciente
 
-      markerForm.setLatLng([nido.lat, nido.lng]);
-      mapForm.panTo([nido.lat, nido.lng]);
+        document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
+        document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
+        document.getElementById('input-tipo-estructura').value = ultimo.estructura || 'Caja Nido Madera';
+        document.getElementById('input-lugar-nido').value = ultimo.lugar || '';
+        
+        markerForm.setLatLng([ultimo.lat, ultimo.lng]);
+        mapForm.panTo([ultimo.lat, ultimo.lng]);
+      }
+
+      renderTablaNidos(); // Filtra la tabla de la derecha con las visitas de este nido
     }
 
     function obtenerPoblacionPorCoords(lat, lng) {
@@ -311,26 +341,41 @@
         obs: document.getElementById('input-obs-nido').value
       };
 
-      // Guardar en el array (permite múltiples inspecciones históricas por nido)
-      nidos.unshift(nidoObj);
+      nidos.unshift(nidoObj); // Añadir al principio
       localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
       
+      nidoSeleccionadoFiltro = codigo; // Mantener seleccionado el nido actual para ver su evolución
       actualizarSelectNidos();
       renderTablaNidos();
-      alert(`¡Inspección del nido [${codigo}] guardada con éxito!`);
+      alert(`¡Visita registrada con éxito para el nido [${codigo}]!`);
     }
 
     function renderTablaNidos() {
       var tbody = document.getElementById('tabla-nidos');
+      var tituloHist = document.getElementById('titulo-tabla-historial');
+      var subTituloHist = document.getElementById('subtitulo-tabla-historial');
+      var btnVerTodos = document.getElementById('btn-ver-todos');
       if (!tbody) return;
 
-      if (nidos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No hay nidos registrados todavía.</td></tr>';
+      var datosAMostrar = nidos;
+      if (nidoSeleccionadoFiltro) {
+        datosAMostrar = nidos.filter(n => n.id === nidoSeleccionadoFiltro);
+        tituloHist.innerText = `Visitas del Nido: ${nidoSeleccionadoFiltro}`;
+        subTituloHist.innerText = `Historial de inspecciones para esta caja`;
+        btnVerTodos.style.display = 'inline-block';
+      } else {
+        tituloHist.innerText = `Historial General de Visitas`;
+        subTituloHist.innerText = `Mostrando todas las inspecciones registradas`;
+        btnVerTodos.style.display = 'none';
+      }
+
+      if (datosAMostrar.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No hay registros de visitas.</td></tr>';
         return;
       }
 
       tbody.innerHTML = '';
-      nidos.forEach((n, idx) => {
+      datosAMostrar.forEach(n => {
         var badgeColor = n.estado.includes('Pollos') ? 'bg-primary' : (n.estado.includes('Éxito') ? 'bg-success' : (n.estado.includes('Huevos') ? 'bg-warning text-dark' : 'bg-secondary'));
         
         tbody.innerHTML += `<tr>
@@ -345,6 +390,12 @@
           </td>
         </tr>`;
       });
+    }
+
+    function mostrarTodoElHistorial() {
+      nidoSeleccionadoFiltro = null;
+      document.getElementById('select-codigo-nido').value = "";
+      renderTablaNidos();
     }
 
     function anillarNidadaDirecta(codigoNido) {
@@ -366,6 +417,7 @@
       if (confirm("¿Seguro que quieres borrar todos los registros de nidos?")) {
         nidos = [];
         localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+        nidoSeleccionadoFiltro = null;
         actualizarSelectNidos();
         renderTablaNidos();
       }
@@ -381,7 +433,6 @@
 
     window.onload = function() {
       initMapaForm();
-      renderTablaNidos();
     };
   </script>
 </body>
