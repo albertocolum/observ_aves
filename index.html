@@ -6,43 +6,105 @@
   <title>Panel Principal - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .hero-card { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 35px; }
-    .module-btn { padding: 15px 20px; font-weight: 600; border-radius: 8px; text-align: left; transition: all 0.2s; }
-    .module-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Fondo con imagen de cernícalo / naturaleza y capa oscura translúcida */
+    .hero-bg {
+      background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.65)), 
+                  url('https://images.unsplash.com/photo-1543591322-26fbb6b7e61a?auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed;
+      background-size: cover;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-content {
+      max-width: 1000px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .brand-title {
+      color: #ffffff;
+      font-weight: 800;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      letter-spacing: 0.5px;
+    }
+
+    .brand-subtitle {
+      color: #e2e8f0;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      font-size: 1.1rem;
+    }
+
+    /* Tarjetas de módulos estilo botonera */
+    .module-card {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 14px;
+      border: none;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      text-decoration: none;
+      display: block;
+      padding: 22px;
+      height: 100%;
+      text-align: left;
+    }
+
+    .module-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 1);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    }
   </style>
 </head>
 <body>
 
-  <div class="container my-5" style="max-width: 900px;">
-    <div class="hero-card text-center mb-4">
-      <h1 class="fw-bold text-success mb-2">🦅 El Mirador de Aves</h1>
-      <p class="text-muted">Plataforma de gestión de anillamiento científico, biometría y análisis fenológico.</p>
-    </div>
-
-    <div class="row g-3">
-      <!-- Módulo de Anillamiento -->
-      <div class="col-md-6">
-        <a href="anillamiento.html" class="btn btn-light border module-btn d-block w-100">
-          <h5 class="fw-bold text-success mb-1">📋 Anillamiento y Biometría</h5>
-          <p class="text-muted small mb-0">Registrar capturas, medidas (Ala, P8, Cola, Tarso, R5, Peso) y control de datos.</p>
-        </a>
+  <div class="hero-bg">
+    <div class="hero-content">
+      <div class="mb-4">
+        <h1 class="brand-title display-5 mb-2">🦅 El Mirador de Aves</h1>
+        <p class="brand-subtitle mb-0">Plataforma de gestión de anillamiento científico, biometría y análisis fenológico.</p>
       </div>
 
-      <!-- NUEVO: Módulo de Mapa Geográfico -->
-      <div class="col-md-6">
-        <a href="mapa.html" class="btn btn-light border module-btn d-block w-100">
-          <h5 class="fw-bold text-primary mb-1">🌍 Mapa de Capturas</h5>
-          <p class="text-muted small mb-0">Visualización geográfica interactiva con filtrado por años y tipo de captura.</p>
-        </a>
-      </div>
+      <div class="row g-3 justify-content-center">
+        <!-- Módulo de Anillamiento -->
+        <div class="col-md-3 col-sm-6">
+          <a href="anillamiento.html" class="module-card">
+            <h5 class="fw-bold text-success mb-2">📋 Anillamiento</h5>
+            <p class="text-muted small mb-0">Registrar capturas, medidas biométricas (Ala, P8, Cola, Tarso, R5, Peso).</p>
+          </a>
+        </div>
 
-      <!-- Módulo de Gráficas y Estadísticas -->
-      <div class="col-md-6">
-        <a href="graficas.html" class="btn btn-light border module-btn d-block w-100">
-          <h5 class="fw-bold text-warning text-dark mb-1">📊 Gráficas y Fenología</h5>
-          <p class="text-muted small mb-0">Evolución mensual, medias globales y desglose por sexo/edad (criterios R5).</p>
-        </a>
+        <!-- Módulo de Mapa Geográfico -->
+        <div class="col-md-3 col-sm-6">
+          <a href="mapa.html" class="module-card">
+            <h5 class="fw-bold text-primary mb-2">🌍 Mapa de Capturas</h5>
+            <p class="text-muted small mb-0">Visualización geográfica interactiva con filtrado por años y tipo de captura.</p>
+          </a>
+        </div>
+
+        <!-- Módulo de Reavistamientos -->
+        <div class="col-md-3 col-sm-6">
+          <a href="reavistamientos.html" class="module-card">
+            <h5 class="fw-bold text-warning text-dark mb-2">🔎 Reavistamientos</h5>
+            <p class="text-muted small mb-0">Seguimiento y control de aves marcadas observadas de nuevo en campo.</p>
+          </a>
+        </div>
+
+        <!-- Módulo de Gráficas y Estadísticas -->
+        <div class="col-md-3 col-sm-6">
+          <a href="graficas.html" class="module-card">
+            <h5 class="fw-bold text-danger mb-2">📊 Gráficas y Fenología</h5>
+            <p class="text-muted small mb-0">Evolución mensual, medias globales y desglose por sexo/edad (criterios R5).</p>
+          </a>
+        </div>
       </div>
     </div>
   </div>
