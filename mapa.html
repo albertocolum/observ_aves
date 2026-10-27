@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Capturas - Tracking Ornitológico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body, html { height: 100%; margin: 0; background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    #mapa-contenedor { height: calc(100vh - 75px); width: 100%; }
+    .top-bar { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.08); padding: 12px 25px; z-index: 1100; position: relative; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <h4 class="fw-bold text-success mb-0">🌍 Mapa de Capturas por Año</h4>
+      <div class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 fw-semibold small">Año:</label>
+        <select id="filtro-ano" class="form-select form-select-sm fw-bold text-primary" style="width: 130px;" onchange="filtrarYRenderizarMapa()">
+          <option value="todos">Todos los años</option>
+        </select>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span id="contador-puntos" class="badge bg-secondary fs-6">0 registros</span>
+      <a href="anillamiento.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver a Anillamiento</a>
+    </div>
+  </div>
+
+  <div id="mapa-contenedor"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    var map;
+    var capaMarcadores;
+    var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
+
+    function extraerAnio(strFecha) {
+      if (!strFecha) return null;
+      strFecha = strFecha.trim();
+      if (strFecha.includes('/')) {
+        var p = strFecha.split('/');
+        if (p.length === 3) return p[2];
+      }
+      var d = new Date(strFecha);
+      return isNaN(d.getFullYear()) ? null : String(d.getFullYear());
+    }
+
+    function inicializarMapa() {
+      map = L.map('mapa-contenedor').setView([39.7709, -0.1840], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      capaMarcadores = L.layerGroup().addTo(map);
+
+      // Poblar desplegable de años con los datos disponibles
+      var anosSet = new Set();
+      anillamientos.forEach(item => {
+        var anio = extraerAnio(item.fecha);
+        if (anio) anosSet.add(anio);
+      });
+
+      var selectAnio = document.getElementById('filtro-ano');
+      var anosArray = Array.from(anosSet).sort().reverse();
+      
+      anosArray.forEach(anio => {
+        var opt = document.createElement('option');
+        opt.value = anio;
+        opt.innerText = anio;
+        selectAnio.appendChild(opt);
+      });
+
+      filtrarYRenderizarMapa();
+    }
+
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    function filtrarYRenderizarMapa() {
+      if (!capaMarcadores) return;
+      capaMarcadores.clearLayers();
+
+      var anoSeleccionado = document.getElementById('filtro-ano').value;
+      var puntosVisibles = 0;
+
+      anillamientos.forEach(r => {
+        var anioR = extraerAnio(r.fecha);
+        if (anoSeleccionado !== "todos" && anioR !== anoSeleccionado) return;
+
+        puntosVisibles++;
+        var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745"; // Amarillo recaptura, verde anillamiento
+
+        L.circleMarker([r.lat, r.lng], { radius: 9, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
+         .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>Especie: <i>${esc(r.especie)}</i><br>Fecha: ${r.fecha}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Peso: ${r.peso} g`)
+         .addTo(capaMarcadores);
+      });
+
+      document.getElementById('contador-puntos').innerText = `${puntosVisibles} registros`;
+    }
+
+    window.onload = function() {
+      inicializarMapa();
+    };
+  </script>
+</body>
+</html>
