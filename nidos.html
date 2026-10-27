@@ -42,7 +42,7 @@
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="form-title mb-0" style="border:none; padding:0;">Nueva Visita / Inspección</h4>
-            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="limpiarFormularioParaNuevo()" title="Limpiar formulario">🧹 Limpiar</button>
+            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="limpiarFormularioParaNuevo()" title="Crear nuevo nido">➕ Nuevo Nido</button>
           </div>
           <hr class="mt-2 mb-3">
           
@@ -53,10 +53,10 @@
               <label class="form-label">Seleccionar / Código Nido *</label>
               <div class="input-group input-group-sm">
                 <select id="select-codigo-nido" class="form-select fw-bold text-primary" onchange="seleccionarNidoExistente(this.value)">
-                  <option value="" selected>-- ➕ Nuevo Nido (Crear código) --</option>
+                  <option value="" selected>-- Selecciona un nido --</option>
                 </select>
                 <input type="text" id="input-codigo-nido" class="form-control fw-bold text-primary" placeholder="Ej: CN-FALTIN-01" style="display:none;" required>
-                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-modo" onclick="alternarModoNuevoNido()">Nuevo</button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-modo" onclick="alternarModoNuevoNido()">Listar</button>
               </div>
             </div>
 
@@ -195,9 +195,6 @@
 
     function initMapaForm() {
       mapForm = L.map('mapa-nido-preliminar').setView([40.1831, 0.0225], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/*.png', { maxZoom: 19 }).addTo(mapForm);
-      // Corrección de URL de tile layer por seguridad estándar de Leaflet
-      mapForm.eachLayer(layer => { if(layer._url) mapForm.removeLayer(layer); });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapForm);
 
       markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
@@ -209,13 +206,21 @@
       });
 
       actualizarSelectNidos();
-      obtenerPoblacionPorCoords(40.1831, 0.0225);
-      renderTablaNidos();
+
+      // AUTO-SELECCIONAR EL PRIMER NIDO AL ENTRAR PARA QUE NO ESTÉ VACÍO
+      if (nidos.length > 0) {
+        var primerCodigo = [...new Set(nidos.map(n => n.id))].sort()[0];
+        document.getElementById('select-codigo-nido').value = primerCodigo;
+        seleccionarNidoExistente(primerCodigo);
+      } else {
+        obtenerPoblacionPorCoords(40.1831, 0.0225);
+        renderTablaNidos();
+      }
     }
 
     function actualizarSelectNidos() {
       var select = document.getElementById('select-codigo-nido');
-      select.innerHTML = '<option value="" selected>-- ➕ Nuevo Nido (Crear código) --</option>';
+      select.innerHTML = '<option value="" disabled>-- Selecciona un nido --</option>';
       
       var codigosUnicos = [...new Set(nidos.map(n => n.id))].sort();
       codigosUnicos.forEach(cod => {
@@ -244,12 +249,14 @@
         select.style.display = 'block';
         input.style.display = 'none';
         btn.innerText = 'Nuevo';
-        select.value = '';
+        if (nidos.length > 0) {
+          select.value = nidos[0].id;
+          seleccionarNidoExistente(nidos[0].id);
+        }
       }
     }
 
     function limpiarFormularioParaNuevo() {
-      // Asegurar que se muestre el input de texto limpio para un nuevo código
       modoCreacionNuevo = true;
       document.getElementById('select-codigo-nido').style.display = 'none';
       document.getElementById('input-codigo-nido').style.display = 'block';
@@ -257,7 +264,6 @@
       document.getElementById('input-codigo-nido').value = '';
       document.getElementById('input-codigo-nido').focus();
 
-      // Resetear campos del formulario
       document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
       document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
       document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
@@ -268,8 +274,6 @@
       document.getElementById('input-anillados-nido').value = '0';
       document.getElementById('input-obs-nido').value = '';
 
-      // Quitar selección del desplegable y limpiar el filtro de la tabla de la derecha
-      document.getElementById('select-codigo-nido').value = "";
       nidoSeleccionadoFiltro = null;
       renderTablaNidos();
     }
