@@ -55,7 +55,6 @@
     }
 
     function inicializarMapa() {
-      // Centrado inicial por defecto en la zona de trabajo (Castellón / Valencia)
       map = L.map('mapa-contenedor').setView([39.7709, -0.1840], 10);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
       capaMarcadores = L.layerGroup().addTo(map);
@@ -89,6 +88,9 @@
       var anoSeleccionado = document.getElementById('filtro-ano').value;
       var puntosVisibles = 0;
       var bounds = [];
+      
+      // Objeto para llevar cuenta de coordenadas repetidas y aplicarles un ligero desfase visual
+      var coordenadasContador = {};
 
       anillamientos.forEach(r => {
         var anioR = extraerAnio(r.fecha);
@@ -98,26 +100,35 @@
         var lat = parseFloat(r.lat);
         var lng = parseFloat(r.lng);
 
-        // CORRECTOR: Si la latitud o longitud son inválidas o están a 0 (línea del ecuador), 
-        // les asignamos por defecto las coordenadas de la estación para que no se desperdicien en el mar.
         if (isNaN(lat) || lat === 0 || Math.abs(lat) < 1) lat = 39.7709;
         if (isNaN(lng) || lng === 0 || Math.abs(lng) < 1) lng = -0.1840;
+
+        // Clave única para detectar puntos exactamente solapados
+        var claveCoord = lat.toFixed(4) + "_" + lng.toFixed(4);
+        if (!coordenadasContador[claveCoord]) {
+          coordenadasContador[claveCoord] = 0;
+        } else {
+          coordenadasContador[claveCoord]++;
+          // Desplazamiento microscópico (aprox 10-20 metros) para que los puntos solapados se alaben y no se tapen entre sí
+          var offset = coordenadasContador[claveCoord] * 0.00015;
+          lat += (Math.random() - 0.5) * offset;
+          lng += (Math.random() - 0.5) * offset;
+        }
 
         puntosVisibles++;
         bounds.push([lat, lng]);
 
         var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745";
 
-        L.circleMarker([lat, lng], { radius: 9, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
+        L.circleMarker([lat, lng], { radius: 8, fillColor: colorMarcador, color: '#fff', weight: 1.5, fillOpacity: 0.85 })
          .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>Especie: <i>${esc(r.especie)}</i><br>Fecha: ${r.fecha}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Peso: ${r.peso} g`)
          .addTo(capaMarcadores);
       });
 
       document.getElementById('contador-puntos').innerText = `${puntosVisibles} registros`;
 
-      // Centrar automáticamente la vista sobre los puntos válidos
       if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
       }
     }
 
