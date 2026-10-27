@@ -55,11 +55,11 @@
     }
 
     function inicializarMapa() {
-      map = L.map('mapa-contenedor').setView([39.7709, -0.1840], 9);
+      // Centrado inicial por defecto en la zona de trabajo (Castellón / Valencia)
+      map = L.map('mapa-contenedor').setView([39.7709, -0.1840], 10);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
       capaMarcadores = L.layerGroup().addTo(map);
 
-      // Extraer años únicos de forma limpia
       var anosSet = new Set();
       anillamientos.forEach(item => {
         var anio = extraerAnio(item.fecha);
@@ -67,7 +67,6 @@
       });
 
       var selectAnio = document.getElementById('filtro-ano');
-      // Limpiar opciones previas por seguridad y dejar la opción por defecto
       selectAnio.innerHTML = '<option value="todos">Todos los años</option>';
       
       var anosArray = Array.from(anosSet).sort().reverse();
@@ -94,12 +93,15 @@
       anillamientos.forEach(r => {
         var anioR = extraerAnio(r.fecha);
         
-        // Filtrar si se ha seleccionado un año específico
         if (anoSeleccionado !== "todos" && anioR !== anoSeleccionado) return;
 
         var lat = parseFloat(r.lat);
         var lng = parseFloat(r.lng);
-        if (isNaN(lat) || isNaN(lng)) return;
+
+        // CORRECTOR: Si la latitud o longitud son inválidas o están a 0 (línea del ecuador), 
+        // les asignamos por defecto las coordenadas de la estación para que no se desperdicien en el mar.
+        if (isNaN(lat) || lat === 0 || Math.abs(lat) < 1) lat = 39.7709;
+        if (isNaN(lng) || lng === 0 || Math.abs(lng) < 1) lng = -0.1840;
 
         puntosVisibles++;
         bounds.push([lat, lng]);
@@ -113,9 +115,9 @@
 
       document.getElementById('contador-puntos').innerText = `${puntosVisibles} registros`;
 
-      // Ajustar el zoom automáticamente a los puntos filtrados si los hay
-      if (bounds.length > 0 && anoSeleccionado !== "todos") {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+      // Centrar automáticamente la vista sobre los puntos válidos
+      if (bounds.length > 0) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
       }
     }
 
