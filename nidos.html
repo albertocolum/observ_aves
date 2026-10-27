@@ -189,13 +189,17 @@
     var mapForm;
     var markerForm;
     var modoCreacionNuevo = false;
-    var nidoSeleccionadoFiltro = null; // Para filtrar la tabla por nido activo
+    var nidoSeleccionadoFiltro = null;
 
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
     function initMapaForm() {
       mapForm = L.map('mapa-nido-preliminar').setView([40.1831, 0.0225], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/*.png', { maxZoom: 19 }).addTo(mapForm);
+      // Corrección de URL de tile layer por seguridad estándar de Leaflet
+      mapForm.eachLayer(layer => { if(layer._url) mapForm.removeLayer(layer); });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapForm);
+
       markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
       
       markerForm.on('dragend', function(e) {
@@ -245,8 +249,15 @@
     }
 
     function limpiarFormularioParaNuevo() {
+      // Asegurar que se muestre el input de texto limpio para un nuevo código
       modoCreacionNuevo = true;
-      alternarModoNuevoNido(); // Pone el input de texto limpio
+      document.getElementById('select-codigo-nido').style.display = 'none';
+      document.getElementById('input-codigo-nido').style.display = 'block';
+      document.getElementById('btn-toggle-modo').innerText = 'Listar';
+      document.getElementById('input-codigo-nido').value = '';
+      document.getElementById('input-codigo-nido').focus();
+
+      // Resetear campos del formulario
       document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
       document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
       document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
@@ -256,6 +267,9 @@
       document.getElementById('input-volados-nido').value = '0';
       document.getElementById('input-anillados-nido').value = '0';
       document.getElementById('input-obs-nido').value = '';
+
+      // Quitar selección del desplegable y limpiar el filtro de la tabla de la derecha
+      document.getElementById('select-codigo-nido').value = "";
       nidoSeleccionadoFiltro = null;
       renderTablaNidos();
     }
@@ -269,10 +283,9 @@
 
       nidoSeleccionadoFiltro = codigo;
       
-      // Buscar la visita más reciente de este nido para autocompletar el formulario geográficamente
       var visitasNido = nidos.filter(n => n.id === codigo);
       if (visitasNido.length > 0) {
-        var ultimo = visitasNido[0]; // El más reciente
+        var ultimo = visitasNido[0];
 
         document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
@@ -283,7 +296,7 @@
         mapForm.panTo([ultimo.lat, ultimo.lng]);
       }
 
-      renderTablaNidos(); // Filtra la tabla de la derecha con las visitas de este nido
+      renderTablaNidos();
     }
 
     function obtenerPoblacionPorCoords(lat, lng) {
@@ -341,10 +354,10 @@
         obs: document.getElementById('input-obs-nido').value
       };
 
-      nidos.unshift(nidoObj); // Añadir al principio
+      nidos.unshift(nidoObj);
       localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
       
-      nidoSeleccionadoFiltro = codigo; // Mantener seleccionado el nido actual para ver su evolución
+      nidoSeleccionadoFiltro = codigo;
       actualizarSelectNidos();
       renderTablaNidos();
       alert(`¡Visita registrada con éxito para el nido [${codigo}]!`);
@@ -407,7 +420,7 @@
         lat: n.lat,
         lng: n.lng,
         localidad: n.lugar,
-        edad: "1" // Pullus (EURING 1)
+        edad: "1"
       };
       localStorage.setItem("preset_anillamiento_nidada", JSON.stringify(preset));
       window.location.href = "anillamiento.html";
