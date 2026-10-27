@@ -38,15 +38,30 @@
     var capaMarcadores;
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
 
+    // Función robusta para extraer el año independientemente del formato de fecha (YYYY-MM-DD o DD/MM/YYYY)
     function extraerAnio(strFecha) {
       if (!strFecha) return null;
-      strFecha = strFecha.trim();
-      if (strFecha.includes('/')) {
-        var p = strFecha.split('/');
-        if (p.length === 3) return p[2];
+      strFecha = String(strFecha).trim();
+      
+      // Si tiene formato YYYY-MM-DD
+      if (strFecha.includes('-')) {
+        var partes = strFecha.split('-');
+        if (partes.length >= 1 && partes[0].length === 4) {
+          return partes[0];
+        }
       }
+      
+      // Si tiene formato DD/MM/YYYY
+      if (strFecha.includes('/')) {
+        var partes = strFecha.split('/');
+        if (partes.length === 3) {
+          return partes[2];
+        }
+      }
+
+      // Intentar extraer con Date por si acaso
       var d = new Date(strFecha);
-      return isNaN(d.getFullYear()) ? null : String(d.getFullYear());
+      return !isNaN(d.getFullYear()) ? String(d.getFullYear()) : null;
     }
 
     function inicializarMapa() {
@@ -85,12 +100,19 @@
 
       anillamientos.forEach(r => {
         var anioR = extraerAnio(r.fecha);
+        
+        // Si hay un año seleccionado y no coincide, lo saltamos
         if (anoSeleccionado !== "todos" && anioR !== anoSeleccionado) return;
 
         puntosVisibles++;
         var colorMarcador = (r.tipoCaptura === "Recaptura") ? "#ffc107" : "#28a745"; // Amarillo recaptura, verde anillamiento
 
-        L.circleMarker([r.lat, r.lng], { radius: 9, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
+        // Validar que las coordenadas sean numéricas válidas
+        var lat = parseFloat(r.lat);
+        var lng = parseFloat(r.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        L.circleMarker([lat, lng], { radius: 9, fillColor: colorMarcador, color: '#fff', weight: 2, fillOpacity: 0.9 })
          .bindPopup(`<b>[${esc(r.tipoCaptura || 'Anillamiento')}] Metal: ${esc(r.metal)}</b><br>Especie: <i>${esc(r.especie)}</i><br>Fecha: ${r.fecha}<br>Lugar: ${esc(r.localidad)}<br>Ala: ${r.ala} mm | Peso: ${r.peso} g`)
          .addTo(capaMarcadores);
       });
