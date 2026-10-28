@@ -128,8 +128,8 @@
                 <input type="number" id="input-volados-nido" class="form-control form-control-sm" value="0">
               </div>
               <div class="col-md-3">
-                <label class="form-label">Anillados</label>
-                <input type="number" id="input-anillados-nido" class="form-control form-control-sm" value="0">
+                <label class="form-label text-success fw-bold">Anillados 🐣</label>
+                <input type="number" id="input-anillados-nido" class="form-control form-control-sm fw-bold text-success" value="0">
               </div>
             </div>
 
@@ -169,7 +169,7 @@
                   <th>Especie</th>
                   <th>Población</th>
                   <th>Estado</th>
-                  <th>H / N / V</th>
+                  <th>H / N / V / A</th>
                   <th>Acción</th>
                 </tr>
               </thead>
@@ -421,15 +421,27 @@
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
+        var numAnillados = parseInt(n.anillados) || 0;
+        var badgeAnillados = numAnillados > 0 
+          ? `<br><span class="badge bg-success mt-1" title="${numAnillados} pollos anillados en este nido">✔ Anillados (${numAnillados})</span>` 
+          : '';
+
+        var btnAnillarHtml = numAnillados > 0 
+          ? `<button class="btn btn-sm btn-success py-0 px-2 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Añadir/ver anillamientos">✔ Anillados 🐣</button>`
+          : `<button class="btn btn-sm btn-outline-success py-0 px-2" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar Pollos">Anillar 🐣</button>`;
+        
         tbody.innerHTML += `<tr>
           <td><b class="text-primary">${n.id}</b></td>
           <td><small>${n.temporada || '-'}</small></td>
           <td><i>${n.especie}</i></td>
           <td>${n.lugar}</td>
-          <td><span class="badge ${badgeColor}">${n.estado}</span></td>
-          <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V</td>
           <td>
-            <button class="btn btn-sm btn-outline-success py-0 px-2" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar Pollos">Anillar 🐣</button>
+            <span class="badge ${badgeColor}">${n.estado}</span>
+            ${badgeAnillados}
+          </td>
+          <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V / <b class="text-success">${numAnillados}</b>A</td>
+          <td>
+            ${btnAnillarHtml}
           </td>
         </tr>`;
       });
@@ -445,14 +457,20 @@
     function anillarNidadaDirecta(codigoNido) {
       var n = nidos.find(x => x.id === codigoNido);
       if (!n) return;
+
+      // Actualizar el valor de anillados si estaba a cero para reflejar la acción de anillar
+      if (!n.anillados || parseInt(n.anillados) === 0) {
+        n.anillados = n.nacidos > 0 ? n.nacidos : 1;
+        localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+      }
       
       var preset = {
-        codigoNido: n.id, // Pasa el código del nido al módulo de anillamiento
+        codigoNido: n.id,
         especie: n.especie,
         lat: n.lat,
         lng: n.lng,
         localidad: n.lugar,
-        edad: "1" // Pullus
+        edad: "1"
       };
       localStorage.setItem("preset_anillamiento_nidada", JSON.stringify(preset));
       window.location.href = "anillamiento.html";
