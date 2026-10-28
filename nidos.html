@@ -105,12 +105,12 @@
             <div class="mb-2">
               <label class="form-label">Estado de Ocupación</label>
               <select id="input-estado-nido" class="form-select form-select-sm fw-bold text-success">
-                <option value="Vacio/inactivo">⚪ Vacío / inactivo</option>
-                <option value="Ocupado">🔵 Ocupado</option>
-                <option value="Incubando/con huevos" selected>🥚 Incubando / con huevos</option>
-                <option value="Con pollos / Eclosionado">🐣 Con pollos / Eclosionado</option>
-                <option value="Exito/pollos volando">🦅 Éxito / pollos volando</option>
-                <option value="Fracasado / Predado">⚠️ Fracasado / Predado</option>
+                <option value="Vacio/inactivo">Vacio/inactivo</option>
+                <option value="Ocupado">Ocupado</option>
+                <option value="Incubando/con huevos" selected>Incubando/con huevos</option>
+                <option value="Con pollos / Eclosionado">Con pollos / Eclosionado</option>
+                <option value="Exito/pollos volando">Exito/pollos volando</option>
+                <option value="Fracasado / Predado">Fracasado / Predado</option>
               </select>
             </div>
 
@@ -447,11 +447,12 @@
       if (!n) return;
       
       var preset = {
+        codigoNido: n.id, // Pasa el código del nido al módulo de anillamiento
         especie: n.especie,
         lat: n.lat,
         lng: n.lng,
         localidad: n.lugar,
-        edad: "1"
+        edad: "1" // Pullus
       };
       localStorage.setItem("preset_anillamiento_nidada", JSON.stringify(preset));
       window.location.href = "anillamiento.html";
