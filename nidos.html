@@ -42,7 +42,7 @@
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="form-title mb-0" style="border:none; padding:0;">Nueva Visita / Inspección</h4>
-            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="limpiarFormularioParaNuevo()" title="Limpiar formulario">🧹 Limpiar</button>
+            <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="limpiarFormularioParaNuevo()" title="Crear un nuevo nido">➕ Nuevo Nido</button>
           </div>
           <hr class="mt-2 mb-3">
           
@@ -56,7 +56,7 @@
                   <option value="" selected>-- Selecciona un nido --</option>
                 </select>
                 <input type="text" id="input-codigo-nido" class="form-control fw-bold text-primary" placeholder="Ej: CN-FALTIN-01" style="display:none;" required>
-                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-modo" onclick="alternarModoNuevoNido()">Nuevo</button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-modo" onclick="alternarModoNuevoNido()">Listar</button>
               </div>
             </div>
 
@@ -169,11 +169,11 @@
                   <th>Población</th>
                   <th>Estado</th>
                   <th>H / N / V</th>
-                  <th>Action</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody id="tabla-nidos">
-                <tr><td colspan="7" class="text-center text-muted py-3">Selecciona un nido del desplegable o pulsa "Nuevo".</td></tr>
+                <tr><td colspan="7" class="text-center text-muted py-3">Selecciona un nido del desplegable o pulsa "Nuevo Nido".</td></tr>
               </tbody>
             </table>
           </div>
@@ -190,7 +190,7 @@
     var markerForm;
     var modoCreacionNuevo = false;
     var nidoSeleccionadoFiltro = null;
-    var modoNuevoActivoEnTablaBlanca = false; // Controla si estamos creando un nido desde cero
+    var modoNuevoActivoEnTablaBlanca = false;
 
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
@@ -208,7 +208,6 @@
 
       actualizarSelectNidos();
 
-      // Al entrar, seleccionar el primer nido por defecto si existe
       if (nidos.length > 0) {
         var primerCodigo = [...new Set(nidos.map(n => n.id))].sort()[0];
         document.getElementById('select-codigo-nido').value = primerCodigo;
@@ -245,7 +244,6 @@
         input.focus();
         btn.innerText = 'Listar';
         
-        // ACTIVAR ESTADO EN BLANCO EN LA TABLA
         modoNuevoActivoEnTablaBlanca = true;
         nidoSeleccionadoFiltro = null;
         renderTablaNidos();
@@ -279,7 +277,6 @@
       document.getElementById('input-anillados-nido').value = '0';
       document.getElementById('input-obs-nido').value = '';
 
-      // PONER LA TABLA DE LA DERECHA EN BLANCO
       modoNuevoActivoEnTablaBlanca = true;
       nidoSeleccionadoFiltro = null;
       document.getElementById('select-codigo-nido').value = "";
@@ -384,7 +381,6 @@
       var btnVerTodos = document.getElementById('btn-ver-todos');
       if (!tbody) return;
 
-      // SI ESTAMOS EN MODO NUEVO NIDO, LA TABLA SE QUEDA EN BLANCO
       if (modoNuevoActivoEnTablaBlanca) {
         tituloHist.innerText = `Historial de Visitas`;
         subTituloHist.innerText = `Crea un nuevo nido o selecciona uno existente`;
