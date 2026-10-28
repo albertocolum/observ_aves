@@ -42,7 +42,7 @@
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="form-title mb-0" style="border:none; padding:0;">Nueva Visita / Inspección</h4>
-            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="limpiarFormularioParaNuevo()" title="Crear nuevo nido">➕ Nuevo Nido</button>
+            <button class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="limpiarFormularioParaNuevo()" title="Limpiar formulario">🧹 Limpiar</button>
           </div>
           <hr class="mt-2 mb-3">
           
@@ -56,7 +56,7 @@
                   <option value="" selected>-- Selecciona un nido --</option>
                 </select>
                 <input type="text" id="input-codigo-nido" class="form-control fw-bold text-primary" placeholder="Ej: CN-FALTIN-01" style="display:none;" required>
-                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-modo" onclick="alternarModoNuevoNido()">Listar</button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-toggle-modo" onclick="alternarModoNuevoNido()">Nuevo</button>
               </div>
             </div>
 
@@ -149,8 +149,8 @@
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="form-title mb-1" style="border:none; padding:0;" id="titulo-tabla-historial">Historial General de Visitas</h4>
-              <small class="text-muted" id="subtitulo-tabla-historial">Mostrando todas las inspecciones registradas</small>
+              <h4 class="form-title mb-1" style="border:none; padding:0;" id="titulo-tabla-historial">Historial de Visitas</h4>
+              <small class="text-muted" id="subtitulo-tabla-historial">Selecciona o crea un nido para ver su historial</small>
             </div>
             <div class="btn-group">
               <button class="btn btn-outline-primary btn-sm" onclick="mostrarTodoElHistorial()" id="btn-ver-todos" style="display:none;">Ver Todos</button>
@@ -169,11 +169,11 @@
                   <th>Población</th>
                   <th>Estado</th>
                   <th>H / N / V</th>
-                  <th>Acción</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="tabla-nidos">
-                <tr><td colspan="7" class="text-center text-muted py-3">No hay nidos registrados todavía.</td></tr>
+                <tr><td colspan="7" class="text-center text-muted py-3">Selecciona un nido del desplegable o pulsa "Nuevo".</td></tr>
               </tbody>
             </table>
           </div>
@@ -190,6 +190,7 @@
     var markerForm;
     var modoCreacionNuevo = false;
     var nidoSeleccionadoFiltro = null;
+    var modoNuevoActivoEnTablaBlanca = false; // Controla si estamos creando un nido desde cero
 
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
@@ -207,14 +208,14 @@
 
       actualizarSelectNidos();
 
-      // AUTO-SELECCIONAR EL PRIMER NIDO AL ENTRAR PARA QUE NO ESTÉ VACÍO
+      // Al entrar, seleccionar el primer nido por defecto si existe
       if (nidos.length > 0) {
         var primerCodigo = [...new Set(nidos.map(n => n.id))].sort()[0];
         document.getElementById('select-codigo-nido').value = primerCodigo;
         seleccionarNidoExistente(primerCodigo);
       } else {
         obtenerPoblacionPorCoords(40.1831, 0.0225);
-        renderTablaNidos();
+        limpiarFormularioParaNuevo();
       }
     }
 
@@ -243,12 +244,16 @@
         input.value = '';
         input.focus();
         btn.innerText = 'Listar';
+        
+        // ACTIVAR ESTADO EN BLANCO EN LA TABLA
+        modoNuevoActivoEnTablaBlanca = true;
         nidoSeleccionadoFiltro = null;
         renderTablaNidos();
       } else {
         select.style.display = 'block';
         input.style.display = 'none';
         btn.innerText = 'Nuevo';
+        modoNuevoActivoEnTablaBlanca = false;
         if (nidos.length > 0) {
           select.value = nidos[0].id;
           seleccionarNidoExistente(nidos[0].id);
@@ -274,7 +279,10 @@
       document.getElementById('input-anillados-nido').value = '0';
       document.getElementById('input-obs-nido').value = '';
 
+      // PONER LA TABLA DE LA DERECHA EN BLANCO
+      modoNuevoActivoEnTablaBlanca = true;
       nidoSeleccionadoFiltro = null;
+      document.getElementById('select-codigo-nido').value = "";
       renderTablaNidos();
     }
 
@@ -285,6 +293,7 @@
         return;
       }
 
+      modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
       
       var visitasNido = nidos.filter(n => n.id === codigo);
@@ -361,6 +370,7 @@
       nidos.unshift(nidoObj);
       localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
       
+      modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
       actualizarSelectNidos();
       renderTablaNidos();
@@ -373,6 +383,15 @@
       var subTituloHist = document.getElementById('subtitulo-tabla-historial');
       var btnVerTodos = document.getElementById('btn-ver-todos');
       if (!tbody) return;
+
+      // SI ESTAMOS EN MODO NUEVO NIDO, LA TABLA SE QUEDA EN BLANCO
+      if (modoNuevoActivoEnTablaBlanca) {
+        tituloHist.innerText = `Historial de Visitas`;
+        subTituloHist.innerText = `Crea un nuevo nido o selecciona uno existente`;
+        btnVerTodos.style.display = 'none';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Introduce los datos del nuevo nido y guarda la primera visita.</td></tr>';
+        return;
+      }
 
       var datosAMostrar = nidos;
       if (nidoSeleccionadoFiltro) {
@@ -410,6 +429,7 @@
     }
 
     function mostrarTodoElHistorial() {
+      modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = null;
       document.getElementById('select-codigo-nido').value = "";
       renderTablaNidos();
@@ -436,7 +456,7 @@
         localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
         nidoSeleccionadoFiltro = null;
         actualizarSelectNidos();
-        renderTablaNidos();
+        limpiarFormularioParaNuevo();
       }
     }
 
