@@ -105,11 +105,12 @@
             <div class="mb-2">
               <label class="form-label">Estado de Ocupación</label>
               <select id="input-estado-nido" class="form-select form-select-sm fw-bold text-success">
-                <option value="Ocupado con Huevos">🥚 Ocupado (Incubando Puesta)</option>
-                <option value="Ocupado con Pollos">🐣 Ocupado (Pollos en Nido)</option>
-                <option value="Volantones Éxito">🦅 Éxito (Pollos Volados)</option>
-                <option value="Desocupado">⚪ Desocupado / Vacío</option>
-                <option value="Depredado / Fracaso">⚠️ Fracaso / Depredado</option>
+                <option value="Vacio/inactivo">⚪ Vacío / inactivo</option>
+                <option value="Ocupado">🔵 Ocupado</option>
+                <option value="Incubando/con huevos" selected>🥚 Incubando / con huevos</option>
+                <option value="Con pollos / Eclosionado">🐣 Con pollos / Eclosionado</option>
+                <option value="Exito/pollos volando">🦅 Éxito / pollos volando</option>
+                <option value="Fracasado / Predado">⚠️ Fracasado / Predado</option>
               </select>
             </div>
 
@@ -270,7 +271,7 @@
       document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
       document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
       document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
-      document.getElementById('input-estado-nido').value = 'Ocupado con Huevos';
+      document.getElementById('input-estado-nido').value = 'Incubando/con huevos';
       document.getElementById('input-huevos-nido').value = '0';
       document.getElementById('input-nacidos-nido').value = '0';
       document.getElementById('input-volados-nido').value = '0';
@@ -301,6 +302,12 @@
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
         document.getElementById('input-tipo-estructura').value = ultimo.estructura || 'Caja Nido Madera';
         document.getElementById('input-lugar-nido').value = ultimo.lugar || '';
+        document.getElementById('input-estado-nido').value = ultimo.estado || 'Incubando/con huevos';
+        document.getElementById('input-huevos-nido').value = ultimo.huevos || 0;
+        document.getElementById('input-nacidos-nido').value = ultimo.nacidos || 0;
+        document.getElementById('input-volados-nido').value = ultimo.volados || 0;
+        document.getElementById('input-anillados-nido').value = ultimo.anillados || 0;
+        document.getElementById('input-obs-nido').value = ultimo.obs || '';
         
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
         mapForm.panTo([ultimo.lat, ultimo.lng]);
@@ -408,7 +415,11 @@
 
       tbody.innerHTML = '';
       datosAMostrar.forEach(n => {
-        var badgeColor = n.estado.includes('Pollos') ? 'bg-primary' : (n.estado.includes('Éxito') ? 'bg-success' : (n.estado.includes('Huevos') ? 'bg-warning text-dark' : 'bg-secondary'));
+        var badgeColor = 'bg-secondary';
+        if (n.estado && n.estado.includes('pollos')) badgeColor = 'bg-primary';
+        else if (n.estado && n.estado.includes('Exito')) badgeColor = 'bg-success';
+        else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
+        else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
         tbody.innerHTML += `<tr>
           <td><b class="text-primary">${n.id}</b></td>
