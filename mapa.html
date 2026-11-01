@@ -28,8 +28,11 @@
       <button class="btn btn-sm btn-outline-success fw-bold" id="btn-capa-nidos" onclick="cambiarCapa('nidos')">🪹 Nidos</button>
       
       <span class="small fw-bold text-secondary ms-2">Año:</span>
-      <select id="select-filtro-anio" class="form-select form-select-sm fw-bold text-dark" style="width: 110px;" onchange="pintarMarcadores()">
-        <option value="todos" selected>Todos</option>
+      <select id="select-filtro-anio" class="form-select form-select-sm fw-bold text-dark" style="width: 115px;" onchange="pintarMarcadores()">
+        <option value="todos">Todos</option>
+        <option value="2026" selected>2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
       </select>
     </div>
 
@@ -64,7 +67,6 @@
     var datosAnillamientos = [];
     var datosNidos = [];
 
-    // Detectar parámetro de URL si viene de nidos.html
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('modo') === 'nidos') {
       capaActual = 'nidos';
@@ -88,33 +90,32 @@
         datosNidos = [];
         snapNidos.forEach(d => datosNidos.push(d.data()));
 
-        actualizarSelectAnios();
+        actualizarSelectAniosDinamico();
         actualizarVistaBotones();
         pintarMarcadores();
       } catch (e) {
-        console.error("Error al cargar datos de Firebase en el mapa:", e);
+        console.error("Error al cargar datos en el mapa:", e);
       }
     }
 
-    // Extraer y formatear el año de una fecha (soporta YYYY-MM-DD y DD/MM/YYYY)
     function extraerAnio(fechaStr) {
       if (!fechaStr) return "";
       let s = String(fechaStr).trim();
       if (s.includes('-')) {
         let p = s.split('-');
-        if (p[0].length === 4) return p[0]; // YYYY-MM-DD
-        if (p[2] && p[2].length === 4) return p[2]; // DD-MM-YYYY
+        if (p[0].length === 4) return p[0]; 
+        if (p[2] && p[2].length === 4) return p[2]; 
       }
       if (s.includes('/')) {
         let p = s.split('/');
-        if (p[2] && p[2].length === 4) return p[2]; // DD/MM/YYYY
+        if (p[2] && p[2].length === 4) return p[2]; 
       }
       return "";
     }
 
-    function actualizarSelectAnios() {
+    function actualizarSelectAniosDinamico() {
       let listaActual = capaActual === 'anillamientos' ? datosAnillamientos : datosNidos;
-      let aniosSet = new Set();
+      let aniosSet = new Set(["2026", "2025", "2024"]); // Asegurar que aparezcan por defecto
 
       listaActual.forEach(item => {
         let fecha = item.fecha || item.temporada || "";
@@ -124,23 +125,23 @@
 
       let aniosOrdenados = Array.from(aniosSet).sort().reverse();
       let select = document.getElementById('select-filtro-anio');
-      let valorActual = select.value;
+      let valorSeleccionado = select.value;
 
       select.innerHTML = '<option value="todos">Todos</option>';
       aniosOrdenados.forEach(a => {
         select.innerHTML += `<option value="${a}">${a}</option>`;
       });
 
-      if (aniosOrdenados.includes(valorActual)) {
-        select.value = valorActual;
+      if (aniosOrdenados.includes(valorSeleccionado) || valorSeleccionado === "todos") {
+        select.value = valorSeleccionado;
       } else {
-        select.value = "todos";
+        select.value = "2026"; // Por defecto al año actual si existe
       }
     }
 
     window.cambiarCapa = function(capa) {
       capaActual = capa;
-      actualizarSelectAnios();
+      actualizarSelectAniosDinamico();
       actualizarVistaBotones();
       pintarMarcadores();
     }
@@ -149,18 +150,15 @@
       let btnAnil = document.getElementById('btn-capa-anil');
       let btnNidos = document.getElementById('btn-capa-nidos');
       let titulo = document.getElementById('titulo-mapa');
-      let subtitulo = document.getElementById('subtitulo-mapa');
 
       if (capaActual === 'anillamientos') {
         btnAnil.className = "btn btn-sm btn-primary fw-bold";
         btnNidos.className = "btn btn-sm btn-outline-success fw-bold";
         titulo.innerText = "🌍 Mapa General de Anillamientos";
-        subtitulo.innerText = `Total registros: ${datosAnillamientos.length}`;
       } else {
         btnAnil.className = "btn btn-sm btn-outline-primary fw-bold";
         btnNidos.className = "btn btn-sm btn-success fw-bold";
         titulo.innerText = "🪹 Mapa de Ubicación de Nidos";
-        subtitulo.innerText = `Total nidos: ${datosNidos.length}`;
       }
     }
 
@@ -176,7 +174,6 @@
         let fecha = item.fecha || item.temporada || "";
         let anioItem = extraerAnio(fecha);
 
-        // Filtrar por año si no está en "todos"
         if (anioSeleccionado !== "todos" && anioItem !== anioSeleccionado) {
           return;
         }
@@ -218,9 +215,7 @@
         }
       });
 
-      // Actualizar subtitulo con el conteo filtrado
-      let subtitulo = document.getElementById('subtitulo-mapa');
-      subtitulo.innerText = `Mostrando ${contadorVisibles} ubicaciones (Año: ${anioSeleccionado})`;
+      document.getElementById('subtitulo-mapa').innerText = `Mostrando ${contadorVisibles} registros (Año: ${anioSeleccionado})`;
 
       if (bounds.length > 0) {
         map.fitBounds(bounds, { padding: [50, 50] });
