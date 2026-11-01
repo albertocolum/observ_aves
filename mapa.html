@@ -113,6 +113,27 @@
       return "";
     }
 
+    // Función clave para corregir automáticamente latitudes mal formateadas del CSV
+    function corregirLatitud(rawLat) {
+      if (rawLat === undefined || rawLat === null) return NaN;
+      let s = String(rawLat).replace(',', '.');
+      // Si tiene varios puntos (ej: 3.977.063), limpiamos los puntos sobrantes
+      if ((s.match(/\./g) || []).length > 1) {
+        let partes = s.split('.');
+        s = partes[0] + '.' + partes.slice(1).join('');
+      }
+      let val = parseFloat(s);
+      if (isNaN(val)) return NaN;
+      
+      // Si el valor está en torno a 390-410 o 3900-4100, se reescala a 39-41
+      if (val > 90) {
+        while (val > 90) {
+          val = val / 10.0;
+        }
+      }
+      return val;
+    }
+
     function actualizarSelectAniosDinamico() {
       let listaActual = capaActual === 'anillamientos' ? datosAnillamientos : datosNidos;
       let aniosSet = new Set(["2026", "2025", "2024"]);
@@ -178,10 +199,9 @@
           return;
         }
 
-        let lat = parseFloat(item.lat);
-        let lng = parseFloat(item.lng);
+        let lat = corregirLatitud(item.lat);
+        let lng = parseFloat(String(item.lng || 0).replace(',', '.'));
 
-        // Validar rango correcto de coordenadas geográficas
         if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           contadorVisibles++;
           let popupContent = "";
