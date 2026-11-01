@@ -267,7 +267,7 @@
               var address = data.address || {};
               var lugar = address.city || address.town || address.village || address.municipality || address.county || data.display_name.split(',')[0];
               var provincia = address.province || address.state || '';
-              document.getElementById('input-localidad-anil').value = provincia ? `${lugar} / ${provincia}` : lugar;
+              document.getElementById('input-lugar-anil').value = provincia ? `${lugar} / ${provincia}` : lugar;
             }
           });
       } else {
@@ -316,6 +316,7 @@
       }
     }
 
+    // Parser CSV robusto con manejo seguro de comillas y apóstrofes (Vall d'Alba, etc.)
     window.migrarCSVAFirebase = function(event) {
       var file = event.target.files[0];
       if (!file) return;
@@ -327,34 +328,39 @@
         if (lineas.length < 2) return alert("Archivo sin datos.");
 
         var contador = 0;
-        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando registros a la nube... Por favor espera.</b></td></tr>';
+        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando los 244 registros a la nube... Por favor espera.</b></td></tr>';
 
         for (var i = 1; i < lineas.length; i++) {
           var l = lineas[i].trim();
           if (!l) continue;
 
-          var cols = l.split(';');
-          if (cols.length >= 18) {
+          // Expresión regular para separar columnas CSV respetando campos entrecomillados
+          var cols = l.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+
+          if (cols.length >= 19) {
+            var latVal = parseFloat(cols[18].replace(',', '.')) || 39.7709;
+            var lngVal = parseFloat(cols[19].replace(',', '.')) || -0.1840;
+
             var item = {
-              codigoNido: (cols[1] || "-").replace(/^"|"$/g, '').trim(),
-              tipoCaptura: (cols[2] || "Anillamiento").replace(/^"|"$/g, '').trim(),
-              fecha: (cols[3] || new Date().toISOString().slice(0,10)).replace(/^"|"$/g, '').trim(),
-              localidad: (cols[4] || "Importado").replace(/^"|"$/g, '').trim(),
-              metal: (cols[5] || "-").replace(/^"|"$/g, '').trim(),
-              pvc: (cols[6] || "-").replace(/^"|"$/g, '').trim(),
-              especie: (cols[7] || "Falco tinnunculus").replace(/^"|"$/g, '').trim(),
-              edad: (cols[8] || "3").replace(/^"|"$/g, '').trim(),
-              sexo: (cols[9] || "Desconocido").replace(/^"|"$/g, '').trim(),
-              ala: (cols[10] || "-").replace(/^"|"$/g, '').trim(),
-              p8: (cols[11] || "-").replace(/^"|"$/g, '').trim(),
-              cola: (cols[12] || "-").replace(/^"|"$/g, '').trim(),
-              tarso: (cols[13] || "-").replace(/^"|"$/g, '').trim(),
-              r5: (cols[14] || "-").replace(/^"|"$/g, '').trim(),
-              peso: (cols[15] || "-").replace(/^"|"$/g, '').trim(),
-              grasa: (cols[16] || "-").replace(/^"|"$/g, '').trim(),
-              anillador: (cols[17] || "Alberto de la Rosa").replace(/^"|"$/g, '').trim(),
-              lat: parseFloat(cols[18]) || 39.7709,
-              lng: parseFloat(cols[19]) || -0.1840
+              codigoNido: cols[1] || "-",
+              tipoCaptura: cols[2] || "Anillamiento",
+              fecha: cols[3] || new Date().toISOString().slice(0,10),
+              localidad: cols[4] || "Importado",
+              metal: cols[5] || "-",
+              pvc: cols[6] || "-",
+              especie: cols[7] || "Falco tinnunculus",
+              edad: cols[8] || "3",
+              sexo: cols[9] || "Desconocido",
+              ala: cols[10] || "-",
+              p8: cols[11] || "-",
+              cola: cols[12] || "-",
+              tarso: cols[13] || "-",
+              r5: cols[14] || "-",
+              peso: cols[15] || "-",
+              grasa: cols[16] || "-",
+              anillador: cols[17] || "Alberto de la Rosa",
+              lat: latVal,
+              lng: lngVal
             };
             await addDoc(collection(db, "anillamientos"), item);
             contador++;
@@ -366,13 +372,11 @@
       reader.readAsText(file, "UTF-8");
     }
 
-    // NUEVA FUNCIÓN: Borrado en lote optimizado de un solo clic
     window.vaciarTodoAnilFirebase = async function() {
       if (confirm("¿Estás seguro de que quieres vaciar TODOS los registros de anillamiento de la nube de golpe?")) {
         try {
           document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
           
-          // Recargar todos los documentos actuales por si acaso
           const querySnapshot = await getDocs(collection(db, "anillamientos"));
           let promesasBorrado = [];
           querySnapshot.forEach((docSnap) => {
