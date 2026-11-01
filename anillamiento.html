@@ -169,7 +169,7 @@
             <div class="btn-group">
               <a href="nidos.html" class="btn btn-outline-success btn-sm">🪹 Nidos</a>
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
-              <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-csv').click()" title="Subir tu archivo CSV exportado">☁️ Importar CSV a Nube</button>
+              <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-csv').click()" title="Subir tu archivo CSV original">☁️ Importar CSV a Nube</button>
               <input type="file" id="input-migrar-csv" accept=".csv" style="display:none;" onchange="migrarCSVAFirebase(event)">
               <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar toda la nube de golpe">⚠️ Vaciar Nube</button>
               <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
@@ -267,7 +267,7 @@
               var address = data.address || {};
               var lugar = address.city || address.town || address.village || address.municipality || address.county || data.display_name.split(',')[0];
               var provincia = address.province || address.state || '';
-              document.getElementById('input-lugar-anil').value = provincia ? `${lugar} / ${provincia}` : lugar;
+              document.getElementById('input-localidad-anil').value = provincia ? `${lugar} / ${provincia}` : lugar;
             }
           });
       } else {
@@ -276,6 +276,26 @@
     }
 
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+    // Corrector automático de coordenadas al vuelo
+    function corregirLatitudJS(rawLat) {
+      if (rawLat === undefined || rawLat === null) return 39.7709;
+      let s = String(rawLat).replace(',', '.');
+      if ((s.match(/\./g) || []).length > 1) {
+        let partes = s.split('.');
+        s = partes[0] + '.' + partes.slice(1).join('');
+      }
+      let val = parseFloat(s);
+      if (isNaN(val)) return 39.7709;
+      if (1.0 <= val && val < 10.0) {
+        val = val * 10.0;
+      } else if (val > 90) {
+        while (val > 90) {
+          val = val / 10.0;
+        }
+      }
+      return val;
+    }
 
     window.guardarAnillamiento = async function() {
       var tipoCaptura = document.getElementById('input-tipo-captura').value;
@@ -316,7 +336,7 @@
       }
     }
 
-    // Parser CSV robusto con manejo seguro de comillas y apóstrofes (Vall d'Alba, etc.)
+    // Importación robusta que lee TODAS las líneas del CSV original sin límite
     window.migrarCSVAFirebase = function(event) {
       var file = event.target.files[0];
       if (!file) return;
@@ -328,18 +348,17 @@
         if (lineas.length < 2) return alert("Archivo sin datos.");
 
         var contador = 0;
-        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando los 244 registros a la nube... Por favor espera.</b></td></tr>';
+        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando todos los registros a la nube... Por favor espera.</b></td></tr>';
 
         for (var i = 1; i < lineas.length; i++) {
           var l = lineas[i].trim();
           if (!l) continue;
 
-          // Expresión regular para separar columnas CSV respetando campos entrecomillados
           var cols = l.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
 
           if (cols.length >= 19) {
-            var latVal = parseFloat(cols[18].replace(',', '.')) || 39.7709;
-            var lngVal = parseFloat(cols[19].replace(',', '.')) || -0.1840;
+            var latVal = corregirLatitudJS(cols[18]);
+            var lngVal = parseFloat(String(cols[19] || 0).replace(',', '.')) || -0.1840;
 
             var item = {
               codigoNido: cols[1] || "-",
@@ -432,7 +451,7 @@
       registrosPagina.forEach((r, idx) => {
         var numReal = datosOrdenados.length - (inicio + idx);
         var edadTexto = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : r.edad));
-        var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
+        var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNitor || r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
 
         tbody.innerHTML += `<tr>
           <td><b>#${numReal}</b></td>
