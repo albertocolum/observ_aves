@@ -20,11 +20,11 @@
 
   <div class="container main-container">
     <div class="row g-4">
-      
+      <!-- COLUMNA IZQUIERDA: FORMULARIO DE CAPTURA -->
       <div class="col-lg-5">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4 class="form-title mb-0" style="border:none; padding:0;">Anillamiento y Biometría (Cloud)</h4>
+            <h4 class="form-title mb-0" style="border:none; padding:0;">Anillamiento y Biometría</h4>
             <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Volver al Inicio</a>
           </div>
           <hr class="mt-2 mb-3">
@@ -50,7 +50,7 @@
               <div class="col-md-7">
                 <label class="form-label">Coordenadas (Lat, Long) <span class="required-asterisk">*</span></label>
                 <div class="input-group input-group-sm">
-                  <input type="text" id="input-coords-anil" class="form-control" value="39.7709, -0.1840">
+                  <input type="text" id="input-coords-anil" class="form-control" value="39.7709, -0.1840" onchange="actualizarLocalidadDesdeCoords()">
                   <button class="btn btn-outline-secondary" type="button" onclick="actualizarLocalidadDesdeCoords()">Buscar</button>
                 </div>
               </div>
@@ -73,7 +73,7 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">Anilla PVC / Marca Alar</label>
-                <input type="text" id="input-pvc-anil" class="form-control form-control-sm" placeholder="Ej: A5J">
+                <input type="text" id="input-pvc-anil" class="form-control form-control-sm" placeholder="Ej: A5J (Verde)">
               </div>
             </div>
 
@@ -103,7 +103,7 @@
               <div class="col-md-3">
                 <label class="form-label">Sexo</label>
                 <select id="input-sexo-anil" class="form-select form-select-sm">
-                  <option value="Desconocido">?</option>
+                  <option value="Desconocido">? (Doubtful)</option>
                   <option value="Macho">Macho (M)</option>
                   <option value="Hembra">Hembra (F)</option>
                 </select>
@@ -125,7 +125,7 @@
                 <input type="number" step="0.1" id="input-cola-anil" class="form-control form-control-sm" placeholder="mm">
               </div>
               <div class="col-md-3">
-                <label class="form-label">R5</label>
+                <label class="form-label">R5 (mm / %)</label>
                 <input type="text" id="input-r5-anil" class="form-control form-control-sm" placeholder="R5">
               </div>
             </div>
@@ -136,12 +136,12 @@
                 <input type="number" step="0.1" id="input-tarso-anil" class="form-control form-control-sm" placeholder="mm">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Peso (g)</label>
+                <label class="form-label">Masa / Peso (g)</label>
                 <input type="number" step="0.1" id="input-peso-anil" class="form-control form-control-sm" placeholder="g">
               </div>
               <div class="col-md-4">
                 <label class="form-label">Grasa / Músculo</label>
-                <input type="text" id="input-grasa-anil" class="form-control form-control-sm" placeholder="G2 / M3">
+                <input type="text" id="input-grasa-anil" class="form-control form-control-sm" placeholder="Ej: G2 / M3">
               </div>
             </div>
 
@@ -151,23 +151,27 @@
             </div>
 
             <button type="button" class="btn btn-success w-100 fw-bold mt-3" onclick="guardarAnillamiento()">
-              ☁️ Guardar Captura en la Nube
+              + Guardar Captura y Biometría
             </button>
           </form>
         </div>
       </div>
 
+      <!-- COLUMNA DERECHA: TABLA Y ACCIONES -->
       <div class="col-lg-7">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h4 class="form-title mb-1" style="border:none; padding:0;">Capturas y Registros Biométricos</h4>
-              <small class="text-muted">Sincronizado con Firebase Firestore</small>
+              <small class="text-muted">Base de datos de anillamiento científico</small>
             </div>
             <div class="btn-group">
               <a href="nidos.html" class="btn btn-outline-success btn-sm">🪹 Nidos</a>
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
-              <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar nube">⚠️ Vaciar Nube</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoAnil()" title="Borrar último registro">🗑️</button>
+              <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodoAnil()" title="Vaciar base local">⚠️ Vaciar</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('input-file-json').click()" title="Cargar JSON o CSV">📥 Importar</button>
+              <input type="file" id="input-file-json" accept=".json,.csv" style="display:none;" onchange="importarArchivoAnil(event)">
               <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
             </div>
           </div>
@@ -191,7 +195,7 @@
                 </tr>
               </thead>
               <tbody id="tabla-registros-anil">
-                <tr><td colspan="12" class="text-center text-muted py-3">Conectando con Firebase...</td></tr>
+                <tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>
               </tbody>
             </table>
           </div>
@@ -207,80 +211,50 @@
     </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDCEN_3ZKHTaR0MjMRth0lwK4xi4onV3Dc",
-      authDomain: "faltin-seguimiento.firebaseapp.com",
-      projectId: "faltin-seguimiento",
-      storageBucket: "faltin-seguimiento.firebasestorage.app",
-      messagingSenderId: "966550147650",
-      appId: "1:966550147650:web:6239bcd9ffb69a99ba93db",
-      measurementId: "G-FGTYZW6RQK"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.anillamientos = [];
+  <script>
     var paginaActual = 1;
     var registrosPorPagina = 15;
+    var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
+
+    function obtenerLocalidad(lat, lng, targetInputId) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.display_name) {
+            var address = data.address || {};
+            var lugar = address.city || address.town || address.village || address.municipality || address.county || data.display_name.split(',')[0];
+            var provincia = address.province || address.state || '';
+            var pais = address.country_code ? address.country_code.toUpperCase() : '';
+            document.getElementById(targetInputId).value = provincia ? `${lugar} / ${provincia} (${pais})` : `${lugar} (${pais})`;
+          }
+        })
+        .catch(err => console.error('Error localidad:', err));
+    }
 
     document.getElementById('input-fecha-anil').value = new Date().toISOString().slice(0,10);
 
-    function formatearFecha(fechaStr) {
-      if (!fechaStr) return '-';
-      if (fechaStr.includes('-')) {
-        var p = fechaStr.split('-');
-        if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
-      }
-      return fechaStr;
-    }
-
-    async function cargarAnillamientosFirebase() {
-      try {
-        const querySnapshot = await getDocs(collection(db, "anillamientos"));
-        window.anillamientos = [];
-        querySnapshot.forEach((docSnap) => {
-          window.anillamientos.push({ docId: docSnap.id, ...docSnap.data() });
-        });
-        renderizarTablaPaginada();
-      } catch (e) {
-        console.error("Error cargando anillamientos:", e);
-      }
-    }
-
-    window.actualizarLocalidadDesdeCoords = function() {
+    function actualizarLocalidadDesdeCoords() {
       var p = document.getElementById('input-coords-anil').value.split(',');
       if (p.length === 2 && !isNaN(parseFloat(p[0])) && !isNaN(parseFloat(p[1]))) {
-        var lat = parseFloat(p[0]), lng = parseFloat(p[1]);
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
-          .then(res => res.json())
-          .then(data => {
-            if (data && data.display_name) {
-              var address = data.address || {};
-              var lugar = address.city || address.town || address.village || address.municipality || address.county || data.display_name.split(',')[0];
-              var provincia = address.province || address.state || '';
-              document.getElementById('input-localidad-anil').value = provincia ? `${lugar} / ${provincia}` : lugar;
-            }
-          });
+        obtenerLocalidad(parseFloat(p[0]), parseFloat(p[1]), 'input-localidad-anil');
       } else {
-        alert("Introduce coordenadas válidas.");
+        alert("Introduce coordenadas válidas (Lat, Long).");
       }
     }
 
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
-    window.guardarAnillamiento = async function() {
+    function guardarAnillamiento() {
       var tipoCaptura = document.getElementById('input-tipo-captura').value;
+      if (!tipoCaptura) return alert("Selecciona el tipo de captura.");
+
       var c = document.getElementById('input-coords-anil').value.split(',');
       var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
       if (isNaN(lat) || isNaN(lng)) return alert("Coordenadas no válidas.");
       if (!document.getElementById('input-fecha-anil').value || !document.getElementById('input-localidad-anil').value.trim() || !document.getElementById('input-metal-anil').value.trim()) return alert("Rellena fecha, lugar y anilla.");
 
       var item = {
+        id: anillamientos.reduce(function(m,a){return Math.max(m,a.id||0);},0) + 1,
         tipoCaptura: tipoCaptura,
         codigoNido: document.getElementById('input-codigo-nido-anil').value.trim() || "-",
         fecha: document.getElementById('input-fecha-anil').value,
@@ -301,35 +275,33 @@
         lat: lat, lng: lng
       };
 
-      try {
-        await addDoc(collection(db, "anillamientos"), item);
-        alert("¡Captura guardada en Firebase correctamente!");
+      anillamientos.push(item);
+      localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos));
+      
+      paginaActual = 1;
+      renderizarTablaPaginada();
+      alert("¡Captura guardada correctamente!");
+    }
+
+    function eliminarUltimoAnil() { 
+      if(anillamientos.length > 0 && confirm("¿Borrar última captura?")) { 
+        anillamientos.pop(); 
+        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); 
+        renderizarTablaPaginada(); 
+      } 
+    }
+
+    function vaciarTodoAnil() { 
+      if(confirm("¿Vaciar capturas locales?")) { 
+        anillamientos = []; 
+        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(anillamientos)); 
         paginaActual = 1;
-        await cargarAnillamientosFirebase();
-      } catch (e) {
-        console.error("Error al guardar anillamiento:", e);
-        alert("Error al guardar en la nube.");
-      }
+        renderizarTablaPaginada(); 
+      } 
     }
 
-    window.vaciarTodoAnilFirebase = async function() {
-      if (confirm("¿Vaciar todos los registros de anillamiento de la nube?")) {
-        try {
-          for (let a of window.anillamientos) {
-            if (a.docId) await deleteDoc(doc(db, "anillamientos", a.docId));
-          }
-          window.anillamientos = [];
-          paginaActual = 1;
-          renderizarTablaPaginada();
-          alert("Registros de anillamiento vaciados en la nube.");
-        } catch (e) {
-          console.error("Error al vaciar:", e);
-        }
-      }
-    }
-
-    window.cambiarPagina = function(direccion) {
-      var totalPaginas = Math.ceil(window.anillamientos.length / registrosPorPagina) || 1;
+    function cambiarPagina(direccion) {
+      var totalPaginas = Math.ceil(anillamientos.length / registrosPorPagina) || 1;
       paginaActual += direccion;
       if (paginaActual < 1) paginaActual = 1;
       if (paginaActual > totalPaginas) paginaActual = totalPaginas;
@@ -341,13 +313,18 @@
       var pagContainer = document.getElementById('paginacion-container');
       if(!tbody) return;
 
-      if (window.anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No hay capturas en la nube.</td></tr>';
+      if (anillamientos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No hay capturas guardadas.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
 
-      var datosOrdenados = [...window.anillamientos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      var datosOrdenados = [...anillamientos].sort((a, b) => {
+        var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
+        var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
+        return fb - fa;
+      });
+
       var totalPaginas = Math.ceil(datosOrdenados.length / registrosPorPagina);
       if (paginaActual > totalPaginas) paginaActual = totalPaginas;
 
@@ -364,7 +341,7 @@
         tbody.innerHTML += `<tr>
           <td><b>#${numReal}</b></td>
           <td>${nidoBadge}</td>
-          <td>${formatearFecha(r.fecha)}</td>
+          <td>${r.fecha}</td>
           <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
           <td><i>${esc(r.especie)}</i></td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
@@ -382,16 +359,17 @@
       }
     }
 
-    window.exportarExcelAnil = function() {
-      if (!window.anillamientos.length) return alert("Sin datos.");
-      var h = "CodigoNido;TipoCaptura;Fecha;Lugar;Metal;PVC;Especie;Edad;Sexo;Ala;P8;Cola;Tarso;R5;Peso;Grasa;Anillador;Lat;Lng\n";
-      var r = window.anillamientos.map(a => `"${a.codigoNido || '-'}";"${a.tipoCaptura || 'Anillamiento'}";"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
+    function exportarExcelAnil() {
+      if (!anillamientos.length) return alert("Sin datos.");
+      var h = "ID;CodigoNido;TipoCaptura;Fecha;Lugar;Metal;PVC;Especie;Edad;Sexo;Ala;P8;Cola;Tarso;R5;Peso;Grasa;Anillador;Lat;Lng\n";
+      var r = anillamientos.map(a => `${a.id};"${a.codigoNido || '-'}";"${a.tipoCaptura || 'Anillamiento'}";"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
-      link.download = "anillamiento_firebase.csv"; link.click();
+      link.download = "anillamiento_biometria.csv"; link.click();
     }
 
     window.onload = function() {
-      cargarAnillamientosFirebase();
+      renderizarTablaPaginada();
+      
       var presetNidada = JSON.parse(localStorage.getItem("preset_anillamiento_nidada"));
       if (presetNidada) {
         document.getElementById('input-codigo-nido-anil').value = presetNidada.codigoNido || '';
@@ -399,7 +377,9 @@
         document.getElementById('input-coords-anil').value = `${presetNidada.lat}, ${presetNidada.lng}`;
         document.getElementById('input-localidad-anil').value = presetNidada.localidad || '';
         document.getElementById('input-edad-anil').value = "1";
-        localStorage.removeItem("preset_anillamiento_nidada>();
+        localStorage.removeItem("preset_anillamiento_nidada");
+      } else {
+        obtenerLocalidad(39.7709, -0.1840, 'input-localidad-anil');
       }
     };
   </script>
