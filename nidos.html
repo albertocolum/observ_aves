@@ -195,6 +195,16 @@
 
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
+    // Función auxiliar para estandarizar fechas a DD/MM/YYYY
+    function formatearFecha(fechaStr) {
+      if (!fechaStr) return '-';
+      if (fechaStr.includes('-')) {
+        var p = fechaStr.split('-');
+        if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+      }
+      return fechaStr;
+    }
+
     function initMapaForm() {
       mapForm = L.map('mapa-nido-preliminar').setView([40.1831, 0.0225], 11);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapForm);
@@ -432,7 +442,7 @@
         
         tbody.innerHTML += `<tr>
           <td><b class="text-primary">${n.id}</b></td>
-          <td><small>${n.temporada || '-'}</small></td>
+          <td><small>${formatearFecha(n.temporada) || '-'}</small></td>
           <td><i>${n.especie}</i></td>
           <td>${n.lugar}</td>
           <td>
@@ -458,7 +468,6 @@
       var n = nidos.find(x => x.id === codigoNido);
       if (!n) return;
 
-      // Actualizar el valor de anillados si estaba a cero para reflejar la acción de anillar
       if (!n.anillados || parseInt(n.anillados) === 0) {
         n.anillados = n.nacidos > 0 ? n.nacidos : 1;
         localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
