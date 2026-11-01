@@ -21,11 +21,12 @@
 
   <div class="container main-container">
     
+    <!-- CABECERA DE MÓDULO -->
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center">
         <div>
-          <h4 class="fw-bold text-success mb-1">🪹 Control y Monitorización de Nidos / Cajas Nido (Cloud)</h4>
-          <small class="text-muted">Sincronizado con Firebase Firestore</small>
+          <h4 class="fw-bold text-success mb-1">🪹 Control y Monitorización de Nidos / Cajas Nido</h4>
+          <small class="text-muted">Seguimiento de ocupación, puestas, fenología y éxito reproductor</small>
         </div>
         <div class="d-flex gap-2">
           <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Ver Mapa</a>
@@ -36,6 +37,7 @@
 
     <div class="row g-4">
       
+      <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / NUEVA VISITA -->
       <div class="col-lg-5">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -94,7 +96,7 @@
 
             <div class="mb-2">
               <label class="form-label">Población / Localidad *</label>
-              <input type="text" id="input-lugar-nido" class="form-control form-control-sm" placeholder="Se autocompletará..." required>
+              <input type="text" id="input-lugar-nido" class="form-control form-control-sm" placeholder="Se autocompletará con las coordenadas..." required>
             </div>
 
             <div id="mapa-nido-preliminar"></div>
@@ -133,27 +135,28 @@
 
             <div class="mb-2">
               <label class="form-label">Observaciones / Anillas Asignadas</label>
-              <textarea id="input-obs-nido" class="form-control form-control-sm" rows="2" placeholder="Notas..."></textarea>
+              <textarea id="input-obs-nido" class="form-control form-control-sm" rows="2" placeholder="Notas sobre la inspección o anillas aplicadas..."></textarea>
             </div>
 
             <button type="button" class="btn btn-success w-100 fw-bold mt-2" onclick="guardarNido()">
-              ☁️ Guardar Visita en la Nube
+              💾 Guardar Visita / Inspección
             </button>
           </form>
         </div>
       </div>
 
+      <!-- COLUMNA DERECHA: HISTORIAL Y VISITAS DEL NIDO SELECCIONADO -->
       <div class="col-lg-7">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
               <h4 class="form-title mb-1" style="border:none; padding:0;" id="titulo-tabla-historial">Historial de Visitas</h4>
-              <small class="text-muted" id="subtitulo-tabla-historial">Cargando desde Firebase...</small>
+              <small class="text-muted" id="subtitulo-tabla-historial">Selecciona o crea un nido para ver su historial</small>
             </div>
             <div class="btn-group">
               <button class="btn btn-outline-primary btn-sm" onclick="mostrarTodoElHistorial()" id="btn-ver-todos" style="display:none;">Ver Todos</button>
               <button class="btn btn-outline-secondary btn-sm" onclick="exportarNidosCSV()">📊 Exportar CSV</button>
-              <button class="btn btn-outline-danger btn-sm" onclick="vaciarNidosFirebase()" title="Borrar todo en nube">⚠️ Vaciar Nube</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="vaciarNidos()" title="Borrar todo">⚠️ Vaciar</button>
             </div>
           </div>
 
@@ -171,7 +174,7 @@
                 </tr>
               </thead>
               <tbody id="tabla-nidos">
-                <tr><td colspan="7" class="text-center text-muted py-3">Conectando con Firebase...</td></tr>
+                <tr><td colspan="7" class="text-center text-muted py-3">Selecciona un nido del desplegable o pulsa "Nuevo Nido".</td></tr>
               </tbody>
             </table>
           </div>
@@ -182,31 +185,17 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDCEN_3ZKHTaR0MjMRth0lwK4xi4onV3Dc",
-      authDomain: "faltin-seguimiento.firebaseapp.com",
-      projectId: "faltin-seguimiento",
-      storageBucket: "faltin-seguimiento.firebasestorage.app",
-      messagingSenderId: "966550147650",
-      appId: "1:966550147650:web:6239bcd9ffb69a99ba93db",
-      measurementId: "G-FGTYZW6RQK"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.nidos = [];
-    var mapForm, markerForm;
+  <script>
+    var nidos = JSON.parse(localStorage.getItem("ornito_nidos_data")) || [];
+    var mapForm;
+    var markerForm;
     var modoCreacionNuevo = false;
     var nidoSeleccionadoFiltro = null;
     var modoNuevoActivoEnTablaBlanca = false;
 
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
+    // Función auxiliar para estandarizar fechas a DD/MM/YYYY
     function formatearFecha(fechaStr) {
       if (!fechaStr) return '-';
       if (fechaStr.includes('-')) {
@@ -216,29 +205,10 @@
       return fechaStr;
     }
 
-    async function cargarNidosDesdeFirebase() {
-      try {
-        const querySnapshot = await getDocs(collection(db, "nidos"));
-        window.nidos = [];
-        querySnapshot.forEach((docSnap) => {
-          window.nidos.push({ docId: docSnap.id, ...docSnap.data() });
-        });
-        actualizarSelectNidos();
-        if (window.nidos.length > 0) {
-          var primerCodigo = [...new Set(window.nidos.map(n => n.id))].sort()[0];
-          document.getElementById('select-codigo-nido').value = primerCodigo;
-          seleccionarNidoExistente(primerCodigo);
-        } else {
-          renderTablaNidos();
-        }
-      } catch (e) {
-        console.error("Error cargando nidos:", e);
-      }
-    }
-
-    window.initMapaForm = function() {
+    function initMapaForm() {
       mapForm = L.map('mapa-nido-preliminar').setView([40.1831, 0.0225], 11);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapForm);
+
       markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
       
       markerForm.on('dragend', function(e) {
@@ -247,20 +217,32 @@
         obtenerPoblacionPorCoords(coord.lat, coord.lng);
       });
 
-      cargarNidosDesdeFirebase();
+      actualizarSelectNidos();
+
+      if (nidos.length > 0) {
+        var primerCodigo = [...new Set(nidos.map(n => n.id))].sort()[0];
+        document.getElementById('select-codigo-nido').value = primerCodigo;
+        seleccionarNidoExistente(primerCodigo);
+      } else {
+        obtenerPoblacionPorCoords(40.1831, 0.0225);
+        limpiarFormularioParaNuevo();
+      }
     }
 
     function actualizarSelectNidos() {
       var select = document.getElementById('select-codigo-nido');
       select.innerHTML = '<option value="" disabled>-- Selecciona un nido --</option>';
-      var codigosUnicos = [...new Set(window.nidos.map(n => n.id))].sort();
+      
+      var codigosUnicos = [...new Set(nidos.map(n => n.id))].sort();
       codigosUnicos.forEach(cod => {
         select.innerHTML += `<option value="${cod}">${cod}</option>`;
       });
-      if (nidoSeleccionadoFiltro) select.value = nidoSeleccionadoFiltro;
+      if (nidoSeleccionadoFiltro) {
+        select.value = nidoSeleccionadoFiltro;
+      }
     }
 
-    window.alternarModoNuevoNido = function() {
+    function alternarModoNuevoNido() {
       modoCreacionNuevo = !modoCreacionNuevo;
       var select = document.getElementById('select-codigo-nido');
       var input = document.getElementById('input-codigo-nido');
@@ -272,6 +254,7 @@
         input.value = '';
         input.focus();
         btn.innerText = 'Listar';
+        
         modoNuevoActivoEnTablaBlanca = true;
         nidoSeleccionadoFiltro = null;
         renderTablaNidos();
@@ -280,14 +263,14 @@
         input.style.display = 'none';
         btn.innerText = 'Nuevo';
         modoNuevoActivoEnTablaBlanca = false;
-        if (window.nidos.length > 0) {
-          select.value = window.nidos[0].id;
-          seleccionarNidoExistente(window.nidos[0].id);
+        if (nidos.length > 0) {
+          select.value = nidos[0].id;
+          seleccionarNidoExistente(nidos[0].id);
         }
       }
     }
 
-    window.limpiarFormularioParaNuevo = function() {
+    function limpiarFormularioParaNuevo() {
       modoCreacionNuevo = true;
       document.getElementById('select-codigo-nido').style.display = 'none';
       document.getElementById('input-codigo-nido').style.display = 'block';
@@ -311,18 +294,20 @@
       renderTablaNidos();
     }
 
-    window.seleccionarNidoExistente = function(codigo) {
+    function seleccionarNidoExistente(codigo) {
       if (!codigo) {
         nidoSeleccionadoFiltro = null;
         renderTablaNidos();
         return;
       }
+
       modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
       
-      var visitasNido = window.nidos.filter(n => n.id === codigo);
+      var visitasNido = nidos.filter(n => n.id === codigo);
       if (visitasNido.length > 0) {
         var ultimo = visitasNido[0];
+
         document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
         document.getElementById('input-tipo-estructura').value = ultimo.estructura || 'Caja Nido Madera';
@@ -337,6 +322,7 @@
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
         mapForm.panTo([ultimo.lat, ultimo.lng]);
       }
+
       renderTablaNidos();
     }
 
@@ -350,10 +336,11 @@
             var provincia = addr.province || addr.state || "";
             document.getElementById('input-lugar-nido').value = provincia ? `${poblacion} (${provincia})` : poblacion;
           }
-        });
+        })
+        .catch(err => console.error("Error geocodificación inversa:", err));
     }
 
-    window.actualizarDesdeCoordsManual = function() {
+    function actualizarDesdeCoordsManual() {
       var parts = document.getElementById('input-coords-nido').value.split(',');
       if (parts.length === 2 && !isNaN(parseFloat(parts[0])) && !isNaN(parseFloat(parts[1]))) {
         var lat = parseFloat(parts[0]), lng = parseFloat(parts[1]);
@@ -363,7 +350,7 @@
       }
     }
 
-    window.guardarNido = async function() {
+    function guardarNido() {
       var codigo = "";
       if (modoCreacionNuevo || document.getElementById('select-codigo-nido').value === "") {
         codigo = document.getElementById('input-codigo-nido').value.trim();
@@ -394,18 +381,14 @@
         obs: document.getElementById('input-obs-nido').value
       };
 
-      try {
-        await addDoc(collection(db, "nidos"), nidoObj);
-        alert(`¡Visita guardada en Firebase para el nido [${codigo}]!`);
-        await cargarNidosDesdeFirebase();
-        modoNuevoActivoEnTablaBlanca = false;
-        nidoSeleccionadoFiltro = codigo;
-        actualizarSelectNidos();
-        renderTablaNidos();
-      } catch (e) {
-        console.error("Error al guardar en Firebase:", e);
-        alert("Error al guardar en la nube.");
-      }
+      nidos.unshift(nidoObj);
+      localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+      
+      modoNuevoActivoEnTablaBlanca = false;
+      nidoSeleccionadoFiltro = codigo;
+      actualizarSelectNidos();
+      renderTablaNidos();
+      alert(`¡Visita registrada con éxito para el nido [${codigo}]!`);
     }
 
     function renderTablaNidos() {
@@ -423,20 +406,20 @@
         return;
       }
 
-      var datosAMostrar = window.nidos;
+      var datosAMostrar = nidos;
       if (nidoSeleccionadoFiltro) {
-        datosAMostrar = window.nidos.filter(n => n.id === nidoSeleccionadoFiltro);
+        datosAMostrar = nidos.filter(n => n.id === nidoSeleccionadoFiltro);
         tituloHist.innerText = `Visitas del Nido: ${nidoSeleccionadoFiltro}`;
-        subTituloHist.innerText = `Historial de inspecciones en nube`;
+        subTituloHist.innerText = `Historial de inspecciones para esta caja`;
         btnVerTodos.style.display = 'inline-block';
       } else {
         tituloHist.innerText = `Historial General de Visitas`;
-        subTituloHist.innerText = `Mostrando todas las inspecciones en nube`;
+        subTituloHist.innerText = `Mostrando todas las inspecciones registradas`;
         btnVerTodos.style.display = 'none';
       }
 
       if (datosAMostrar.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No hay registros en la nube.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No hay registros de visitas.</td></tr>';
         return;
       }
 
@@ -449,31 +432,47 @@
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
         var numAnillados = parseInt(n.anillados) || 0;
-        var badgeAnillados = numAnillados > 0 ? `<br><span class="badge bg-success mt-1">✔ Anillados (${numAnillados})</span>` : '';
-        var btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-2" onclick="anillarNidadaDirecta('${n.id}')">Anillar 🐣</button>`;
+        var badgeAnillados = numAnillados > 0 
+          ? `<br><span class="badge bg-success mt-1" title="${numAnillados} pollos anillados en este nido">✔ Anillados (${numAnillados})</span>` 
+          : '';
+
+        var btnAnillarHtml = numAnillados > 0 
+          ? `<button class="btn btn-sm btn-success py-0 px-2 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Añadir/ver anillamientos">✔ Anillados 🐣</button>`
+          : `<button class="btn btn-sm btn-outline-success py-0 px-2" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar Pollos">Anillar 🐣</button>`;
         
         tbody.innerHTML += `<tr>
           <td><b class="text-primary">${n.id}</b></td>
           <td><small>${formatearFecha(n.temporada) || '-'}</small></td>
           <td><i>${n.especie}</i></td>
           <td>${n.lugar}</td>
-          <td><span class="badge ${badgeColor}">${n.estado}</span>${badgeAnillados}</td>
+          <td>
+            <span class="badge ${badgeColor}">${n.estado}</span>
+            ${badgeAnillados}
+          </td>
           <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V / <b class="text-success">${numAnillados}</b>A</td>
-          <td>${btnAnillarHtml}</td>
+          <td>
+            ${btnAnillarHtml}
+          </td>
         </tr>`;
       });
     }
 
-    window.mostrarTodoElHistorial = function() {
+    function mostrarTodoElHistorial() {
       modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = null;
       document.getElementById('select-codigo-nido').value = "";
       renderTablaNidos();
     }
 
-    window.anillarNidadaDirecta = function(codigoNido) {
-      var n = window.nidos.find(x => x.id === codigoNido);
+    function anillarNidadaDirecta(codigoNido) {
+      var n = nidos.find(x => x.id === codigoNido);
       if (!n) return;
+
+      if (!n.anillados || parseInt(n.anillados) === 0) {
+        n.anillados = n.nacidos > 0 ? n.nacidos : 1;
+        localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+      }
+      
       var preset = {
         codigoNido: n.id,
         especie: n.especie,
@@ -486,29 +485,22 @@
       window.location.href = "anillamiento.html";
     }
 
-    window.vaciarNidosFirebase = async function() {
-      if (confirm("¿Seguro que quieres borrar todos los nidos de la base de datos de Firebase?")) {
-        try {
-          for (let n of window.nidos) {
-            if (n.docId) await deleteDoc(doc(db, "nidos", n.docId));
-          }
-          window.nidos = [];
-          nidoSeleccionadoFiltro = null;
-          actualizarSelectNidos();
-          limpiarFormularioParaNuevo();
-          alert("Base de datos de nidos vaciada en la nube.");
-        } catch (e) {
-          console.error("Error al vaciar:", e);
-        }
+    function vaciarNidos() {
+      if (confirm("¿Seguro que quieres borrar todos los registros de nidos?")) {
+        nidos = [];
+        localStorage.setItem("ornito_nidos_data", JSON.stringify(nidos));
+        nidoSeleccionadoFiltro = null;
+        actualizarSelectNidos();
+        limpiarFormularioParaNuevo();
       }
     }
 
-    window.exportarNidosCSV = function() {
-      if (!window.nidos.length) return alert("Sin datos.");
+    function exportarNidosCSV() {
+      if (!nidos.length) return alert("Sin datos.");
       var h = "Codigo;Especie;Estructura;Lugar;FechaInspeccion;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs\n";
-      var r = window.nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
+      var r = nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
-      link.download = "seguimiento_nidos_firebase.csv"; link.click();
+      link.download = "seguimiento_nidos_cernicalo.csv"; link.click();
     }
 
     window.onload = function() {
