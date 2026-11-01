@@ -73,7 +73,7 @@
     }
 
     function inicializarMapa() {
-      map = L.map('mapa-general').setView([40.1831, 0.0225], 9);
+      map = L.map('mapa-general').setView([40.1831, 0.0225], 10);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
       marcadoresLayer.addTo(map);
 
@@ -115,7 +115,7 @@
 
     function actualizarSelectAniosDinamico() {
       let listaActual = capaActual === 'anillamientos' ? datosAnillamientos : datosNidos;
-      let aniosSet = new Set(["2026", "2025", "2024"]); // Asegurar que aparezcan por defecto
+      let aniosSet = new Set(["2026", "2025", "2024"]);
 
       listaActual.forEach(item => {
         let fecha = item.fecha || item.temporada || "";
@@ -135,7 +135,7 @@
       if (aniosOrdenados.includes(valorSeleccionado) || valorSeleccionado === "todos") {
         select.value = valorSeleccionado;
       } else {
-        select.value = "2026"; // Por defecto al año actual si existe
+        select.value = "2026";
       }
     }
 
@@ -181,7 +181,8 @@
         let lat = parseFloat(item.lat);
         let lng = parseFloat(item.lng);
 
-        if (!isNaN(lat) && !isNaN(lng)) {
+        // Validar rango correcto de coordenadas geográficas
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           contadorVisibles++;
           let popupContent = "";
           let marker;
