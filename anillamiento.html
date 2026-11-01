@@ -316,7 +316,7 @@
       }
     }
 
-    // Importación adaptada exactamente al CSV exportado
+    // Importación robusta línea por línea para procesar todos los registros sin interrupciones
     window.migrarCSVAFirebase = function(event) {
       var file = event.target.files[0];
       if (!file) return;
@@ -328,30 +328,33 @@
         if (lineas.length < 2) return alert("Archivo sin datos.");
 
         var contador = 0;
+        // Mostrar aviso de carga en curso
+        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando registros a la nube... Por favor espera.</b></td></tr>';
+
         for (var i = 1; i < lineas.length; i++) {
           var l = lineas[i].trim();
           if (!l) continue;
 
-          var cols = l.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-          if (cols.length >= 19) {
+          var cols = l.split(';');
+          if (cols.length >= 18) {
             var item = {
-              codigoNido: cols[1] || "-",
-              tipoCaptura: cols[2] || "Anillamiento",
-              fecha: cols[3] || new Date().toISOString().slice(0,10),
-              localidad: cols[4] || "Importado",
-              metal: cols[5] || "-",
-              pvc: cols[6] || "-",
-              especie: cols[7] || "Falco tinnunculus",
-              edad: cols[8] || "3",
-              sexo: cols[9] || "Desconocido",
-              ala: cols[10] || "-",
-              p8: cols[11] || "-",
-              cola: cols[12] || "-",
-              tarso: cols[13] || "-",
-              r5: cols[14] || "-",
-              peso: cols[15] || "-",
-              grasa: cols[16] || "-",
-              anillador: cols[17] || "Alberto de la Rosa",
+              codigoNido: (cols[1] || "-").replace(/^"|"$/g, '').trim(),
+              tipoCaptura: (cols[2] || "Anillamiento").replace(/^"|"$/g, '').trim(),
+              fecha: (cols[3] || new Date().toISOString().slice(0,10)).replace(/^"|"$/g, '').trim(),
+              localidad: (cols[4] || "Importado").replace(/^"|"$/g, '').trim(),
+              metal: (cols[5] || "-").replace(/^"|"$/g, '').trim(),
+              pvc: (cols[6] || "-").replace(/^"|"$/g, '').trim(),
+              especie: (cols[7] || "Falco tinnunculus").replace(/^"|"$/g, '').trim(),
+              edad: (cols[8] || "3").replace(/^"|"$/g, '').trim(),
+              sexo: (cols[9] || "Desconocido").replace(/^"|"$/g, '').trim(),
+              ala: (cols[10] || "-").replace(/^"|"$/g, '').trim(),
+              p8: (cols[11] || "-").replace(/^"|"$/g, '').trim(),
+              cola: (cols[12] || "-").replace(/^"|"$/g, '').trim(),
+              tarso: (cols[13] || "-").replace(/^"|"$/g, '').trim(),
+              r5: (cols[14] || "-").replace(/^"|"$/g, '').trim(),
+              peso: (cols[15] || "-").replace(/^"|"$/g, '').trim(),
+              grasa: (cols[16] || "-").replace(/^"|"$/g, '').trim(),
+              anillador: (cols[17] || "Alberto de la Rosa").replace(/^"|"$/g, '').trim(),
               lat: parseFloat(cols[18]) || 39.7709,
               lng: parseFloat(cols[19]) || -0.1840
             };
