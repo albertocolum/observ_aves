@@ -21,6 +21,7 @@
   <div class="container main-container">
     <div class="row g-4">
       
+      <!-- COLUMNA IZQUIERDA: FORMULARIO DE CAPTURA -->
       <div class="col-lg-5">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -157,6 +158,7 @@
         </div>
       </div>
 
+      <!-- COLUMNA DERECHA: TABLA Y ACCIONES -->
       <div class="col-lg-7">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
@@ -167,6 +169,8 @@
             <div class="btn-group">
               <a href="nidos.html" class="btn btn-outline-success btn-sm">🪹 Nidos</a>
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
+              <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-csv').click()" title="Subir archivo Excel/CSV recuperado">☁️ Migrar Excel a Nube</button>
+              <input type="file" id="input-migrar-csv" accept=".csv" style="display:none;" onchange="migrarCSVAFirebase(event)">
               <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar nube">⚠️ Vaciar Nube</button>
               <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
             </div>
@@ -312,6 +316,55 @@
       }
     }
 
+    // Función para migrar el archivo CSV descargado a Firebase
+    window.migrarCSVAFirebase = function(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+
+      var reader = new FileReader();
+      reader.onload = async function(e) {
+        var texto = e.target.result;
+        var lineas = texto.split(/\r\n|\n/);
+        if (lineas.length < 2) return alert("Archivo sin datos.");
+
+        var contador = 0;
+        for (var i = 1; i < lineas.length; i++) {
+          var l = lineas[i].trim();
+          if (!l) continue;
+
+          var cols = l.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+          if (cols.length >= 8) {
+            var item = {
+              codigoNido: cols[0] || "-",
+              tipoCaptura: cols[1] || "Anillamiento",
+              fecha: cols[2] || new Date().toISOString().slice(0,10),
+              localidad: cols[3] || "Importado",
+              metal: cols[4] || "-",
+              pvc: cols[5] || "-",
+              especie: cols[6] || "Falco tinnunculus",
+              edad: cols[7] || "3",
+              sexo: cols[8] || "Desconocido",
+              ala: cols[9] || "-",
+              p8: cols[10] || "-",
+              cola: cols[11] || "-",
+              tarso: cols[12] || "-",
+              r5: cols[13] || "-",
+              peso: cols[14] || "-",
+              grasa: cols[15] || "-",
+              anillador: cols[16] || "Alberto de la Rosa",
+              lat: parseFloat(cols[17]) || 39.7709,
+              lng: parseFloat(cols[18]) || -0.1840
+            };
+            await addDoc(collection(db, "anillamientos"), item);
+            contador++;
+          }
+        }
+        alert(`¡Se han migrado con éxito ${contador} registros a Firebase!`);
+        await cargarAnillamientosFirebase();
+      };
+      reader.readAsText(file, "UTF-8");
+    }
+
     window.vaciarTodoAnilFirebase = async function() {
       if (confirm("¿Vaciar todos los registros de anillamiento de la nube?")) {
         try {
@@ -392,15 +445,6 @@
 
     window.onload = function() {
       cargarAnillamientosFirebase();
-      var presetNidada = JSON.parse(localStorage.getItem("preset_anillamiento_nidada"));
-      if (presetNidada) {
-        document.getElementById('input-codigo-nido-anil').value = presetNidada.codigoNido || '';
-        document.getElementById('input-especie-anil').value = presetNidada.especie || 'Falco tinnunculus';
-        document.getElementById('input-coords-anil').value = `${presetNidada.lat}, ${presetNidada.lng}`;
-        document.getElementById('input-localidad-anil').value = presetNidada.localidad || '';
-        document.getElementById('input-edad-anil').value = "1";
-        localStorage.removeItem("preset_anillamiento_nidada>();
-      }
     };
   </script>
 </body>
