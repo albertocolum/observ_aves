@@ -171,7 +171,7 @@
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
               <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-csv').click()" title="Subir tu archivo CSV exportado">☁️ Importar CSV a Nube</button>
               <input type="file" id="input-migrar-csv" accept=".csv" style="display:none;" onchange="migrarCSVAFirebase(event)">
-              <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar nube">⚠️ Vaciar Nube</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar toda la nube de golpe">⚠️ Vaciar Nube</button>
               <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
             </div>
           </div>
@@ -316,7 +316,6 @@
       }
     }
 
-    // Importación robusta línea por línea para procesar todos los registros sin interrupciones
     window.migrarCSVAFirebase = function(event) {
       var file = event.target.files[0];
       if (!file) return;
@@ -328,7 +327,6 @@
         if (lineas.length < 2) return alert("Archivo sin datos.");
 
         var contador = 0;
-        // Mostrar aviso de carga en curso
         document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando registros a la nube... Por favor espera.</b></td></tr>';
 
         for (var i = 1; i < lineas.length; i++) {
@@ -368,18 +366,28 @@
       reader.readAsText(file, "UTF-8");
     }
 
+    // NUEVA FUNCIÓN: Borrado en lote optimizado de un solo clic
     window.vaciarTodoAnilFirebase = async function() {
-      if (confirm("¿Vaciar todos los registros de anillamiento de la nube?")) {
+      if (confirm("¿Estás seguro de que quieres vaciar TODOS los registros de anillamiento de la nube de golpe?")) {
         try {
-          for (let a of window.anillamientos) {
-            if (a.docId) await deleteDoc(doc(db, "anillamientos", a.docId));
-          }
+          document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
+          
+          // Recargar todos los documentos actuales por si acaso
+          const querySnapshot = await getDocs(collection(db, "anillamientos"));
+          let promesasBorrado = [];
+          querySnapshot.forEach((docSnap) => {
+            promesasBorrado.push(deleteDoc(doc(db, "anillamientos", docSnap.id)));
+          });
+
+          await Promise.all(promesasBorrado);
           window.anillamientos = [];
           paginaActual = 1;
           renderizarTablaPaginada();
-          alert("Registros de anillamiento vaciados en la nube.");
+          alert("¡Nube vaciada por completo con éxito!");
         } catch (e) {
           console.error("Error al vaciar:", e);
+          alert("Hubo un error al vaciar la base de datos.");
+          cargarAnillamientosFirebase();
         }
       }
     }
