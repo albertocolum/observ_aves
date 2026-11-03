@@ -243,11 +243,9 @@
       return fechaStr;
     }
 
-    // Función que convierte cualquier nombre de especie en el formato abreviado (ej: FAL TIN)
     function formatearEspecieAbreviada(esp) {
       if (!esp) return '-';
       let s = String(esp).trim();
-      // Si ya viene con formato abreviado de 3+3 (ej: "FAL TIN"), lo dejamos tal cual
       if (/^[A-Z]{3}\s+[A-Z]{3}$/.test(s)) return s;
       
       let partes = s.split(/\s+/);
@@ -257,6 +255,25 @@
         return `${gen} ${sp}`;
       }
       return s.toUpperCase();
+    }
+
+    // Vincula automáticamente el nido seleccionado al venir desde la sección de Nidos
+    function comprobarPresetNidada() {
+      var rawPreset = localStorage.getItem("preset_anillamiento_nidada");
+      if (rawPreset) {
+        try {
+          var p = JSON.parse(rawPreset);
+          if (p.codigoNido) document.getElementById('input-codigo-nido-anil').value = p.codigoNido;
+          if (p.especie) document.getElementById('input-especie-anil').value = p.especie;
+          if (p.lat && p.lng) document.getElementById('input-coords-anil').value = `${p.lat}, ${p.lng}`;
+          if (p.localidad) document.getElementById('input-localidad-anil').value = p.localidad;
+          if (p.edad) document.getElementById('input-edad-anil').value = p.edad;
+          
+          localStorage.removeItem("preset_anillamiento_nidada");
+        } catch (e) {
+          console.error("Error leyendo preset de nidada:", e);
+        }
+      }
     }
 
     async function cargarAnillamientosFirebase() {
@@ -466,8 +483,6 @@
         var numReal = datosOrdenados.length - (inicio + idx);
         var edadTexto = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : r.edad));
         var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
-        
-        // Aplicar la abreviatura de 3+3 letras en mayúsculas a la especie
         var especieAbreviada = formatearEspecieAbreviada(r.especie);
 
         tbody.innerHTML += `<tr>
@@ -500,6 +515,7 @@
     }
 
     window.onload = function() {
+      comprobarPresetNidada();
       cargarAnillamientosFirebase();
     };
   </script>
