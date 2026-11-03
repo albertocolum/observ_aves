@@ -13,8 +13,8 @@
     .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-size: 1.2rem; }
     .section-subtitle { font-size: 0.8rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; margin-bottom: 8px; }
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
-    #mapa-nido-preliminar { height: 210px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; z-index: 1; }
-    .table-history { font-size: 0.8rem; }
+    #mapa-nido-preliminar { height: 180px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; z-index: 1; }
+    .table-history { font-size: 0.78rem; }
   </style>
 </head>
 <body>
@@ -101,7 +101,19 @@
 
             <div id="mapa-nido-preliminar"></div>
 
-            <div class="section-subtitle">2. Control de Reproducción</div>
+            <div class="section-subtitle">2. Pareja Reproductora (Anillas / Marcas)</div>
+            <div class="row g-2 mb-2">
+              <div class="col-md-6">
+                <label class="form-label text-primary">♂️ Macho (Anilla / PVC)</label>
+                <input type="text" id="input-macho-nido" class="form-control form-control-sm" placeholder="Ej: M32480 / A5J">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label text-danger">♀️ Hembra (Anilla / PVC)</label>
+                <input type="text" id="input-hembra-nido" class="form-control form-control-sm" placeholder="Ej: M32481 / B2K">
+              </div>
+            </div>
+
+            <div class="section-subtitle">3. Control de Reproducción</div>
             <div class="mb-2">
               <label class="form-label">Estado de Ocupación</label>
               <select id="input-estado-nido" class="form-select form-select-sm fw-bold text-success">
@@ -134,7 +146,7 @@
             </div>
 
             <div class="mb-2">
-              <label class="form-label">Observaciones / Anillas Asignadas</label>
+              <label class="form-label">Observaciones</label>
               <textarea id="input-obs-nido" class="form-control form-control-sm" rows="2" placeholder="Notas sobre la inspección..."></textarea>
             </div>
 
@@ -169,9 +181,9 @@
                   <th>Código</th>
                   <th>Fecha</th>
                   <th>Especie</th>
-                  <th>Población</th>
+                  <th>Pareja (♂ / ♀)</th>
                   <th>Estado</th>
-                  <th>H / N / V / A</th>
+                  <th>H/N/V/A</th>
                   <th>Acción</th>
                 </tr>
               </thead>
@@ -224,7 +236,6 @@
 
     async function cargarDatosFirebase() {
       try {
-        // Cargar anillamientos primero para contar cuántos pollos/aves tienen este código de nido
         const snapAnil = await getDocs(collection(db, "anillamientos"));
         window.anillamientosGlobal = [];
         snapAnil.forEach((docSnap) => {
@@ -285,7 +296,6 @@
       cargarDatosFirebase();
     }
 
-    // Ordenamiento natural numérico/alfabético de la lista de nidos
     function actualizarSelectNidos() {
       var select = document.getElementById('select-codigo-nido');
       select.innerHTML = '<option value="" disabled>-- Selecciona un nido --</option>';
@@ -311,6 +321,8 @@
         modoNuevoActivoEnTablaBlanca = true;
         nidoSeleccionadoFiltro = null;
         document.getElementById('input-anillados-nido').value = 0;
+        document.getElementById('input-macho-nido').value = '';
+        document.getElementById('input-hembra-nido').value = '';
         renderTablaNidos();
       } else {
         select.style.display = 'block';
@@ -335,6 +347,8 @@
       document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
       document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
       document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
+      document.getElementById('input-macho-nido').value = '';
+      document.getElementById('input-hembra-nido').value = '';
       document.getElementById('input-estado-nido').value = 'Incubando/con huevos';
       document.getElementById('input-huevos-nido').value = '0';
       document.getElementById('input-nacidos-nido').value = '0';
@@ -358,8 +372,6 @@
       nidoSeleccionadoFiltro = codigo;
       
       var visitasNido = window.nidos.filter(n => n.id === codigo);
-      
-      // Contar automáticamente cuántos anillamientos tienen este código de nido
       let totalAnilladosAutomaticos = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === codigo.toLowerCase()).length;
 
       if (visitasNido.length > 0) {
@@ -368,11 +380,13 @@
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
         document.getElementById('input-tipo-estructura').value = ultimo.estructura || 'Caja Nido Madera';
         document.getElementById('input-lugar-nido').value = ultimo.lugar || '';
+        document.getElementById('input-macho-nido').value = ultimo.macho || '';
+        document.getElementById('input-hembra-nido').value = ultimo.hembra || '';
         document.getElementById('input-estado-nido').value = ultimo.estado || 'Incubando/con huevos';
         document.getElementById('input-huevos-nido').value = ultimo.huevos || 0;
         document.getElementById('input-nacidos-nido').value = ultimo.nacidos || 0;
         document.getElementById('input-volados-nido').value = ultimo.volados || 0;
-        document.getElementById('input-anillados-nido').value = totalAnilladosAutomaticos; // Automático
+        document.getElementById('input-anillados-nido').value = totalAnilladosAutomaticos;
         document.getElementById('input-obs-nido').value = ultimo.obs || '';
         
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
@@ -421,7 +435,6 @@
       var lat = parseFloat(parts[0]) || 40.1831;
       var lng = parseFloat(parts[1]) || 0.0225;
 
-      // Mantener el conteo automático de anillados actual
       var anilladosCount = parseInt(document.getElementById('input-anillados-nido').value) || 0;
 
       var nidoObj = {
@@ -432,6 +445,8 @@
         estructura: document.getElementById('input-tipo-estructura').value,
         lugar: lugar,
         temporada: document.getElementById('input-temp-nido').value,
+        macho: document.getElementById('input-macho-nido').value.trim() || "-",
+        hembra: document.getElementById('input-hembra-nido').value.trim() || "-",
         estado: document.getElementById('input-estado-nido').value,
         huevos: parseInt(document.getElementById('input-huevos-nido').value) || 0,
         nacidos: parseInt(document.getElementById('input-nacidos-nido').value) || 0,
@@ -477,14 +492,16 @@
               estructura: cols[2] || "Caja Nido Madera",
               lugar: cols[3] || "Zona Rural",
               temporada: cols[4] || new Date().toISOString().slice(0,10),
-              estado: cols[5] || "Incubando/con huevos",
-              huevos: parseInt(cols[6]) || 0,
-              nacidos: parseInt(cols[7]) || 0,
-              volados: parseInt(cols[8]) || 0,
-              anillados: parseInt(cols[9]) || 0,
-              lat: parseFloat(cols[10]) || 40.1831,
-              lng: parseFloat(cols[11]) || 0.0225,
-              obs: cols[12] || ""
+              macho: cols[5] || "-",
+              hembra: cols[6] || "-",
+              estado: cols[7] || "Incubando/con huevos",
+              huevos: parseInt(cols[8]) || 0,
+              nacidos: parseInt(cols[9]) || 0,
+              volados: parseInt(cols[10]) || 0,
+              anillados: parseInt(cols[11]) || 0,
+              lat: parseFloat(cols[12]) || 40.1831,
+              lng: parseFloat(cols[13]) || 0.0225,
+              obs: cols[14] || ""
             };
             await addDoc(collection(db, "nidos"), nidoObj);
             contador++;
@@ -536,19 +553,21 @@
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
-        // Calcular de forma real y automática los anillados para cada fila basándonos en los anillamientos de Firebase
         let anilladosReales = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === String(n.id || '').trim().toLowerCase()).length;
         
         var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Anillados (${anilladosReales})</span>` : '';
         var btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-2 fw-bold" onclick="anillarNidadaDirecta('${n.id}')">Anillar 🐣</button>`;
         
+        let machoStr = n.macho && n.macho !== "-" ? `<span class="text-primary fw-bold">♂ ${esc(n.macho)}</span>` : '<span class="text-muted">♂ -</span>';
+        let hembraStr = n.hembra && n.hembra !== "-" ? `<span class="text-danger fw-bold">♀ ${esc(n.hembra)}</span>` : '<span class="text-muted">♀ -</span>';
+
         tbody.innerHTML += `<tr>
           <td><b class="text-primary">${n.id}</b></td>
           <td><small>${formatearFecha(n.temporada) || '-'}</small></td>
           <td><i>${n.especie}</i></td>
-          <td>${n.lugar}</td>
+          <td>${machoStr}<br>${hembraStr}</td>
           <td><span class="badge ${badgeColor}">${n.estado}</span>${badgeAnillados}</td>
-          <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V / <b class="text-success">${anilladosReales}</b>A</td>
+          <td><b>${n.huevos}</b>H/${n.nacidos}N/${n.volados}V/<b class="text-success">${anilladosReales}</b>A</td>
           <td>${btnAnillarHtml}</td>
         </tr>`;
       });
@@ -595,8 +614,8 @@
 
     window.exportarNidosCSV = function() {
       if (!window.nidos.length) return alert("Sin datos.");
-      var h = "Codigo;Especie;Estructura;Lugar;FechaInspeccion;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs\n";
-      var r = window.nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
+      var h = "Codigo;Especie;Estructura;Lugar;FechaInspeccion;Macho;Hembra;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs\n";
+      var r = window.nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.macho || '-'}";"${n.hembra || '-'}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
       link.download = "seguimiento_nidos_firebase.csv"; link.click();
     }
