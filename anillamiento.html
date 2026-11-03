@@ -105,7 +105,7 @@
               </div>
               <div class="col-md-3">
                 <label class="form-label">Sexo</label>
-                <select id="input-sexo-anil" class="form-select form-select-sm">
+                <select id="input-sexo-anil" class="form-select form-select-sm fw-bold text-primary">
                   <option value="Desconocido">?</option>
                   <option value="Macho">Macho (M)</option>
                   <option value="Hembra">Hembra (F)</option>
@@ -215,7 +215,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDCEN_3ZKHTaR0MjMRth0lwK4xi4onV3Dc",
@@ -231,6 +231,7 @@
     const db = getFirestore(app);
 
     window.anillamientos = [];
+    window.nidosGlobal = [];
     var paginaActual = 1;
     var registrosPorPagina = 15;
 
@@ -259,7 +260,6 @@
       return s.toUpperCase();
     }
 
-    // Comprobación en tiempo real si la anilla ya existe en la base de datos cargada
     window.verificarAnillaRepetida = function(valor, tipo) {
       let valTrim = valor.trim();
       let divAlerta = document.getElementById(tipo === 'metal' ? 'alerta-metal' : 'alerta-pvc');
@@ -302,8 +302,14 @@
       }
     }
 
-    async function cargarAnillamientosFirebase() {
+    async function cargarDatosFirebase() {
       try {
+        const snapNidos = await getDocs(collection(db, "nidos"));
+        window.nidosGlobal = [];
+        snapNidos.forEach((docSnap) => {
+          window.nidosGlobal.push({ docId: docSnap.id, ...docSnap.data() });
+        });
+
         const querySnapshot = await getDocs(collection(db, "anillamientos"));
         window.anillamientos = [];
         querySnapshot.forEach((docSnap) => {
@@ -360,20 +366,25 @@
       if (!metal) return alert("Indica la anilla metálica obligatoriamente.");
 
       var tipoCaptura = document.getElementById('input-tipo-captura').value;
+      var codigoNido = document.getElementById('input-codigo-nido-anil').value.trim();
+      var edad = document.getElementById('input-edad-anil').value;
+      var sexo = document.getElementById('input-sexo-anil').value;
+      var pvc = document.getElementById('input-pvc-anil').value.trim();
+
       var c = document.getElementById('input-coords-anil').value.split(',');
       var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
       if (isNaN(lat) || isNaN(lng)) return alert("Coordenadas no válidas.");
 
       var item = {
         tipoCaptura: tipoCaptura,
-        codigoNido: document.getElementById('input-codigo-nido-anil').value.trim() || "-",
+        codigoNido: codigoNido || "-",
         fecha: document.getElementById('input-fecha-anil').value,
         localidad: document.getElementById('input-localidad-anil').value,
         metal: metal,
-        pvc: document.getElementById('input-pvc-anil').value.trim() || "-",
+        pvc: pvc || "-",
         especie: document.getElementById('input-especie-anil').value,
-        edad: document.getElementById('input-edad-anil').value,
-        sexo: document.getElementById('input-sexo-anil').value,
+        edad: edad,
+        sexo: sexo,
         ala: document.getElementById('input-ala-anil').value || "-",
         p8: document.getElementById('input-p8-anil').value || "-",
         cola: document.getElementById('input-cola-anil').value || "-",
@@ -387,24 +398,47 @@
 
       try {
         await addDoc(collection(db, "anillamientos"), item);
-        alert("¡Captura guardada en Firebase correctamente!");
+
+        // SI SE HA INDICADO UN NIDO Y UN SEXO DEFINIDO (Y NO ES PULLUS PURO EXCLUSIVO), ACTUALIZAR PAREJA EN EL NIDO
+        if (codigoNido && codigoNido !== "-" && (sexo === "Macho" || sexo === "Hembra") && edad !== "1") {
+          let marcaIdentificativa = pvc && pvc !== "-" ? `${metal} / ${pvc}` : metal;
+          
+          // Buscar visitas recientes en Firebase para este nido
+          let nidosCoincidentes = window.nidosGlobal.filter(n => String(n.id || '').trim().toLowerCase() === codigoNido.toLowerCase());
+          
+          if (nidosCoincidentes.length > 0) {
+            // Actualizar el documento más reciente del nido
+            let nidoMasReciente = nidosCoincidentes[0];
+            let nidoRef = doc(db, "nidos", nidoMasReciente.docId);
+            
+            let datosActualizacion = {};
+            if (sexo === "Macho") {
+              datosActualizacion.macho = marcaIdentificativa;
+            } else if (sexo === "Hembra") {
+              datosActualizacion.hembra = marcaIdentificativa;
+            }
+            
+            await updateDoc(nidoRef, datosActualizacion);
+            console.log(`Pareja del nido [${codigoNido}] actualizada automáticamente (${sexo}: ${marcaIdentificativa}).`);
+          }
+        }
+
+        alert("¡Captura guardada en Firebase correctamente y pareja vinculada al nido!");
         document.getElementById('input-metal-anil').value = "";
         document.getElementById('input-pvc-anil').value = "";
         document.getElementById('alerta-metal').style.display = 'none';
         document.getElementById('alerta-pvc').style.display = 'none';
         paginaActual = 1;
-        await cargarAnillamientosFirebase();
+        await cargarDatosFirebase();
       } catch (e) {
         console.error("Error al guardar anillamiento:", e);
         alert("Error al guardar en la nube.");
       }
     }
 
-    // Borrar el último registro guardado en la nube
     window.borrarUltimoRegistro = async function() {
       if (window.anillamientos.length === 0) return alert("No hay registros para borrar.");
       
-      // Ordenar por fecha o simplemente coger el último añadido basándonos en la tabla ordenada
       var datosOrdenados = [...window.anillamientos].sort((a, b) => {
         var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
         var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
@@ -418,7 +452,7 @@
         try {
           await deleteDoc(doc(db, "anillamientos", ultimo.docId));
           alert("¡Último registro borrado con éxito!");
-          await cargarAnillamientosFirebase();
+          await cargarDatosFirebase();
         } catch (e) {
           console.error("Error al borrar último registro:", e);
           alert("Error al borrar de la nube.");
@@ -475,7 +509,7 @@
           }
         }
         alert(`¡Se han importado con éxito los ${contador} registros a Firebase!`);
-        await cargarAnillamientosFirebase();
+        await cargarDatosFirebase();
       };
       reader.readAsText(file, "UTF-8");
     }
@@ -499,7 +533,7 @@
         } catch (e) {
           console.error("Error al vaciar:", e);
           alert("Hubo un error al vaciar la base de datos.");
-          cargarAnillamientosFirebase();
+          cargarDatosFirebase();
         }
       }
     }
@@ -574,7 +608,7 @@
 
     window.onload = function() {
       comprobarPresetNidada();
-      cargarAnillamientosFirebase();
+      cargarDatosFirebase();
     };
   </script>
 </body>
