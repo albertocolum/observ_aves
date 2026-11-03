@@ -243,6 +243,22 @@
       return fechaStr;
     }
 
+    // Función que convierte cualquier nombre de especie en el formato abreviado (ej: FAL TIN)
+    function formatearEspecieAbreviada(esp) {
+      if (!esp) return '-';
+      let s = String(esp).trim();
+      // Si ya viene con formato abreviado de 3+3 (ej: "FAL TIN"), lo dejamos tal cual
+      if (/^[A-Z]{3}\s+[A-Z]{3}$/.test(s)) return s;
+      
+      let partes = s.split(/\s+/);
+      if (partes.length >= 2) {
+        let gen = partes[0].substring(0, 3).toUpperCase();
+        let sp = partes[1].substring(0, 3).toUpperCase();
+        return `${gen} ${sp}`;
+      }
+      return s.toUpperCase();
+    }
+
     async function cargarAnillamientosFirebase() {
       try {
         const querySnapshot = await getDocs(collection(db, "anillamientos"));
@@ -277,7 +293,6 @@
 
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
-    // Corrector automático de coordenadas al vuelo
     function corregirLatitudJS(rawLat) {
       if (rawLat === undefined || rawLat === null) return 39.7709;
       let s = String(rawLat).replace(',', '.');
@@ -336,7 +351,6 @@
       }
     }
 
-    // Importación robusta que lee TODAS las líneas del CSV original sin límite
     window.migrarCSVAFirebase = function(event) {
       var file = event.target.files[0];
       if (!file) return;
@@ -451,14 +465,17 @@
       registrosPagina.forEach((r, idx) => {
         var numReal = datosOrdenados.length - (inicio + idx);
         var edadTexto = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : r.edad));
-        var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNitor || r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
+        var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
+        
+        // Aplicar la abreviatura de 3+3 letras en mayúsculas a la especie
+        var especieAbreviada = formatearEspecieAbreviada(r.especie);
 
         tbody.innerHTML += `<tr>
           <td><b>#${numReal}</b></td>
           <td>${nidoBadge}</td>
           <td>${formatearFecha(r.fecha)}</td>
           <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
-          <td><i>${esc(r.especie)}</i></td>
+          <td>${esc(especieAbreviada)}</td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
           <td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${r.r5}</td><td>${r.peso}</td>
         </tr>`;
