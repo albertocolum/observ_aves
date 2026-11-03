@@ -13,9 +13,8 @@
     .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-size: 1.2rem; }
     .section-subtitle { font-size: 0.8rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; margin-bottom: 8px; }
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
-    #mapa-nido-preliminar { height: 180px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; z-index: 1; }
+    #mapa-nido-preliminar { height: 210px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; z-index: 1; }
     .table-history { font-size: 0.8rem; }
-    .diario-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; max-height: 220px; overflow-y: auto; font-size: 0.82rem; }
   </style>
 </head>
 <body>
@@ -38,9 +37,9 @@
 
     <div class="row g-4">
       
-      <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO Y DIARIO DE CAMPO -->
+      <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / VISITA -->
       <div class="col-lg-5">
-        <div class="card-panel mb-4">
+        <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="form-title mb-0" style="border:none; padding:0;">Nueva Visita / Inspección</h4>
             <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="limpiarFormularioParaNuevo()" title="Crear un nuevo nido">➕ Nuevo Nido</button>
@@ -129,8 +128,8 @@
                 <input type="number" id="input-volados-nido" class="form-control form-control-sm" value="0">
               </div>
               <div class="col-md-3">
-                <label class="form-label text-success fw-bold">Anillados 🐣</label>
-                <input type="number" id="input-anillados-nido" class="form-control form-control-sm fw-bold text-success" value="0">
+                <label class="form-label text-success fw-bold" title="Calculado automáticamente desde Anillamiento">Anillados 🐣</label>
+                <input type="number" id="input-anillados-nido" class="form-control form-control-sm fw-bold text-success bg-light" value="0" readonly>
               </div>
             </div>
 
@@ -143,28 +142,6 @@
               ☁️ Guardar Visita en la Nube
             </button>
           </form>
-        </div>
-
-        <!-- PANEL DE DIARIO DE CAMPO EN NIDOS -->
-        <div class="card-panel">
-          <h4 class="form-title mb-2" style="border:none; padding:0; font-size: 1.1rem;">📖 Diario de Campo / Nidos</h4>
-          <small class="text-muted d-block mb-3">Anota las labores de revisión y montaje de cajas nido</small>
-          
-          <div class="mb-2">
-            <label class="form-label">Fecha de la Jornada</label>
-            <input type="date" id="input-diario-fecha" class="form-control form-control-sm fw-bold">
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Resumen de Labores</label>
-            <textarea id="input-diario-texto" class="form-control form-control-sm" rows="3" placeholder="Ej: Montaje de 3 cajas nido nuevas en zona norte..."></textarea>
-          </div>
-          <button type="button" class="btn btn-outline-success btn-sm w-100 fw-bold mb-3" onclick="guardarNotaDiario()">
-            📝 Añadir Entrada al Diario
-          </button>
-
-          <div class="diario-box" id="lista-diario-campo">
-            <span class="text-muted">Cargando diario de campo...</span>
-          </div>
         </div>
       </div>
 
@@ -228,15 +205,13 @@
     const db = getFirestore(app);
 
     window.nidos = [];
-    window.diarioCampo = [];
+    window.anillamientosGlobal = [];
     var mapForm, markerForm;
     var modoCreacionNuevo = false;
     var nidoSeleccionadoFiltro = null;
     var modoNuevoActivoEnTablaBlanca = false;
 
-    let fechaHoy = new Date().toISOString().slice(0, 10);
-    document.getElementById('input-temp-nido').value = fechaHoy;
-    document.getElementById('input-diario-fecha').value = fechaHoy;
+    document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
 
     function formatearFecha(fechaStr) {
       if (!fechaStr) return '-';
@@ -249,11 +224,19 @@
 
     async function cargarDatosFirebase() {
       try {
+        // Cargar anillamientos primero para contar cuántos pollos/aves tienen este código de nido
+        const snapAnil = await getDocs(collection(db, "anillamientos"));
+        window.anillamientosGlobal = [];
+        snapAnil.forEach((docSnap) => {
+          window.anillamientosGlobal.push(docSnap.data());
+        });
+
         const querySnapshot = await getDocs(collection(db, "nidos"));
         window.nidos = [];
         querySnapshot.forEach((docSnap) => {
           window.nidos.push({ docId: docSnap.id, ...docSnap.data() });
         });
+
         actualizarSelectNidos();
         if (window.nidos.length > 0) {
           var codigosOrdenados = [...new Set(window.nidos.map(n => n.id))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
@@ -263,71 +246,9 @@
         } else {
           renderTablaNidos();
         }
-
-        const snapDiario = await getDocs(collection(db, "diario_nidos"));
-        window.diarioCampo = [];
-        snapDiario.forEach((docSnap) => {
-          window.diarioCampo.push({ docId: docSnap.id, ...docSnap.data() });
-        });
-        renderizarDiario();
       } catch (e) {
-        console.error("Error cargando datos de nidos:", e);
+        console.error("Error cargando nidos:", e);
       }
-    }
-
-    window.guardarNotaDiario = async function() {
-      let fecha = document.getElementById('input-diario-fecha').value;
-      let texto = document.getElementById('input-diario-texto').value.trim();
-      if (!fecha || !texto) return alert("Indica la fecha y el contenido de la nota.");
-
-      try {
-        await addDoc(collection(db, "diario_nidos"), { fecha: fecha, texto: texto });
-        document.getElementById('input-diario-texto').value = "";
-        alert("¡Nota guardada en el diario de nidos!");
-        const snapDiario = await getDocs(collection(db, "diario_nidos"));
-        window.diarioCampo = [];
-        snapDiario.forEach((docSnap) => {
-          window.diarioCampo.push({ docId: docSnap.id, ...docSnap.data() });
-        });
-        renderizarDiario();
-      } catch (e) {
-        console.error("Error al guardar nota:", e);
-        alert("Error al guardar en la nube.");
-      }
-    }
-
-    window.borrarNotaDiario = async function(docId) {
-      if (confirm("¿Borrar esta entrada del diario?")) {
-        try {
-          await deleteDoc(doc(db, "diario_nidos", docId));
-          window.diarioCampo = window.diarioCampo.filter(d => d.docId !== docId);
-          renderizarDiario();
-        } catch (e) {
-          console.error("Error borrando nota:", e);
-        }
-      }
-    }
-
-    function renderizarDiario() {
-      var contenedor = document.getElementById('lista-diario-campo');
-      if (!contenedor) return;
-
-      if (window.diarioCampo.length === 0) {
-        contenedor.innerHTML = '<span class="text-muted">No hay entradas en el diario.</span>';
-        return;
-      }
-
-      var ordenadas = [...window.diarioCampo].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
-      contenedor.innerHTML = '';
-      ordenadas.forEach(n => {
-        contenedor.innerHTML += `<div class="mb-2 pb-2 border-bottom">
-          <div class="d-flex justify-content-between">
-            <span class="fw-bold text-success">📅 ${formatearFecha(n.fecha)}</span>
-            <button class="btn btn-link text-danger p-0" style="font-size:0.75rem;" onclick="borrarNotaDiario('${n.docId}')">Eliminar</button>
-          </div>
-          <p class="mb-0 text-dark">${esc(n.texto)}</p>
-        </div>`;
-      });
     }
 
     window.initMapaForm = function() {
@@ -389,6 +310,7 @@
         btn.innerText = 'Listar';
         modoNuevoActivoEnTablaBlanca = true;
         nidoSeleccionadoFiltro = null;
+        document.getElementById('input-anillados-nido').value = 0;
         renderTablaNidos();
       } else {
         select.style.display = 'block';
@@ -436,6 +358,10 @@
       nidoSeleccionadoFiltro = codigo;
       
       var visitasNido = window.nidos.filter(n => n.id === codigo);
+      
+      // Contar automáticamente cuántos anillamientos tienen este código de nido
+      let totalAnilladosAutomaticos = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === codigo.toLowerCase()).length;
+
       if (visitasNido.length > 0) {
         var ultimo = visitasNido[0];
         document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
@@ -446,7 +372,7 @@
         document.getElementById('input-huevos-nido').value = ultimo.huevos || 0;
         document.getElementById('input-nacidos-nido').value = ultimo.nacidos || 0;
         document.getElementById('input-volados-nido').value = ultimo.volados || 0;
-        document.getElementById('input-anillados-nido').value = ultimo.anillados || 0;
+        document.getElementById('input-anillados-nido').value = totalAnilladosAutomaticos; // Automático
         document.getElementById('input-obs-nido').value = ultimo.obs || '';
         
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
@@ -495,6 +421,9 @@
       var lat = parseFloat(parts[0]) || 40.1831;
       var lng = parseFloat(parts[1]) || 0.0225;
 
+      // Mantener el conteo automático de anillados actual
+      var anilladosCount = parseInt(document.getElementById('input-anillados-nido').value) || 0;
+
       var nidoObj = {
         id: codigo,
         especie: document.getElementById('input-especie-nido').value,
@@ -507,7 +436,7 @@
         huevos: parseInt(document.getElementById('input-huevos-nido').value) || 0,
         nacidos: parseInt(document.getElementById('input-nacidos-nido').value) || 0,
         volados: parseInt(document.getElementById('input-volados-nido').value) || 0,
-        anillados: parseInt(document.getElementById('input-anillados-nido').value) || 0,
+        anillados: anilladosCount,
         obs: document.getElementById('input-obs-nido').value
       };
 
@@ -607,8 +536,10 @@
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
-        var numAnillados = parseInt(n.anillados) || 0;
-        var badgeAnillados = numAnillados > 0 ? `<br><span class="badge bg-success mt-1">✔ Anillados (${numAnillados})</span>` : '';
+        // Calcular de forma real y automática los anillados para cada fila basándonos en los anillamientos de Firebase
+        let anilladosReales = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === String(n.id || '').trim().toLowerCase()).length;
+        
+        var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Anillados (${anilladosReales})</span>` : '';
         var btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-2 fw-bold" onclick="anillarNidadaDirecta('${n.id}')">Anillar 🐣</button>`;
         
         tbody.innerHTML += `<tr>
@@ -617,7 +548,7 @@
           <td><i>${n.especie}</i></td>
           <td>${n.lugar}</td>
           <td><span class="badge ${badgeColor}">${n.estado}</span>${badgeAnillados}</td>
-          <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V / <b class="text-success">${numAnillados}</b>A</td>
+          <td><b>${n.huevos}</b>H / <b>${n.nacidos}</b>N / <b>${n.volados}</b>V / <b class="text-success">${anilladosReales}</b>A</td>
           <td>${btnAnillarHtml}</td>
         </tr>`;
       });
