@@ -13,7 +13,7 @@
     .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-size: 1.2rem; }
     .section-subtitle { font-size: 0.8rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 10px; margin-bottom: 8px; }
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
-    #mapa-nido-preliminar { height: 200px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; }
+    #mapa-nido-preliminar { height: 200px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; z-index: 1; }
     .table-history { font-size: 0.8rem; }
   </style>
 </head>
@@ -99,6 +99,7 @@
               <input type="text" id="input-lugar-nido" class="form-control form-control-sm" placeholder="Se autocompletará..." required>
             </div>
 
+            <!-- Contenedor del Mapa Satelital Interactivo -->
             <div id="mapa-nido-preliminar"></div>
 
             <div class="section-subtitle">2. Control de Reproducción</div>
@@ -242,10 +243,32 @@
     }
 
     window.initMapaForm = function() {
-      mapForm = L.map('mapa-nido-preliminar').setView([40.1831, 0.0225], 11);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapForm);
+      // Capa base satelital (Esri World Imagery) y alternativa (OpenStreetMap)
+      var sateliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+      });
+
+      var calleLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      });
+
+      mapForm = L.map('mapa-nido-preliminar', {
+        center: [40.1831, 0.0225],
+        zoom: 11,
+        layers: [sateliteLayer]
+      });
+
       markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
       
+      // Control de capas desplegable en la esquina superior derecha
+      var baseMaps = {
+        "🛰️ Satélite (Esri)": sateliteLayer,
+        "🗺️ Callejero (OSM)": calleLayer
+      };
+      L.control.layers(baseMaps).addTo(mapForm);
+
       markerForm.on('dragend', function(e) {
         var coord = markerForm.getLatLng();
         document.getElementById('input-coords-nido').value = `${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`;
