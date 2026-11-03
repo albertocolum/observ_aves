@@ -73,9 +73,27 @@
     }
 
     function inicializarMapa() {
-      map = L.map('mapa-general').setView([40.1831, 0.0225], 10);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-      marcadoresLayer.addTo(map);
+      var sateliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 19
+      });
+
+      var calleLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      });
+
+      map = L.map('mapa-general', {
+        center: [40.1831, 0.0225],
+        zoom: 10,
+        layers: [sateliteLayer, marcadoresLayer]
+      });
+
+      var baseMaps = {
+        "🛰️ Satélite (Esri)": sateliteLayer,
+        "🗺️ Callejero (OSM)": calleLayer
+      };
+      L.control.layers(baseMaps).addTo(map);
 
       cargarDatosYConstruirMapa();
     }
@@ -113,20 +131,18 @@
       return "";
     }
 
-    // Función clave para corregir automáticamente latitudes mal formateadas del CSV
     function corregirLatitud(rawLat) {
       if (rawLat === undefined || rawLat === null) return NaN;
       let s = String(rawLat).replace(',', '.');
-      // Si tiene varios puntos (ej: 3.977.063), limpiamos los puntos sobrantes
       if ((s.match(/\./g) || []).length > 1) {
         let partes = s.split('.');
         s = partes[0] + '.' + partes.slice(1).join('');
       }
       let val = parseFloat(s);
       if (isNaN(val)) return NaN;
-      
-      // Si el valor está en torno a 390-410 o 3900-4100, se reescala a 39-41
-      if (val > 90) {
+      if (1.0 <= val && val < 10.0) {
+        val = val * 10.0;
+      } else if (val > 90) {
         while (val > 90) {
           val = val / 10.0;
         }
@@ -222,12 +238,34 @@
               fillOpacity: 0.8
             });
           } else {
+            // Asignar color de chincheta según el estado reproductor del nido
+            let estado = (item.estado || "").toLowerCase();
+            let colorPin = "#6c757d"; // Gris por defecto (Vacio / Inactivo)
+
+            if (estado.includes('exito') || estado.includes('volando') || estado.includes('pollos')) {
+              colorPin = "#198754"; // Verde (Éxito / Con pollos)
+            } else if (estado.includes('incubando') || estado.includes('huevos')) {
+              colorPin = "#fd7e14"; // Naranja (Incubando / Con huevos)
+            } else if (estado.includes('ocupado')) {
+              colorPin = "#0d6efd"; // Azul (Ocupado)
+            } else if (estado.includes('fracasado') || estado.includes('predado')) {
+              colorPin = "#dc3545"; // Rojo (Fracasado / Predado)
+            }
+
             popupContent = `<b>Nido:</b> <span class="text-success fw-bold">${item.id || '-'}</span><br>
                             <b>Especie:</b> <i>${item.especie || '-'}</i><br>
-                            <b>Estado:</b> ${item.estado || '-'}<br>
+                            <b>Estado:</b> <span style="color:${colorPin}; font-weight:bold;">${item.estado || '-'}</span><br>
                             <b>Población:</b> ${item.lugar || '-'}<br>
                             <b>Huevos/Nacidos:</b> ${item.huevos || 0}H / ${item.nacidos || 0}N`;
-            marker = L.marker([lat, lng]);
+
+            marker = L.circleMarker([lat, lng], {
+              radius: 8,
+              fillColor: colorPin,
+              color: "#ffffff",
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.9
+            });
           }
 
           marker.bindPopup(popupContent);
