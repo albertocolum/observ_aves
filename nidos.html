@@ -105,12 +105,12 @@
             <div class="section-subtitle">2. Pareja Reproductora (Anillas / Marcas)</div>
             <div class="row g-2 mb-2">
               <div class="col-md-6">
-                <label class="form-label text-primary">♂️ Macho (Metálica / PVC)</label>
-                <input type="text" id="input-macho-nido" class="form-control form-control-sm" placeholder="Ej: M32480 o M32480 / A5J">
+                <label class="form-label text-primary">♂️ Macho (Anilla Metálica)</label>
+                <input type="text" id="input-macho-nido" class="form-control form-control-sm" placeholder="Ej: M32480" onblur="buscarAdultoEnAnillados(this.value, 'Macho')">
               </div>
               <div class="col-md-6">
-                <label class="form-label text-danger">♀️ Hembra (Metálica / PVC)</label>
-                <input type="text" id="input-hembra-nido" class="form-control form-control-sm" placeholder="Ej: M32481 o M32481 / B2K">
+                <label class="form-label text-danger">♀️ Hembra (Anilla Metálica)</label>
+                <input type="text" id="input-hembra-nido" class="form-control form-control-sm" placeholder="Ej: M32481" onblur="buscarAdultoEnAnillados(this.value, 'Hembra')">
               </div>
             </div>
 
@@ -298,6 +298,29 @@
       });
 
       cargarDatosFirebase();
+    }
+
+    // BUSCAR ANILLA EN ANILLAMIENTOS Y AUTOCOMPLETAR FORMATO METÁLICA / PVC
+    window.buscarAdultoEnAnillados = function(valorAnilla, sexo) {
+      let valTrim = valorAnilla.trim();
+      if (!valTrim || valTrim === "-") return;
+
+      let encontrado = window.anillamientosGlobal.find(a => 
+        String(a.metal || '').trim().toLowerCase() === valTrim.toLowerCase() ||
+        String(a.pvc || '').trim().toLowerCase() === valTrim.toLowerCase()
+      );
+
+      if (encontrado) {
+        let metal = encontrado.metal || "";
+        let pvc = encontrado.pvc && encontrado.pvc !== "-" ? ` / ${encontrado.pvc}` : "";
+        let formatoCompleto = `${metal}${pvc}`;
+
+        if (sexo === "Macho") {
+          document.getElementById('input-macho-nido').value = formatoCompleto;
+        } else {
+          document.getElementById('input-hembra-nido').value = formatoCompleto;
+        }
+      }
     }
 
     function actualizarSelectNidos() {
@@ -490,7 +513,6 @@
 
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
-    // Auxiliar para parsear texto de anillas tipo "M12345 / A5J" o solo "M12345"
     function extraerMetalYPvc(str) {
       if (!str || str.trim() === "-") return { metal: "", pvc: "" };
       let partes = str.split('/');
@@ -499,38 +521,21 @@
       return { metal: metal, pvc: pvc };
     }
 
-    // Función que vincula automáticamente los reproductores a la tabla de anillamiento
-    async function sincronizarAdultoConAnillamiento(cadenaAnilla, sexo, nidoObj) {
+    // Actualizar el código de nido en la tabla de anillamientos si el adulto ya existe
+    async function actualizarCodigoNidoEnAnillamiento(cadenaAnilla, codigoNidoActual) {
       if (!cadenaAnilla || cadenaAnilla.trim() === "-" || cadenaAnilla.trim() === "") return;
-      
       let { metal, pvc } = extraerMetalYPvc(cadenaAnilla);
       if (!metal) return;
 
-      // Comprobar si ya existe esa anilla en la base de datos global de anillamientos
-      let existe = window.anillamientosGlobal.some(a => 
+      let encontrado = window.anillamientosGlobal.find(a => 
         String(a.metal || '').trim().toLowerCase() === metal.toLowerCase() ||
         (pvc && String(a.pvc || '').trim().toLowerCase() === pvc.toLowerCase())
       );
 
-      // Si no existe, crear la captura automáticamente en la nube de anillamientos
-      if (!existe) {
-        let nuevoAnillamiento = {
-          tipoCaptura: "Anillamiento",
-          codigoNido: nidoObj.id,
-          fecha: nidoObj.temporada,
-          localidad: nidoObj.lugar,
-          metal: metal,
-          pvc: pvc || "-",
-          especie: nidoObj.especie,
-          edad: "6", // Adulto
-          sexo: sexo,
-          ala: "-", p8: "-", cola: "-", r5: "-", tarso: "-", peso: "-", grasa: "-",
-          anillador: "Alberto de la Rosa",
-          lat: nidoObj.lat,
-          lng: nidoObj.lng
-        };
-        await addDoc(collection(db, "anillamientos"), nuevoAnillamiento);
-        console.log(`Auto-registrado ${sexo} [${metal}] en la tabla de anillamientos.`);
+      if (encontrado && encontrado.docId) {
+        let anilRef = doc(db, "anillamientos", encontrado.docId);
+        await updateDoc(anilRef, { codigoNido: codigoNidoActual });
+        console.log(`Anillamiento de la anilla [${metal}] actualizado con el nido [${codigoNidoActual}].`);
       }
     }
 
@@ -582,9 +587,9 @@
           alert(`¡Nueva visita guardada en Firebase para el nido [${codigo}]!`);
         }
 
-        // Sincronización automática bidireccional hacia la tabla de Anillamiento
-        await sincronizarAdultoConAnillamiento(machoVal, "Macho", nidoObj);
-        await sincronizarAdultoConAnillamiento(hembraVal, "Hembra", nidoObj);
+        // Vincular el nido en las fichas de anillamiento de los adultos si ya existen
+        await actualizarCodigoNidoEnAnillamiento(machoVal, codigo);
+        await actualizarCodigoNidoEnAnillamiento(hembraVal, codigo);
 
         cancelarEdicionVisita();
         await cargarDatosFirebase();
