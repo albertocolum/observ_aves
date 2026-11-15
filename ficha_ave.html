@@ -9,15 +9,24 @@
     body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a202c; }
     .main-container { max-width: 900px; margin: 20px auto; }
     
-    /* BOTONERA SUPERIOR (NO SE IMPRIME) */
     .no-print { margin-bottom: 20px; }
 
-    /* PAGINACIÓN ESTRICTA PARA PDF (FORMATO A4 CREADO POR BLOQUES) */
+    /* PANEL DE CONTROL FLOTANTE FIJO ARRIBA */
+    .panel-control-fijo {
+      position: sticky;
+      top: 10px;
+      z-index: 1050;
+      background: #ffffff;
+      border: 2px solid #0d6efd;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    /* PAGINACIÓN ESTRICTA A4 */
     .pdf-page {
       background: white;
       width: 210mm;
-      min-height: 297mm;
-      padding: 15mm 18mm;
+      height: 297mm;
+      padding: 10mm 15mm;
       margin: 0 auto 20px auto;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       box-sizing: border-box;
@@ -25,26 +34,27 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      page-break-after: always;
+      overflow: hidden;
     }
 
-    /* TIPOGRAFÍA ESTRUCTURADA TIPO INFORME */
     .report-title {
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 700;
       color: #1e293b;
       border-bottom: 2px solid #334155;
-      padding-bottom: 6px;
-      margin-bottom: 15px;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
     }
 
     .section-header {
-      font-size: 0.95rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: #1e293b;
       background-color: #f1f5f9;
-      padding: 5px 10px;
-      margin-top: 15px;
-      margin-bottom: 10px;
+      padding: 3px 8px;
+      margin-top: 8px;
+      margin-bottom: 5px;
       border-left: 4px solid #0f172a;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -53,20 +63,20 @@
     .data-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px 20px;
-      font-size: 0.88rem;
+      gap: 3px 15px;
+      font-size: 0.80rem;
     }
 
     .data-row {
       display: flex;
       border-bottom: 1px dotted #cbd5e1;
-      padding-bottom: 3px;
+      padding-bottom: 1px;
     }
 
     .data-label {
       font-weight: 600;
       color: #475569;
-      width: 140px;
+      width: 130px;
       flex-shrink: 0;
     }
 
@@ -75,47 +85,88 @@
       color: #0f172a;
     }
 
-    /* ESTILOS DE ANILLAS REALES */
-    .badge-metal { background-color: #718096; color: white; padding: 2px 8px; font-weight: 700; border-radius: 4px; }
-    .badge-pvc { background-color: #15803d; color: white; padding: 2px 8px; font-weight: 700; font-family: monospace; border-radius: 4px; }
+    .badge-metal { background-color: #718096; color: white; padding: 1px 6px; font-weight: 700; border-radius: 4px; }
+    .badge-pvc { background-color: #15803d; color: white; padding: 1px 6px; font-weight: 700; font-family: monospace; border-radius: 4px; }
 
-    /* CONTENEDOR DE FOTOGRAFÍAS (PÁGINA 1 Y 2) */
-    .photo-grid-p1 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 10px;
-    }
-    .photo-box-p1 {
-      border: 1px solid #cbd5e1;
+    /* ESTILO TIPO CANVA: CONTENEDOR FIJO CON RECORTE ABSOLUTO */
+    .canva-frame {
+      border: 2px dashed #94a3b8;
       border-radius: 6px;
       overflow: hidden;
-      background: #000;
-      height: 190px;
-    }
-    .photo-box-p1 img {
+      background: #000000;
+      position: relative;
+      cursor: pointer;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+    }
+    
+    .canva-frame img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* Permite alejar la foto libremente mostrando el fondo integrado */
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+      transition: transform 0.05s ease-out;
     }
 
-    .photo-grid-p2 {
+    /* PÁGINA 1 GRID */
+    .foto-grid-container-p1 {
+      flex-grow: 1;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 10px;
+      gap: 10px;
+      margin-top: 8px;
+      min-height: 0;
     }
-    .photo-box-p2 {
-      border: 1px solid #cbd5e1;
+
+    /* PÁGINA 2 ESTRUCTURA IDÉNTICA AL EJEMPLO */
+    .foto-box-p2-top {
+      border: 2px dashed #94a3b8;
       border-radius: 6px;
       overflow: hidden;
-      background: #000;
-      height: 180px;
+      background: #000000;
+      position: relative;
+      height: 95mm;
+      cursor: pointer;
+      margin-bottom: 8px;
     }
-    .photo-box-p2 img {
+    .foto-box-p2-top img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+    }
+
+    .foto-box-p2-bottom-container {
+      display: flex;
+      justify-content: center;
+    }
+    .foto-box-p2-bottom {
+      border: 2px dashed #94a3b8;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000000;
+      position: relative;
+      width: 72mm;
+      height: 72mm;
+      cursor: pointer;
+    }
+    .foto-box-p2-bottom img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
     }
 
     .page-footer {
@@ -123,17 +174,36 @@
       font-size: 0.75rem;
       color: #64748b;
       border-top: 1px solid #e2e8f0;
-      padding-top: 5px;
-      margin-top: 15px;
+      padding-top: 4px;
+      margin-top: 6px;
     }
 
-    /* GESTIÓN DE SUBIDA LOCAL (OCULTO EN PDF) */
-    .upload-box {
-      background: #f8fafc;
-      border: 2px dashed #cbd5e1;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 15px;
+    /* BOTONERA FLOTANTE SOBRE LA FOTO */
+    .overlay-controles {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: flex;
+      gap: 3px;
+      z-index: 10;
+    }
+    .overlay-controles button {
+      background: #fff;
+      border: none;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 1px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .overlay-controles button:hover { background: #0d6efd; color: #fff; }
+
+    .slot-activo {
+      border: 3px solid #0d6efd !important;
+      box-shadow: 0 0 12px rgba(13, 110, 253, 0.6);
     }
 
     @media print {
@@ -144,9 +214,10 @@
         box-shadow: none !important;
         margin: 0 !important;
         page-break-after: always;
-        page-break-inside: avoid;
         height: 297mm;
       }
+      .canva-frame { border: none !important; background: #ffffff !important; }
+      .overlay-controles { display: none !important; }
       @page { size: A4 portrait; margin: 0; }
     }
   </style>
@@ -155,11 +226,11 @@
 
   <div class="container main-container">
     
-    <!-- BOTONERA DE CONTROL -->
-    <div class="d-flex justify-content-between align-items-center no-print card p-3 shadow-sm bg-white">
+    <!-- BOTONERA SUPERIOR -->
+    <div class="d-flex justify-content-between align-items-center no-print card p-3 shadow-sm bg-white mb-3">
       <div>
-        <h5 class="fw-bold mb-0 text-primary">Generador de Ficha Oficial en PDF</h5>
-        <small class="text-muted">Estructura idéntica al modelo de seguimiento de campo.</small>
+        <h5 class="fw-bold mb-0 text-primary">Ficha de Seguimiento Ornitológico</h5>
+        <small class="text-muted">Zoom flexible (desde el 20% hasta el 300%) con total libertad de movimiento.</small>
       </div>
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-danger fw-bold px-4" onclick="window.print()">
@@ -169,34 +240,40 @@
       </div>
     </div>
 
-    <!-- PANEL DE CARGA DE FOTOS LOCALES (NO SALE EN PDF) -->
-    <div class="card p-3 shadow-sm bg-white no-print mt-3">
-      <h6 class="fw-bold text-dark mb-2">📷 Adjuntar fotografías de campo para las páginas 1 y 2:</h6>
-      <div class="row g-2 align-items-end">
-        <div class="col-md-5">
-          <label class="form-label small fw-bold">Seleccionar Imágenes</label>
-          <input type="file" id="input-foto-campo" class="form-control form-control-sm" accept="image/*" multiple>
-        </div>
+    <!-- PANEL DE CONTROL FIJO ARRIBA -->
+    <div class="card p-3 shadow panel-control-fijo no-print mb-4">
+      <div class="row g-2 align-items-center">
         <div class="col-md-4">
-          <label class="form-label small fw-bold">Ubicación / Destino en Ficha</label>
-          <select id="select-ubicacion-foto" class="form-select form-select-sm">
-            <option value="p1_foto1">Página 1 - Foto Principal 1 (Superior)</option>
-            <option value="p1_foto2">Página 1 - Foto Principal 2 (Inferior)</option>
-            <option value="p2_foto1">Página 2 - Foto Detalle 1 (Ala/Plumaje)</option>
-            <option value="p2_foto2">Página 2 - Foto Detalle 2 (Cola/Rectrices)</option>
-            <option value="p2_foto3">Página 2 - Foto Detalle 3 (Anillas)</option>
-          </select>
+          <label class="form-label small fw-bold mb-1">1. Cargar Foto en Contenedor Activo:</label>
+          <input type="file" id="input-foto-campo" class="form-control form-control-sm" accept="image/*" onchange="cargarFotoSlotDirecto()">
         </div>
         <div class="col-md-3">
-          <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="cargarFotoSlot()">
-            Asignar Foto
-          </button>
+          <label class="form-label small fw-bold mb-1">Contenedor Seleccionado:</label>
+          <select id="select-ubicacion-foto" class="form-select form-select-sm fw-bold text-primary" onchange="cambiarSlotDesdeSelect(this.value)">
+            <option value="p1_foto1">Pág 1 - Izquierda[cite: 4]</option>
+            <option value="p1_foto2">Pág 1 - Derecha[cite: 4]</option>
+            <option value="p2_foto1">Pág 2 - Ala (Superior)[cite: 6]</option>
+            <option value="p2_foto2">Pág 2 - Cola (Media)[cite: 6]</option>
+            <option value="p2_foto3">Pág 2 - Anillas (Inferior)[cite: 6]</option>
+          </select>
+        </div>
+        <div class="col-md-5 bg-light p-2 rounded border">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <small class="fw-bold text-success">🔍 Zoom (20% a 300%) y Encuadre:</small>
+            <span class="badge bg-secondary" id="txt-slot-activo">Pág 1 - Izquierda</span>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <button class="btn btn-outline-dark btn-sm py-0 px-1" onclick="modificarZoom(-10)">🔍-</button>
+            <input type="range" class="form-range flex-grow-1" id="range-zoom" min="20" max="300" value="100" oninput="cambiarEstiloFoto()">
+            <button class="btn btn-outline-dark btn-sm py-0 px-1" onclick="modificarZoom(10)">🔍+</button>
+            <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" onclick="resetearAjustes()">🔄 Reset</button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ========================================== -->
-    <!-- PÁGINA 1: DATOS GENERALES Y FOTOS PRINCIPALES -->
+    <!-- PÁGINA 1: DATOS Y FOTOS EN VERTICAL[cite: 4] -->
     <!-- ========================================== -->
     <div class="pdf-page">
       <div>
@@ -225,68 +302,97 @@
           <div class="data-row"><span class="data-label">Peso:</span><span class="data-val"><span id="f-peso">-</span> g</span></div>
           <div class="data-row"><span class="data-label">Grasa / Músculo:</span><span class="data-val" id="f-grasa">-</span></div>
         </div>
+      </div>
 
-        <div class="section-header">Galería fotográfica principal</div>
-        <div class="photo-grid-p1">
-          <div class="photo-box-p1">
-            <img id="img-p1-1" src="" alt="Sin imagen asignada" style="display:none;">
-            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-1">Foto Principal 1</div>
+      <!-- FOTOS PÁGINA 1[cite: 4] -->
+      <div class="foto-grid-container-p1">
+        <div class="canva-frame slot-ui" id="box-p1_foto1" onclick="seleccionarSlotActivo('p1_foto1')">
+          <img id="img-p1-1" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-1 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Izquierda)[cite: 4]</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 0, -5)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 0, 5)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', -5, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 5, 0)" title="Derecha">➡️</button>
           </div>
-          <div class="photo-box-p1">
-            <img id="img-p1-2" src="" alt="Sin imagen asignada" style="display:none;">
-            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-2">Foto Principal 2</div>
+        </div>
+        <div class="canva-frame slot-ui" id="box-p1_foto2" onclick="seleccionarSlotActivo('p1_foto2')">
+          <img id="img-p1-2" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-2 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Derecha)[cite: 4]</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 0, -5)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 0, 5)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', -5, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 5, 0)" title="Derecha">➡️</button>
           </div>
         </div>
       </div>
 
-      <div class="page-footer">Página 1 de 2</div>
+      <div class="page-footer">Página 1 de 2[cite: 4, 6]</div>
     </div>
 
 
     <!-- ========================================== -->
-    <!-- PÁGINA 2: GALERÍA DE DETALLE (ALA, COLA, ETC.) -->
+    <!-- PÁGINA 2: DISTRIBUCIÓN EXACTA IDÉNTICA AL EJEMPLO[cite: 6] -->
     <!-- ========================================== -->
     <div class="pdf-page">
       <div>
-        <div class="report-title">Galería de detalle morfológico y marcaje</div>
+        <div class="report-title">Galería fotográfica y detalle</div>
         
-        <div class="photo-grid-p2">
-          <div class="photo-box-p2">
-            <img id="img-p2-1" src="" alt="" style="display:none;">
-            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-p2-1">Detalle Ala / Primarias</div>
-          </div>
-          <div class="photo-box-p2">
-            <img id="img-p2-2" src="" alt="" style="display:none;">
-            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-p2-2">Detalle Cola / Rectrices</div>
-          </div>
-        </div>
-
-        <div class="mt-3">
-          <div class="photo-box-p2" style="height: 200px;">
-            <img id="img-p2-3" src="" alt="" style="display:none;">
-            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-p2-3">Detalle Anillas (Metálica y PVC)</div>
+        <!-- FOTO 1 SUPERIOR (ALA) -->
+        <div class="foto-box-p2-top slot-ui canva-frame" id="box-p2_foto1" onclick="seleccionarSlotActivo('p2_foto1')">
+          <img id="img-p2-1" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-p2-1 position-absolute top-50 start-50 translate-middle">📷 Foto Superior - Ala[cite: 6]</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', 0, -5)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', 0, 5)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', -5, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', 5, 0)" title="Derecha">➡️</button>
           </div>
         </div>
 
-        <div class="section-header mt-3">Observaciones y notas de campo</div>
-        <div class="p-2 border rounded bg-light" style="min-height: 80px; font-size: 0.85rem;">
-          <textarea id="input-notas-ficha" class="form-control border-0 bg-transparent p-0" rows="3" placeholder="Anota aquí observaciones de muda, comportamiento o marcas particulares..."></textarea>
+        <!-- FOTO 2 MEDIA (COLA) -->
+        <div class="foto-box-p2-top slot-ui canva-frame" id="box-p2_foto2" onclick="seleccionarSlotActivo('p2_foto2')">
+          <img id="img-p2-2" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-p2-2 position-absolute top-50 start-50 translate-middle">📷 Foto Media - Cola[cite: 6]</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', 0, -5)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', 0, 5)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', -5, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', 5, 0)" title="Derecha">➡️</button>
+          </div>
+        </div>
+
+        <!-- FOTO 3 INFERIOR CUADRADA CENTRADA (ANILLAS) -->
+        <div class="foto-box-p2-bottom-container">
+          <div class="foto-box-p2-bottom slot-ui canva-frame" id="box-p2_foto3" onclick="seleccionarSlotActivo('p2_foto3')">
+            <img id="img-p2-3" src="" style="display:none;">
+            <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-p2-3 position-absolute top-50 start-50 translate-middle">📷 Foto Inferior - Anillas[cite: 6]</span>
+            <div class="overlay-controles no-print">
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', 0, -5)" title="Arriba">⬆️</button>
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', 0, 5)" title="Abajo">⬇️</button>
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', -5, 0)" title="Izquierda">⬅️</button>
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', 5, 0)" title="Derecha">➡️</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="page-footer">Página 2 de 2</div>
+      <div class="page-footer">Página 2 de 2[cite: 4, 6]</div>
     </div>
 
   </div>
 
   <script>
-    let slotsFotos = {
-      p1_foto1: "",
-      p1_foto2: "",
-      p2_foto1: "",
-      p2_foto2: "",
-      p2_foto3: ""
+    let datosFotos = {
+      p1_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Foto Izquierda" },
+      p1_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Foto Derecha" },
+      p2_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Ala (Superior)" },
+      p2_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Cola (Media)" },
+      p2_foto3: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Anillas (Inferior)" }
     };
+
+    let slotActivo = "p1_foto1";
 
     function formatearPvcLimpio(pvcStr) {
       if (!pvcStr || pvcStr === "-") return "-";
@@ -311,7 +417,7 @@
       document.getElementById('f-pvc').innerText = formatearPvcLimpio(ave.pvc);
       document.getElementById('f-fecha').innerText = ave.fecha || '-';
       document.getElementById('f-especie').innerText = ave.especie || '-';
-      document.getElementById('f-cientifico').innerText = ave.especie || '-'; // O mapear si procede
+      document.getElementById('f-cientifico').innerText = ave.especie || '-';
       document.getElementById('f-localidad').innerText = ave.localidad || '-';
       document.getElementById('f-coords').innerText = `${ave.lat || ''}, ${ave.lng || ''}`;
       document.getElementById('f-anillador').innerText = ave.anillador || 'Alberto de la Rosa';
@@ -324,45 +430,94 @@
       document.getElementById('f-sexo').innerText = ave.sexo || '-';
       document.getElementById('f-peso').innerText = ave.peso !== '-' ? ave.peso : '-';
       document.getElementById('f-grasa').innerText = ave.grasa || '-';
+
+      seleccionarSlotActivo('p1_foto1');
     }
 
-    function cargarFotoSlot() {
+    function seleccionarSlotActivo(slotKey) {
+      slotActivo = slotKey;
+      document.getElementById('select-ubicacion-foto').value = slotKey;
+      document.getElementById('txt-slot-activo').innerText = datosFotos[slotKey].label;
+
+      document.querySelectorAll('.slot-ui').forEach(el => el.classList.remove('slot-activo'));
+      const caja = document.getElementById(`box-${slotKey}`);
+      if (caja) caja.classList.add('slot-activo');
+
+      const datos = datosFotos[slotKey];
+      document.getElementById('range-zoom').value = datos.zoom;
+    }
+
+    function cambiarSlotDesdeSelect(slotKey) {
+      seleccionarSlotActivo(slotKey);
+    }
+
+    function cargarFotoSlotDirecto() {
       const input = document.getElementById('input-foto-campo');
-      const slotKey = document.getElementById('select-ubicacion-foto').value;
-      
-      if (!input.files || input.files.length === 0) {
-        return alert("Selecciona una fotografía.");
-      }
+      if (!input.files || input.files.length === 0) return;
 
       const file = input.files[0];
       const urlLocal = URL.createObjectURL(file);
-      slotsFotos[slotKey] = urlLocal;
+      
+      datosFotos[slotActivo].url = urlLocal;
+      datosFotos[slotActivo].zoom = 100;
+      datosFotos[slotActivo].offsetX = 0;
+      datosFotos[slotActivo].offsetY = 0;
 
-      actualizarVistaSlot(slotKey, urlLocal);
+      renderizarFoto(slotActivo);
       input.value = "";
     }
 
-    function actualizarVistaSlot(slotKey, url) {
-      if (slotKey === 'p1_foto1') {
-        const img = document.getElementById('img-p1-1');
-        img.src = url; img.style.display = 'block';
-        document.querySelector('.placeholder-slot-1').style.display = 'none';
-      } else if (slotKey === 'p1_foto2') {
-        const img = document.getElementById('img-p1-2');
-        img.src = url; img.style.display = 'block';
-        document.querySelector('.placeholder-slot-2').style.display = 'none';
-      } else if (slotKey === 'p2_foto1') {
-        const img = document.getElementById('img-p2-1');
-        img.src = url; img.style.display = 'block';
-        document.querySelector('.placeholder-slot-p2-1').style.display = 'none';
-      } else if (slotKey === 'p2_foto2') {
-        const img = document.getElementById('img-p2-2');
-        img.src = url; img.style.display = 'block';
-        document.querySelector('.placeholder-slot-p2-2').style.display = 'none';
-      } else if (slotKey === 'p2_foto3') {
-        const img = document.getElementById('img-p2-3');
-        img.src = url; img.style.display = 'block';
-        document.querySelector('.placeholder-slot-p2-3').style.display = 'none';
+    function cambiarEstiloFoto() {
+      const zoom = document.getElementById('range-zoom').value;
+      datosFotos[slotActivo].zoom = zoom;
+      renderizarFoto(slotActivo);
+    }
+
+    function modificarZoom(cantidad) {
+      let datos = datosFotos[slotActivo];
+      let nuevoZoom = parseInt(datos.zoom) + cantidad;
+      if (nuevoZoom < 20) nuevoZoom = 20;
+      if (nuevoZoom > 300) nuevoZoom = 300;
+      datos.zoom = nuevoZoom;
+      document.getElementById('range-zoom').value = nuevoZoom;
+      renderizarFoto(slotActivo);
+    }
+
+    function moverImagen(slotKey, deltaX, deltaY) {
+      seleccionarSlotActivo(slotKey);
+      let datos = datosFotos[slotKey];
+      datos.offsetX += deltaX;
+      datos.offsetY += deltaY;
+      renderizarFoto(slotKey);
+    }
+
+    function resetearAjustes() {
+      datosFotos[slotActivo].zoom = 100;
+      datosFotos[slotActivo].offsetX = 0;
+      datosFotos[slotActivo].offsetY = 0;
+      document.getElementById('range-zoom').value = 100;
+      renderizarFoto(slotActivo);
+    }
+
+    function renderizarFoto(slotKey) {
+      const datos = datosFotos[slotKey];
+      if (!datos.url) return;
+
+      let imgEl, placeholderEl;
+      if (slotKey === 'p1_foto1') { imgEl = document.getElementById('img-p1-1'); placeholderEl = document.querySelector('.placeholder-slot-1'); }
+      else if (slotKey === 'p1_foto2') { imgEl = document.getElementById('img-p1-2'); placeholderEl = document.querySelector('.placeholder-slot-2'); }
+      else if (slotKey === 'p2_foto1') { imgEl = document.getElementById('img-p2-1'); placeholderEl = document.querySelector('.placeholder-slot-p2-1'); }
+      else if (slotKey === 'p2_foto2') { imgEl = document.getElementById('img-p2-2'); placeholderEl = document.querySelector('.placeholder-slot-p2-2'); }
+      else if (slotKey === 'p2_foto3') { imgEl = document.getElementById('img-p2-3'); placeholderEl = document.querySelector('.placeholder-slot-p2-3'); }
+
+      if (imgEl) {
+        imgEl.src = datos.url;
+        imgEl.style.display = 'block';
+        const scale = datos.zoom / 100;
+        imgEl.style.transform = `translate(calc(-50% + ${datos.offsetX}px), calc(-50% + ${datos.offsetY}px)) scale(${scale})`;
+      }
+      if (placeholderEl) {
+        placeholderEl.style.display = 'none';
       }
     }
 
