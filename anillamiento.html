@@ -27,12 +27,13 @@
       <div class="col-lg-4">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4 class="form-title mb-0" style="border:none; padding:0;">Anillamiento y Biometría</h4>
+            <h4 class="form-title mb-0" id="titulo-formulario" style="border:none; padding:0;">Anillamiento y Biometría</h4>
             <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Inicio</a>
           </div>
           <hr class="mt-2 mb-3">
 
           <form id="form-anillamiento">
+            <input type="hidden" id="input-edit-docid" value="">
             <div class="section-subtitle">1. Estación, Origen y Ubicación</div>
             
             <div class="row g-2 mb-2">
@@ -155,9 +156,14 @@
               <input type="text" id="input-anillador-anil" class="form-control form-control-sm" value="Alberto de la Rosa">
             </div>
 
-            <button type="button" class="btn btn-success w-100 fw-bold mt-3" onclick="guardarAnillamiento()">
-              ☁️ Guardar Captura en la Nube
-            </button>
+            <div class="d-flex gap-2 mt-3">
+              <button type="button" class="btn btn-success flex-grow-1 fw-bold" id="btn-guardar-anil" onclick="guardarAnillamiento()">
+                ☁️ Guardar Captura en la Nube
+              </button>
+              <button type="button" class="btn btn-outline-secondary fw-bold" id="btn-cancelar-edicion" style="display:none;" onclick="cancelarEdicion()">
+                Cancelar
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -197,7 +203,7 @@
                   <th>Tarso</th>
                   <th>R5</th>
                   <th>Peso</th>
-                  <th class="text-center">Ficha</th>
+                  <th class="text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tabla-registros-anil">
@@ -264,7 +270,6 @@
       return s.toUpperCase();
     }
 
-    // Limpia el prefijo LBGW(...) o LBGW de los códigos PVC para mostrar solo el código
     function formatearPvcLimpio(pvcStr) {
       if (!pvcStr || pvcStr === "-") return "-";
       let limpio = String(pvcStr).trim();
@@ -276,12 +281,15 @@
     window.verificarAnillaRepetida = function(valor, tipo) {
       let valTrim = formatearPvcLimpio(valor);
       let divAlerta = document.getElementById(tipo === 'metal' ? 'alerta-metal' : 'alerta-pvc');
+      let editId = document.getElementById('input-edit-docid').value;
+
       if (!valTrim || valTrim === '-') {
         divAlerta.style.display = 'none';
         return;
       }
 
       let repetida = window.anillamientos.some(item => {
+        if (editId && item.docId === editId) return false; // Ignorar el propio registro al editar
         if (tipo === 'metal') {
           return String(item.metal || '').trim().toLowerCase() === valTrim.toLowerCase();
         } else {
@@ -378,6 +386,7 @@
       var metal = document.getElementById('input-metal-anil').value.trim();
       if (!metal) return alert("Indica la anilla metálica obligatoriamente.");
 
+      var editDocId = document.getElementById('input-edit-docid').value;
       var tipoCaptura = document.getElementById('input-tipo-captura').value;
       var codigoNido = document.getElementById('input-codigo-nido-anil').value.trim();
       var edad = document.getElementById('input-edad-anil').value;
@@ -410,38 +419,96 @@
       };
 
       try {
-        await addDoc(collection(db, "anillamientos"), item);
+        if (editDocId) {
+          // Actualizar registro existente
+          await updateDoc(doc(db, "anillamientos", editDocId), item);
+          alert("¡Registro actualizado con éxito en Firebase!");
+          cancelarEdicion();
+        } else {
+          // Crear nuevo registro
+          await addDoc(collection(db, "anillamientos"), item);
 
-        if (codigoNido && codigoNido !== "-" && (sexo === "Macho" || sexo === "Hembra") && edad !== "1") {
-          let marcaIdentificativa = pvc && pvc !== "-" ? `${metal} / ${pvc}` : metal;
-          let nidosCoincidentes = window.nidosGlobal.filter(n => String(n.id || '').trim().toLowerCase() === codigoNido.toLowerCase());
-          
-          if (nidosCoincidentes.length > 0) {
-            let nidoMasReciente = nidosCoincidentes[0];
-            let nidoRef = doc(db, "nidos", nidoMasReciente.docId);
+          if (codigoNido && codigoNido !== "-" && (sexo === "Macho" || sexo === "Hembra") && edad !== "1") {
+            let marcaIdentificativa = pvc && pvc !== "-" ? `${metal} / ${pvc}` : metal;
+            let nidosCoincidentes = window.nidosGlobal.filter(n => String(n.id || '').trim().toLowerCase() === codigoNido.toLowerCase());
             
-            let datosActualizacion = {};
-            if (sexo === "Macho") {
-              datosActualizacion.macho = marcaIdentificativa;
-            } else if (sexo === "Hembra") {
-              datosActualizacion.hembra = marcaIdentificativa;
+            if (nidosCoincidentes.length > 0) {
+              let nidoMasReciente = nidosCoincidentes[0];
+              let nidoRef = doc(db, "nidos", nidoMasReciente.docId);
+              
+              let datosActualizacion = {};
+              if (sexo === "Macho") {
+                datosActualizacion.macho = marcaIdentificativa;
+              } else if (sexo === "Hembra") {
+                datosActualizacion.hembra = marcaIdentificativa;
+              }
+              
+              await updateDoc(nidoRef, datosActualizacion);
             }
-            
-            await updateDoc(nidoRef, datosActualizacion);
           }
+
+          alert("¡Captura guardada en Firebase correctamente!");
+          document.getElementById('input-metal-anil').value = "";
+          document.getElementById('input-pvc-anil').value = "";
+          document.getElementById('alerta-metal').style.display = 'none';
+          document.getElementById('alerta-pvc').style.display = 'none';
         }
 
-        alert("¡Captura guardada en Firebase correctamente!");
-        document.getElementById('input-metal-anil').value = "";
-        document.getElementById('input-pvc-anil').value = "";
-        document.getElementById('alerta-metal').style.display = 'none';
-        document.getElementById('alerta-pvc').style.display = 'none';
         paginaActual = 1;
         await cargarDatosFirebase();
       } catch (e) {
         console.error("Error al guardar anillamiento:", e);
         alert("Error al guardar en la nube.");
       }
+    }
+
+    window.cargarParaEditar = function(docId) {
+      const ave = window.anillamientos.find(a => a.docId === docId);
+      if (!ave) return alert("No se encontró el registro para editar.");
+
+      document.getElementById('input-edit-docid').value = ave.docId;
+      document.getElementById('input-tipo-captura').value = ave.tipoCaptura || "Anillamiento";
+      document.getElementById('input-codigo-nido-anil').value = ave.codigoNido !== "-" ? ave.codigoNido : "";
+      document.getElementById('input-fecha-anil').value = ave.fecha || "";
+      document.getElementById('input-localidad-anil').value = ave.localidad || "";
+      document.getElementById('input-coords-anil').value = `${ave.lat || 39.7709}, ${ave.lng || -0.1840}`;
+      document.getElementById('input-metal-anil').value = ave.metal || "";
+      document.getElementById('input-pvc-anil').value = ave.pvc !== "-" ? ave.pvc : "";
+      document.getElementById('input-especie-anil').value = ave.especie || "Falco tinnunculus";
+      document.getElementById('input-edad-anil').value = ave.edad || "3";
+      document.getElementById('input-sexo-anil').value = ave.sexo || "Desconocido";
+      document.getElementById('input-ala-anil').value = ave.ala !== "-" ? ave.ala : "";
+      document.getElementById('input-p8-anil').value = ave.p8 !== "-" ? ave.p8 : "";
+      document.getElementById('input-cola-anil').value = ave.cola !== "-" ? ave.cola : "";
+      document.getElementById('input-r5-anil').value = ave.r5 !== "-" ? ave.r5 : "";
+      document.getElementById('input-tarso-anil').value = ave.tarso !== "-" ? ave.tarso : "";
+      document.getElementById('input-peso-anil').value = ave.peso !== "-" ? ave.peso : "";
+      document.getElementById('input-grasa-anil').value = ave.grasa !== "-" ? ave.grasa : "";
+      document.getElementById('input-anillador-anil').value = ave.anillador || "Alberto de la Rosa";
+
+      document.getElementById('titulo-formulario').innerText = "✏️ Editando Anillamiento";
+      let btnGuardar = document.getElementById('btn-guardar-anil');
+      btnGuardar.innerText = "💾 Actualizar Registro en la Nube";
+      btnGuardar.className = "btn btn-primary flex-grow-1 fw-bold";
+      document.getElementById('btn-cancelar-edicion').style.display = 'block';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.cancelarEdicion = function() {
+      document.getElementById('input-edit-docid').value = "";
+      document.getElementById('form-anillamiento').reset();
+      document.getElementById('input-fecha-anil').value = new Date().toISOString().slice(0,10);
+      document.getElementById('input-coords-anil').value = "39.7709, -0.1840";
+      document.getElementById('input-anillador-anil').value = "Alberto de la Rosa";
+      document.getElementById('alerta-metal').style.display = 'none';
+      document.getElementById('alerta-pvc').style.display = 'none';
+
+      document.getElementById('titulo-formulario').innerText = "Anillamiento y Biometría";
+      let btnGuardar = document.getElementById('btn-guardar-anil');
+      btnGuardar.innerText = "☁️ Guardar Captura en la Nube";
+      btnGuardar.className = "btn btn-success flex-grow-1 fw-bold";
+      document.getElementById('btn-cancelar-edicion').style.display = 'none';
     }
 
     window.abrirFichaAve = function(docId) {
@@ -604,7 +671,8 @@
           <td>${esc(especieAbreviada)}</td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
           <td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${r.r5}</td><td>${r.peso}</td>
-          <td class="text-center">
+          <td class="text-center text-nowrap">
+            <button class="btn btn-sm btn-outline-warning py-0 px-2 fw-bold me-1" onclick="cargarParaEditar('${r.docId}')" title="Editar este registro">✏️ Editar</button>
             <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" onclick="abrirFichaAve('${r.docId}')" title="Abrir Ficha Fotográfica y de Campo">📷 Ficha</button>
           </td>
         </tr>`;
