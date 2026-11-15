@@ -106,7 +106,7 @@
       left: 50%;
       width: 100%;
       height: 100%;
-      object-fit: contain; /* Permite alejar la foto libremente mostrando el fondo integrado */
+      object-fit: cover;
       transform: translate(-50%, -50%) scale(1);
       transform-origin: center center;
       transition: transform 0.05s ease-out;
@@ -139,7 +139,7 @@
       left: 50%;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       transform: translate(-50%, -50%) scale(1);
       transform-origin: center center;
     }
@@ -164,7 +164,7 @@
       left: 50%;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       transform: translate(-50%, -50%) scale(1);
       transform-origin: center center;
     }
@@ -216,7 +216,7 @@
         page-break-after: always;
         height: 297mm;
       }
-      .canva-frame { border: none !important; background: #ffffff !important; }
+      .canva-frame { border: none !important; }
       .overlay-controles { display: none !important; }
       @page { size: A4 portrait; margin: 0; }
     }
@@ -230,7 +230,7 @@
     <div class="d-flex justify-content-between align-items-center no-print card p-3 shadow-sm bg-white mb-3">
       <div>
         <h5 class="fw-bold mb-0 text-primary">Ficha de Seguimiento Ornitológico</h5>
-        <small class="text-muted">Zoom flexible (desde el 20% hasta el 300%) con total libertad de movimiento.</small>
+        <small class="text-muted">Estilo Canva: Contenedores fijos con zoom flexible (20% a 300%).</small>
       </div>
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-danger fw-bold px-4" onclick="window.print()">
@@ -402,6 +402,31 @@
       return limpio.trim() || "-";
     }
 
+    // Diccionario para traducir códigos o nombres científicos a nombres comunes oficiales en español
+    function traducirEspecie(esp) {
+      if (!esp) return "-";
+      let e = String(esp).trim().toUpperCase();
+      if (e.includes("FALCO TINNUNCULUS") || e.includes("FAL TIN")) return "Cernícalo común";
+      if (e.includes("TYTO ALBA")) return "Lechuza común";
+      if (e.includes("ATHENE NOCTUA")) return "Mochuelo europeo";
+      if (e.includes("OTUS SCOPS")) return "Autillo europeo";
+      if (e.includes("ASIO OTUS")) return "Búho chico";
+      if (e.includes("STRIX ALUCO")) return "Cárabo común";
+      return esp; // Si ya viene escrito o es otra especie, lo respeta
+    }
+
+    function obtenerNombreCientifico(esp) {
+      if (!esp) return "Falco tinnunculus";
+      let e = String(esp).trim().toLowerCase();
+      if (e.includes("cernícalo común") || e.includes("cernicalo") || e.includes("fal tin")) return "Falco tinnunculus";
+      if (e.includes("lechuza común") || e.includes("tyto alba")) return "Tyto alba";
+      if (e.includes("mochuelo europeo") || e.includes("athene noctua")) return "Athene noctua";
+      if (e.includes("autillo europeo") || e.includes("otus scops")) return "Otus scops";
+      if (e.includes("búho chico") || e.includes("asio otus")) return "Asio otus";
+      if (e.includes("cárabo común") || e.includes("strix aluco")) return "Strix aluco";
+      return esp;
+    }
+
     function inicializarFicha() {
       const raw = localStorage.getItem("ave_ficha_actual");
       if (!raw) {
@@ -416,8 +441,11 @@
       document.getElementById('f-metal').innerText = ave.metal || '-';
       document.getElementById('f-pvc').innerText = formatearPvcLimpio(ave.pvc);
       document.getElementById('f-fecha').innerText = ave.fecha || '-';
-      document.getElementById('f-especie').innerText = ave.especie || '-';
-      document.getElementById('f-cientifico').innerText = ave.especie || '-';
+      
+      // Asignación correcta de Nombre Común y Nombre Científico
+      document.getElementById('f-especie').innerText = traducirEspecie(ave.especie);
+      document.getElementById('f-cientifico').innerText = obtenerNombreCientifico(ave.especie);
+
       document.getElementById('f-localidad').innerText = ave.localidad || '-';
       document.getElementById('f-coords').innerText = `${ave.lat || ''}, ${ave.lng || ''}`;
       document.getElementById('f-anillador').innerText = ave.anillador || 'Alberto de la Rosa';
