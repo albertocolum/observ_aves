@@ -7,26 +7,28 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .main-container { max-width: 1400px; margin: 30px auto; }
+    .main-container { max-width: 1450px; margin: 30px auto; }
     .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 25px; height: 100%; }
     .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.25rem; }
     .section-subtitle { font-size: 0.85rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 15px; margin-bottom: 10px; }
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.85rem; }
     .required-asterisk { color: #e53e3e; }
-    .table-history { font-size: 0.78rem; }
+    .table-history { font-size: 0.76rem; }
+    .badge-metal { background-color: #718096; color: #ffffff; letter-spacing: 0.4px; }
+    .badge-pvc { background-color: #15803d; color: #ffffff; letter-spacing: 0.5px; font-family: monospace; }
   </style>
 </head>
 <body>
 
-  <div class="container main-container">
+  <div class="container-fluid px-4 main-container">
     <div class="row g-4">
       
       <!-- COLUMNA IZQUIERDA: FORMULARIO DE CAPTURA -->
-      <div class="col-lg-5">
+      <div class="col-lg-4">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4 class="form-title mb-0" style="border:none; padding:0;">Anillamiento y Biometría (Cloud)</h4>
-            <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Volver al Inicio</a>
+            <h4 class="form-title mb-0" style="border:none; padding:0;">Anillamiento y Biometría</h4>
+            <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Inicio</a>
           </div>
           <hr class="mt-2 mb-3">
 
@@ -75,7 +77,7 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">Anilla PVC / Marca Alar</label>
-                <input type="text" id="input-pvc-anil" class="form-control form-control-sm" placeholder="Ej: A5J" onblur="verificarAnillaRepetida(this.value, 'pvc')">
+                <input type="text" id="input-pvc-anil" class="form-control form-control-sm" placeholder="Ej: C/CR" onblur="verificarAnillaRepetida(this.value, 'pvc')">
                 <div id="alerta-pvc" class="form-text text-danger fw-bold" style="display:none; font-size: 0.75rem;"></div>
               </div>
             </div>
@@ -161,7 +163,7 @@
       </div>
 
       <!-- COLUMNA DERECHA: TABLA Y ACCIONES -->
-      <div class="col-lg-7">
+      <div class="col-lg-8">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -173,7 +175,7 @@
               <button class="btn btn-outline-danger btn-sm fw-bold" onclick="borrarUltimoRegistro()" title="Borrar el último registro guardado">🗑️ Borrar Último</button>
               <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-csv').click()" title="Subir tu archivo CSV original">☁️ Importar CSV</button>
               <input type="file" id="input-migrar-csv" accept=".csv" style="display:none;" onchange="migrarCSVAFirebase(event)">
-              <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar toda la nube de golpe">⚠️ Vaciar Nube</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar toda la nube de golpe">⚠️ Vaciar</button>
               <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
             </div>
           </div>
@@ -186,6 +188,7 @@
                   <th>Nido</th>
                   <th>Fecha</th>
                   <th>Metálica</th>
+                  <th>PVC</th>
                   <th>Especie</th>
                   <th>Edad</th>
                   <th>Ala</th>
@@ -194,10 +197,11 @@
                   <th>Tarso</th>
                   <th>R5</th>
                   <th>Peso</th>
+                  <th class="text-center">Ficha</th>
                 </tr>
               </thead>
               <tbody id="tabla-registros-anil">
-                <tr><td colspan="12" class="text-center text-muted py-3">Conectando con Firebase...</td></tr>
+                <tr><td colspan="14" class="text-center text-muted py-3">Conectando con Firebase...</td></tr>
               </tbody>
             </table>
           </div>
@@ -260,8 +264,17 @@
       return s.toUpperCase();
     }
 
+    // Limpia el prefijo LBGW(...) o LBGW de los códigos PVC para mostrar solo el código
+    function formatearPvcLimpio(pvcStr) {
+      if (!pvcStr || pvcStr === "-") return "-";
+      let limpio = String(pvcStr).trim();
+      limpio = limpio.replace(/^LBGW\s*\(([^)]+)\)$/i, '$1');
+      limpio = limpio.replace(/^LBGW\s*/i, '');
+      return limpio.trim() || "-";
+    }
+
     window.verificarAnillaRepetida = function(valor, tipo) {
-      let valTrim = valor.trim();
+      let valTrim = formatearPvcLimpio(valor);
       let divAlerta = document.getElementById(tipo === 'metal' ? 'alerta-metal' : 'alerta-pvc');
       if (!valTrim || valTrim === '-') {
         divAlerta.style.display = 'none';
@@ -272,7 +285,7 @@
         if (tipo === 'metal') {
           return String(item.metal || '').trim().toLowerCase() === valTrim.toLowerCase();
         } else {
-          return String(item.pvc || '').trim().toLowerCase() === valTrim.toLowerCase();
+          return formatearPvcLimpio(item.pvc).toLowerCase() === valTrim.toLowerCase();
         }
       });
 
@@ -369,7 +382,7 @@
       var codigoNido = document.getElementById('input-codigo-nido-anil').value.trim();
       var edad = document.getElementById('input-edad-anil').value;
       var sexo = document.getElementById('input-sexo-anil').value;
-      var pvc = document.getElementById('input-pvc-anil').value.trim();
+      var pvc = formatearPvcLimpio(document.getElementById('input-pvc-anil').value);
 
       var c = document.getElementById('input-coords-anil').value.split(',');
       var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
@@ -399,15 +412,11 @@
       try {
         await addDoc(collection(db, "anillamientos"), item);
 
-        // SI SE HA INDICADO UN NIDO Y UN SEXO DEFINIDO (Y NO ES PULLUS PURO EXCLUSIVO), ACTUALIZAR PAREJA EN EL NIDO
         if (codigoNido && codigoNido !== "-" && (sexo === "Macho" || sexo === "Hembra") && edad !== "1") {
           let marcaIdentificativa = pvc && pvc !== "-" ? `${metal} / ${pvc}` : metal;
-          
-          // Buscar visitas recientes en Firebase para este nido
           let nidosCoincidentes = window.nidosGlobal.filter(n => String(n.id || '').trim().toLowerCase() === codigoNido.toLowerCase());
           
           if (nidosCoincidentes.length > 0) {
-            // Actualizar el documento más reciente del nido
             let nidoMasReciente = nidosCoincidentes[0];
             let nidoRef = doc(db, "nidos", nidoMasReciente.docId);
             
@@ -419,11 +428,10 @@
             }
             
             await updateDoc(nidoRef, datosActualizacion);
-            console.log(`Pareja del nido [${codigoNido}] actualizada automáticamente (${sexo}: ${marcaIdentificativa}).`);
           }
         }
 
-        alert("¡Captura guardada en Firebase correctamente y pareja vinculada al nido!");
+        alert("¡Captura guardada en Firebase correctamente!");
         document.getElementById('input-metal-anil').value = "";
         document.getElementById('input-pvc-anil').value = "";
         document.getElementById('alerta-metal').style.display = 'none';
@@ -434,6 +442,13 @@
         console.error("Error al guardar anillamiento:", e);
         alert("Error al guardar en la nube.");
       }
+    }
+
+    window.abrirFichaAve = function(docId) {
+      const ave = window.anillamientos.find(a => a.docId === docId);
+      if (!ave) return alert("No se encontró el registro seleccionado.");
+      localStorage.setItem("ave_ficha_actual", JSON.stringify(ave));
+      window.location.href = "ficha_ave.html";
     }
 
     window.borrarUltimoRegistro = async function() {
@@ -471,7 +486,7 @@
         if (lineas.length < 2) return alert("Archivo sin datos.");
 
         var contador = 0;
-        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-primary py-3"><b>Importando todos los registros a la nube... Por favor espera.</b></td></tr>';
+        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="14" class="text-center text-primary py-3"><b>Importando todos los registros a la nube... Por favor espera.</b></td></tr>';
 
         for (var i = 1; i < lineas.length; i++) {
           var l = lineas[i].trim();
@@ -489,7 +504,7 @@
               fecha: cols[3] || new Date().toISOString().slice(0,10),
               localidad: cols[4] || "Importado",
               metal: cols[5] || "-",
-              pvc: cols[6] || "-",
+              pvc: formatearPvcLimpio(cols[6] || "-"),
               especie: cols[7] || "Falco tinnunculus",
               edad: cols[8] || "3",
               sexo: cols[9] || "Desconocido",
@@ -517,7 +532,7 @@
     window.vaciarTodoAnilFirebase = async function() {
       if (confirm("¿Estás seguro de que quieres vaciar TODOS los registros de anillamiento de la nube de golpe?")) {
         try {
-          document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="12" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
+          document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="14" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
           
           const querySnapshot = await getDocs(collection(db, "anillamientos"));
           let promesasBorrado = [];
@@ -552,7 +567,7 @@
       if(!tbody) return;
 
       if (window.anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-3">No hay capturas en la nube. Pulsa "Importar CSV" para cargar tu archivo.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-3">No hay capturas en la nube. Pulsa "Importar CSV" para cargar tu archivo.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
@@ -575,16 +590,23 @@
         var numReal = datosOrdenados.length - (inicio + idx);
         var edadTexto = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : r.edad));
         var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
+        
+        var pvcLimpio = formatearPvcLimpio(r.pvc);
+        var pvcBadge = pvcLimpio !== "-" ? `<span class="badge badge-pvc">${esc(pvcLimpio)}</span>` : '<span class="text-muted">-</span>';
         var especieAbreviada = formatearEspecieAbreviada(r.especie);
 
         tbody.innerHTML += `<tr>
           <td><b>#${numReal}</b></td>
           <td>${nidoBadge}</td>
           <td>${formatearFecha(r.fecha)}</td>
-          <td><span class="badge bg-dark">${esc(r.metal)}</span></td>
+          <td><span class="badge badge-metal">${esc(r.metal)}</span></td>
+          <td>${pvcBadge}</td>
           <td>${esc(especieAbreviada)}</td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
           <td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${r.r5}</td><td>${r.peso}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" onclick="abrirFichaAve('${r.docId}')" title="Abrir Ficha Fotográfica y de Campo">📷 Ficha</button>
+          </td>
         </tr>`;
       });
 
@@ -601,7 +623,7 @@
     window.exportarExcelAnil = function() {
       if (!window.anillamientos.length) return alert("Sin datos.");
       var h = "ID;CodigoNido;TipoCaptura;Fecha;Lugar;Metal;PVC;Especie;Edad;Sexo;Ala;P8;Cola;Tarso;R5;Peso;Grasa;Anillador;Lat;Lng\n";
-      var r = window.anillamientos.map((a, i) => `${i+1};"${a.codigoNido || '-'}";"${a.tipoCaptura || 'Anillamiento'}";"${a.fecha}";"${a.localidad}";"${a.metal}";"${a.pvc}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
+      var r = window.anillamientos.map((a, i) => `${i+1};"${a.codigoNido || '-'}";"${a.tipoCaptura || 'Anillamiento'}";"${a.fecha}";"${a.localidad}";"${a.metal}";"${formatearPvcLimpio(a.pvc)}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
       link.download = "anillamiento_biometria.csv"; link.click();
     }
