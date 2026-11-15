@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha Técnica de Seguimiento</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a202c; }
+    .main-container { max-width: 900px; margin: 20px auto; }
+    
+    .no-print { margin-bottom: 20px; }
+
+    /* PANEL DE CONTROL FLOTANTE FIJO ARRIBA */
+    .panel-control-fijo {
+      position: sticky;
+      top: 10px;
+      z-index: 1050;
+      background: #ffffff;
+      border: 2px solid #0d6efd;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    /* PAGINACIÓN ESTRICTA A4 */
+    .pdf-page {
+      background: white;
+      width: 210mm;
+      height: 297mm;
+      padding: 10mm 15mm;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      overflow: hidden;
+    }
+
+    .report-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #1e293b;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .section-header {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1e293b;
+      background-color: #f1f5f9;
+      padding: 3px 8px;
+      margin-top: 8px;
+      margin-bottom: 5px;
+      border-left: 4px solid #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3px 15px;
+      font-size: 0.80rem;
+    }
+
+    .data-row {
+      display: flex;
+      border-bottom: 1px dotted #cbd5e1;
+      padding-bottom: 1px;
+    }
+
+    .data-label {
+      font-weight: 600;
+      color: #475569;
+      width: 130px;
+      flex-shrink: 0;
+    }
+
+    .data-val {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .badge-metal { background-color: #718096; color: white; padding: 1px 6px; font-weight: 700; border-radius: 4px; }
+    .badge-pvc { background-color: #15803d; color: white; padding: 1px 6px; font-weight: 700; font-family: monospace; border-radius: 4px; }
+
+    /* ESTILO TIPO CANVA CON BOUNDS ESTRICTOS */
+    .canva-frame {
+      border: 2px dashed #94a3b8;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000000;
+      position: relative;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .canva-frame img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* PÁGINA 1 GRID */
+    .foto-grid-container-p1 {
+      flex-grow: 1;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+      min-height: 0;
+    }
+
+    /* PÁGINA 2 ESTRUCTURA IDÉNTICA AL EJEMPLO */
+    .foto-box-p2-top {
+      border: 2px dashed #94a3b8;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000000;
+      position: relative;
+      height: 95mm;
+      cursor: pointer;
+      margin-bottom: 8px;
+    }
+    .foto-box-p2-top img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: 0 0;
+    }
+
+    .foto-box-p2-bottom-container {
+      display: flex;
+      justify-content: center;
+    }
+    .foto-box-p2-bottom {
+      border: 2px dashed #94a3b8;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000000;
+      position: relative;
+      width: 72mm;
+      height: 72mm;
+      cursor: pointer;
+    }
+    .foto-box-p2-bottom img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: 0 0;
+    }
+
+    .page-footer {
+      text-align: right;
+      font-size: 0.75rem;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 4px;
+      margin-top: 6px;
+    }
+
+    /* BOTONERA FLOTANTE SOBRE LA FOTO */
+    .overlay-controles {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: flex;
+      gap: 3px;
+      z-index: 10;
+    }
+    .overlay-controles button {
+      background: #fff;
+      border: none;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 1px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .overlay-controles button:hover { background: #0d6efd; color: #fff; }
+
+    .slot-activo {
+      border: 3px solid #0d6efd !important;
+      box-shadow: 0 0 12px rgba(13, 110, 253, 0.6);
+    }
+
+    @media print {
+      body { background-color: white !important; }
+      .main-container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      .no-print { display: none !important; }
+      .pdf-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        page-break-after: always;
+        height: 297mm;
+      }
+      .canva-frame { border: none !important; }
+      .overlay-controles { display: none !important; }
+      @page { size: A4 portrait; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container main-container">
+    
+    <!-- BOTONERA SUPERIOR -->
+    <div class="d-flex justify-content-between align-items-center no-print card p-3 shadow-sm bg-white mb-3">
+      <div>
+        <h5 class="fw-bold mb-0 text-primary">Ficha de Seguimiento Ornitológico</h5>
+        <small class="text-muted">Ajuste estilo Canva con bloqueo estricto de bordes (sin huecos negros).</small>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-danger fw-bold px-4" onclick="window.print()">
+          📄 Imprimir / Guardar PDF
+        </button>
+        <a href="anillamiento.html" class="btn btn-outline-secondary">&larr; Volver</a>
+      </div>
+    </div>
+
+    <!-- PANEL DE CONTROL FIJO ARRIBA -->
+    <div class="card p-3 shadow panel-control-fijo no-print mb-4">
+      <div class="row g-2 align-items-center">
+        <div class="col-md-4">
+          <label class="form-label small fw-bold mb-1">1. Cargar Foto en Contenedor Activo:</label>
+          <input type="file" id="input-foto-campo" class="form-control form-control-sm" accept="image/*" onchange="cargarFotoSlotDirecto()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-bold mb-1">Contenedor Seleccionado:</label>
+          <select id="select-ubicacion-foto" class="form-select form-select-sm fw-bold text-primary" onchange="cambiarSlotDesdeSelect(this.value)">
+            <option value="p1_foto1">Pág 1 - Izquierda</option>
+            <option value="p1_foto2">Pág 1 - Derecha</option>
+            <option value="p2_foto1">Pág 2 - Ala (Superior)</option>
+            <option value="p2_foto2">Pág 2 - Cola (Media)</option>
+            <option value="p2_foto3">Pág 2 - Anillas (Inferior)</option>
+          </select>
+        </div>
+        <div class="col-md-5 bg-light p-2 rounded border">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <small class="fw-bold text-success">🔍 Zoom (Mín. 100%) y Encuadre Libre:</small>
+            <span class="badge bg-secondary" id="txt-slot-activo">Pág 1 - Izquierda</span>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <button class="btn btn-outline-dark btn-sm py-0 px-1" onclick="modificarZoom(-10)">🔍-</button>
+            <input type="range" class="form-range flex-grow-1" id="range-zoom" min="100" max="300" value="100" oninput="cambiarEstiloFoto()">
+            <button class="btn btn-outline-dark btn-sm py-0 px-1" onclick="modificarZoom(10)">🔍+</button>
+            <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" onclick="resetearAjustes()">🔄 Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PÁGINA 1 -->
+    <!-- ========================================== -->
+    <div class="pdf-page">
+      <div>
+        <div class="report-title">Ficha técnica de seguimiento</div>
+        
+        <div class="section-header">Datos generales</div>
+        <div class="data-grid">
+          <div class="data-row"><span class="data-label">Anilla Metal:</span><span class="data-val"><span class="badge-metal" id="f-metal">-</span></span></div>
+          <div class="data-row"><span class="data-label">Anilla PVC:</span><span class="data-val"><span class="badge-pvc" id="f-pvc">-</span></span></div>
+          <div class="data-row"><span class="data-label">Fecha:</span><span class="data-val" id="f-fecha">-</span></div>
+          <div class="data-row"><span class="data-label">Ave / Especie:</span><span class="data-val" id="f-especie">-</span></div>
+          <div class="data-row"><span class="data-label">Nombre científico:</span><span class="data-val fst-italic" id="f-cientifico">-</span></div>
+          <div class="data-row"><span class="data-label">Lugar:</span><span class="data-val" id="f-localidad">-</span></div>
+          <div class="data-row"><span class="data-label">Coordenadas:</span><span class="data-val" id="f-coords">-</span></div>
+          <div class="data-row"><span class="data-label">Anillador:</span><span class="data-val" id="f-anillador">-</span></div>
+        </div>
+
+        <div class="section-header">Datos específicos</div>
+        <div class="data-grid">
+          <div class="data-row"><span class="data-label">Ala Máx:</span><span class="data-val"><span id="f-ala">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Cola:</span><span class="data-val"><span id="f-cola">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Edad Euring:</span><span class="data-val" id="f-edad">-</span></div>
+          <div class="data-row"><span class="data-label">P8:</span><span class="data-val"><span id="f-p8">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Tarso:</span><span class="data-val"><span id="f-tarso">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Sexo:</span><span class="data-val" id="f-sexo">-</span></div>
+          <div class="data-row"><span class="data-label">Peso:</span><span class="data-val"><span id="f-peso">-</span> g</span></div>
+          <div class="data-row"><span class="data-label">Grasa / Músculo:</span><span class="data-val" id="f-grasa">-</span></div>
+        </div>
+      </div>
+
+      <!-- FOTOS PÁGINA 1 -->
+      <div class="foto-grid-container-p1">
+        <div class="canva-frame slot-ui" id="box-p1_foto1" onclick="seleccionarSlotActivo('p1_foto1')">
+          <img id="img-p1-1" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-1 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Izquierda)</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 0, -10)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 0, 10)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', -10, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 10, 0)" title="Derecha">➡️</button>
+          </div>
+        </div>
+        <div class="canva-frame slot-ui" id="box-p1_foto2" onclick="seleccionarSlotActivo('p1_foto2')">
+          <img id="img-p1-2" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-2 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Derecha)</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 0, -10)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 0, 10)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', -10, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 10, 0)" title="Derecha">➡️</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-footer">Página 1 de 2</div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- PÁGINA 2 -->
+    <!-- ========================================== -->
+    <div class="pdf-page">
+      <div>
+        <div class="report-title">Galería fotográfica y detalle</div>
+        
+        <!-- FOTO 1 SUPERIOR (ALA) -->
+        <div class="foto-box-p2-top slot-ui canva-frame" id="box-p2_foto1" onclick="seleccionarSlotActivo('p2_foto1')">
+          <img id="img-p2-1" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-p2-1 position-absolute top-50 start-50 translate-middle">📷 Foto Superior - Ala</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', 0, -10)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', 0, 10)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', -10, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto1', 10, 0)" title="Derecha">➡️</button>
+          </div>
+        </div>
+
+        <!-- FOTO 2 MEDIA (COLA) -->
+        <div class="foto-box-p2-top slot-ui canva-frame" id="box-p2_foto2" onclick="seleccionarSlotActivo('p2_foto2')">
+          <img id="img-p2-2" src="" style="display:none;">
+          <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-p2-2 position-absolute top-50 start-50 translate-middle">📷 Foto Media - Cola</span>
+          <div class="overlay-controles no-print">
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', 0, -10)" title="Arriba">⬆️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', 0, 10)" title="Abajo">⬇️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', -10, 0)" title="Izquierda">⬅️</button>
+            <button onclick="event.stopPropagation(); moverImagen('p2_foto2', 10, 0)" title="Derecha">➡️</button>
+          </div>
+        </div>
+
+        <!-- FOTO 3 INFERIOR CUADRADA CENTRADA (ANILLAS) -->
+        <div class="foto-box-p2-bottom-container">
+          <div class="foto-box-p2-bottom slot-ui canva-frame" id="box-p2_foto3" onclick="seleccionarSlotActivo('p2_foto3')">
+            <img id="img-p2-3" src="" style="display:none;">
+            <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-p2-3 position-absolute top-50 start-50 translate-middle">📷 Foto Inferior - Anillas</span>
+            <div class="overlay-controles no-print">
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', 0, -10)" title="Arriba">⬆️</button>
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', 0, 10)" title="Abajo">⬇️</button>
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', -10, 0)" title="Izquierda">⬅️</button>
+              <button onclick="event.stopPropagation(); moverImagen('p2_foto3', 10, 0)" title="Derecha">➡️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-footer">Página 2 de 2</div>
+    </div>
+
+  </div>
+
+  <script>
+    let datosFotos = {
+      p1_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Foto Izquierda", imgNatW: 0, imgNatH: 0 },
+      p1_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Foto Derecha", imgNatW: 0, imgNatH: 0 },
+      p2_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Ala (Superior)", imgNatW: 0, imgNatH: 0 },
+      p2_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Cola (Media)", imgNatW: 0, imgNatH: 0 },
+      p2_foto3: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Anillas (Inferior)", imgNatW: 0, imgNatH: 0 }
+    };
+
+    let slotActivo = "p1_foto1";
+
+    function formatearPvcLimpio(pvcStr) {
+      if (!pvcStr || pvcStr === "-") return "-";
+      let limpio = String(pvcStr).trim();
+      limpio = limpio.replace(/^LBGW\s*\(([^)]+)\)$/i, '$1');
+      limpio = limpio.replace(/^LBGW\s*/i, '');
+      return limpio.trim() || "-";
+    }
+
+    function inicializarFicha() {
+      const raw = localStorage.getItem("ave_ficha_actual");
+      if (!raw) {
+        alert("No se ha seleccionado ningún ave. Volviendo a Anillamiento.");
+        window.location.href = "anillamiento.html";
+        return;
+      }
+
+      const ave = JSON.parse(raw);
+      document.title = `Ficha_${ave.metal}_${ave.especie.replace(/\s+/g, '_')}`;
+
+      document.getElementById('f-metal').innerText = ave.metal || '-';
+      document.getElementById('f-pvc').innerText = formatearPvcLimpio(ave.pvc);
+      document.getElementById('f-fecha').innerText = ave.fecha || '-';
+      document.getElementById('f-especie').innerText = ave.especie || '-';
+      document.getElementById('f-cientifico').innerText = ave.especie || '-';
+      document.getElementById('f-localidad').innerText = ave.localidad || '-';
+      document.getElementById('f-coords').innerText = `${ave.lat || ''}, ${ave.lng || ''}`;
+      document.getElementById('f-anillador').innerText = ave.anillador || 'Alberto de la Rosa';
+
+      document.getElementById('f-ala').innerText = ave.ala !== '-' ? ave.ala : '-';
+      document.getElementById('f-cola').innerText = ave.cola !== '-' ? ave.cola : '-';
+      document.getElementById('f-edad').innerText = ave.edad || '-';
+      document.getElementById('f-p8').innerText = ave.p8 !== '-' ? ave.p8 : '-';
+      document.getElementById('f-tarso').innerText = ave.tarso !== '-' ? ave.tarso : '-';
+      document.getElementById('f-sexo').innerText = ave.sexo || '-';
+      document.getElementById('f-peso').innerText = ave.peso !== '-' ? ave.peso : '-';
+      document.getElementById('f-grasa').innerText = ave.grasa || '-';
+
+      seleccionarSlotActivo('p1_foto1');
+    }
+
+    function seleccionarSlotActivo(slotKey) {
+      slotActivo = slotKey;
+      document.getElementById('select-ubicacion-foto').value = slotKey;
+      document.getElementById('txt-slot-activo').innerText = datosFotos[slotKey].label;
+
+      document.querySelectorAll('.slot-ui').forEach(el => el.classList.remove('slot-activo'));
+      const caja = document.getElementById(`box-${slotKey}`);
+      if (caja) caja.classList.add('slot-activo');
+
+      const datos = datosFotos[slotKey];
+      document.getElementById('range-zoom').value = datos.zoom;
+    }
+
+    function cambiarSlotDesdeSelect(slotKey) {
+      seleccionarSlotActivo(slotKey);
+    }
+
+    function cargarFotoSlotDirecto() {
+      const input = document.getElementById('input-foto-campo');
+      if (!input.files || input.files.length === 0) return;
+
+      const file = input.files[0];
+      const urlLocal = URL.createObjectURL(file);
+      
+      const tempImg = new Image();
+      tempImg.onload = function() {
+        datosFotos[slotActivo].url = urlLocal;
+        datosFotos[slotActivo].zoom = 100;
+        datosFotos[slotActivo].offsetX = 0;
+        datosFotos[slotActivo].offsetY = 0;
+        datosFotos[slotActivo].imgNatW = tempImg.naturalWidth;
+        datosFotos[slotActivo].imgNatH = tempImg.naturalHeight;
+
+        renderizarFoto(slotActivo);
+        input.value = "";
+      };
+      tempImg.src = urlLocal;
+    }
+
+    function cambiarEstiloFoto() {
+      const zoom = document.getElementById('range-zoom').value;
+      if (zoom < 100) {
+        datosFotos[slotActivo].zoom = 100;
+        document.getElementById('range-zoom').value = 100;
+      } else {
+        datosFotos[slotActivo].zoom = zoom;
+      }
+      validarYRenderizar(slotActivo);
+    }
+
+    function modificarZoom(cantidad) {
+      let datos = datosFotos[slotActivo];
+      let nuevoZoom = parseInt(datos.zoom) + cantidad;
+      if (nuevoZoom < 100) nuevoZoom = 100;
+      if (nuevoZoom > 300) nuevoZoom = 300;
+      datos.zoom = nuevoZoom;
+      document.getElementById('range-zoom').value = nuevoZoom;
+      validarYRenderizar(slotActivo);
+    }
+
+    function moverImagen(slotKey, deltaX, deltaY) {
+      seleccionarSlotActivo(slotKey);
+      let datos = datosFotos[slotKey];
+      datos.offsetX += deltaX;
+      datos.offsetY += deltaY;
+      validarYRenderizar(slotKey);
+    }
+
+    function resetearAjustes() {
+      datosFotos[slotActivo].zoom = 100;
+      datosFotos[slotActivo].offsetX = 0;
+      datosFotos[slotActivo].offsetY = 0;
+      document.getElementById('range-zoom').value = 100;
+      validarYRenderizar(slotActivo);
+    }
+
+    function validarYRenderizar(slotKey) {
+      const datos = datosFotos[slotKey];
+      if (!datos.url) return;
+
+      const caja = document.getElementById(`box-${slotKey}`);
+      const cajaW = caja.clientWidth;
+      const cajaH = caja.clientHeight;
+
+      const scale = datos.zoom / 100;
+      const imgAspect = datos.imgNatW / datos.imgNatH;
+      const cajaAspect = cajaW / cajaH;
+
+      let baseW, baseH;
+      if (imgAspect > cajaAspect) {
+        baseH = cajaH;
+        baseW = cajaH * imgAspect;
+      } else {
+        baseW = cajaW;
+        baseH = cajaW / imgAspect;
+      }
+
+      const currW = baseW * scale;
+      const currH = baseH * scale;
+
+      const maxOffsetX = Math.max(0, (currW - cajaW) / 2);
+      const maxOffsetY = Math.max(0, (currH - cajaH) / 2);
+
+      if (datos.offsetX < -maxOffsetX) datos.offsetX = -maxOffsetX;
+      if (datos.offsetX > maxOffsetX) datos.offsetX = maxOffsetX;
+      if (datos.offsetY < -maxOffsetY) datos.offsetY = -maxOffsetY;
+      if (datos.offsetY > maxOffsetY) datos.offsetY = maxOffsetY;
+
+      renderizarFoto(slotKey);
+    }
+
+    function renderizarFoto(slotKey) {
+      const datos = datosFotos[slotKey];
+      if (!datos.url) return;
+
+      let imgEl, placeholderEl;
+      if (slotKey === 'p1_foto1') { imgEl = document.getElementById('img-p1-1'); placeholderEl = document.querySelector('.placeholder-slot-1'); }
+      else if (slotKey === 'p1_foto2') { imgEl = document.getElementById('img-p1-2'); placeholderEl = document.querySelector('.placeholder-slot-2'); }
+      else if (slotKey === 'p2_foto1') { imgEl = document.getElementById('img-p2-1'); placeholderEl = document.querySelector('.placeholder-slot-p2-1'); }
+      else if (slotKey === 'p2_foto2') { imgEl = document.getElementById('img-p2-2'); placeholderEl = document.querySelector('.placeholder-slot-p2-2'); }
+      else if (slotKey === 'p2_foto3') { imgEl = document.getElementById('img-p2-3'); placeholderEl = document.querySelector('.placeholder-slot-p2-3'); }
+
+      if (imgEl) {
+        imgEl.src = datos.url;
+        imgEl.style.display = 'block';
+
+        const caja = document.getElementById(`box-${slotKey}`);
+        const cajaW = caja.clientWidth;
+        const cajaH = caja.clientHeight;
+
+        const scale = datos.zoom / 100;
+        const imgAspect = datos.imgNatW / datos.imgNatH;
+        const cajaAspect = cajaW / cajaH;
+
+        let baseW, baseH;
+        if (imgAspect > cajaAspect) {
+          baseH = cajaH;
+          baseW = cajaH * imgAspect;
+        } else {
+          baseW = cajaW;
+          baseH = cajaW / imgAspect;
+        }
+
+        const currW = baseW * scale;
+        const currH = baseH * scale;
+
+        const leftPos = (cajaW - currW) / 2 + datos.offsetX;
+        const topPos = (cajaH - currH) / 2 + datos.offsetY;
+
+        imgEl.style.width = `${currW}px`;
+        imgEl.style.height = `${currH}px`;
+        imgEl.style.left = `${leftPos}px`;
+        imgEl.style.top = `${topPos}px`;
+      }
+      if (placeholderEl) {
+        placeholderEl.style.display = 'none';
+      }
+    }
+
+    window.onload = inicializarFicha;
+  </script>
+</body>
+</html>
