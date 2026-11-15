@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ficha Técnica de Seguimiento</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a202c; }
+    .main-container { max-width: 900px; margin: 20px auto; }
+    
+    /* BOTONERA SUPERIOR (NO SE IMPRIME) */
+    .no-print { margin-bottom: 20px; }
+
+    /* PAGINACIÓN ESTRICTA PARA PDF (FORMATO A4 CREADO POR BLOQUES) */
+    .pdf-page {
+      background: white;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 15mm 18mm;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* TIPOGRAFÍA ESTRUCTURADA TIPO INFORME */
+    .report-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 6px;
+      margin-bottom: 15px;
+    }
+
+    .section-header {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      background-color: #f1f5f9;
+      padding: 5px 10px;
+      margin-top: 15px;
+      margin-bottom: 10px;
+      border-left: 4px solid #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 20px;
+      font-size: 0.88rem;
+    }
+
+    .data-row {
+      display: flex;
+      border-bottom: 1px dotted #cbd5e1;
+      padding-bottom: 3px;
+    }
+
+    .data-label {
+      font-weight: 600;
+      color: #475569;
+      width: 140px;
+      flex-shrink: 0;
+    }
+
+    .data-val {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* ESTILOS DE ANILLAS REALES */
+    .badge-metal { background-color: #718096; color: white; padding: 2px 8px; font-weight: 700; border-radius: 4px; }
+    .badge-pvc { background-color: #15803d; color: white; padding: 2px 8px; font-weight: 700; font-family: monospace; border-radius: 4px; }
+
+    /* CONTENEDOR DE FOTOGRAFÍAS (PÁGINA 1 Y 2) */
+    .photo-grid-p1 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .photo-box-p1 {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000;
+      height: 190px;
+    }
+    .photo-box-p1 img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-grid-p2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .photo-box-p2 {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000;
+      height: 180px;
+    }
+    .photo-box-p2 img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .page-footer {
+      text-align: right;
+      font-size: 0.75rem;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 5px;
+      margin-top: 15px;
+    }
+
+    /* GESTIÓN DE SUBIDA LOCAL (OCULTO EN PDF) */
+    .upload-box {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    @media print {
+      body { background-color: white !important; }
+      .main-container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      .no-print { display: none !important; }
+      .pdf-page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+        height: 297mm;
+      }
+      @page { size: A4 portrait; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container main-container">
+    
+    <!-- BOTONERA DE CONTROL -->
+    <div class="d-flex justify-content-between align-items-center no-print card p-3 shadow-sm bg-white">
+      <div>
+        <h5 class="fw-bold mb-0 text-primary">Generador de Ficha Oficial en PDF</h5>
+        <small class="text-muted">Estructura idéntica al modelo de seguimiento de campo.</small>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-danger fw-bold px-4" onclick="window.print()">
+          📄 Imprimir / Guardar PDF
+        </button>
+        <a href="anillamiento.html" class="btn btn-outline-secondary">&larr; Volver</a>
+      </div>
+    </div>
+
+    <!-- PANEL DE CARGA DE FOTOS LOCALES (NO SALE EN PDF) -->
+    <div class="card p-3 shadow-sm bg-white no-print mt-3">
+      <h6 class="fw-bold text-dark mb-2">📷 Adjuntar fotografías de campo para las páginas 1 y 2:</h6>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label small fw-bold">Seleccionar Imágenes</label>
+          <input type="file" id="input-foto-campo" class="form-control form-control-sm" accept="image/*" multiple>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-bold">Ubicación / Destino en Ficha</label>
+          <select id="select-ubicacion-foto" class="form-select form-select-sm">
+            <option value="p1_foto1">Página 1 - Foto Principal 1 (Superior)</option>
+            <option value="p1_foto2">Página 1 - Foto Principal 2 (Inferior)</option>
+            <option value="p2_foto1">Página 2 - Foto Detalle 1 (Ala/Plumaje)</option>
+            <option value="p2_foto2">Página 2 - Foto Detalle 2 (Cola/Rectrices)</option>
+            <option value="p2_foto3">Página 2 - Foto Detalle 3 (Anillas)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" onclick="cargarFotoSlot()">
+            Asignar Foto
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PÁGINA 1: DATOS GENERALES Y FOTOS PRINCIPALES -->
+    <!-- ========================================== -->
+    <div class="pdf-page">
+      <div>
+        <div class="report-title">Ficha técnica de seguimiento</div>
+        
+        <div class="section-header">Datos generales</div>
+        <div class="data-grid">
+          <div class="data-row"><span class="data-label">Anilla Metal:</span><span class="data-val"><span class="badge-metal" id="f-metal">-</span></span></div>
+          <div class="data-row"><span class="data-label">Anilla PVC:</span><span class="data-val"><span class="badge-pvc" id="f-pvc">-</span></span></div>
+          <div class="data-row"><span class="data-label">Fecha:</span><span class="data-val" id="f-fecha">-</span></div>
+          <div class="data-row"><span class="data-label">Ave / Especie:</span><span class="data-val" id="f-especie">-</span></div>
+          <div class="data-row"><span class="data-label">Nombre científico:</span><span class="data-val fst-italic" id="f-cientifico">-</span></div>
+          <div class="data-row"><span class="data-label">Lugar:</span><span class="data-val" id="f-localidad">-</span></div>
+          <div class="data-row"><span class="data-label">Coordenadas:</span><span class="data-val" id="f-coords">-</span></div>
+          <div class="data-row"><span class="data-label">Anillador:</span><span class="data-val" id="f-anillador">-</span></div>
+        </div>
+
+        <div class="section-header">Datos específicos</div>
+        <div class="data-grid">
+          <div class="data-row"><span class="data-label">Ala Máx:</span><span class="data-val"><span id="f-ala">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Cola:</span><span class="data-val"><span id="f-cola">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Edad Euring:</span><span class="data-val" id="f-edad">-</span></div>
+          <div class="data-row"><span class="data-label">P8:</span><span class="data-val"><span id="f-p8">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Tarso:</span><span class="data-val"><span id="f-tarso">-</span> mm</span></div>
+          <div class="data-row"><span class="data-label">Sexo:</span><span class="data-val" id="f-sexo">-</span></div>
+          <div class="data-row"><span class="data-label">Peso:</span><span class="data-val"><span id="f-peso">-</span> g</span></div>
+          <div class="data-row"><span class="data-label">Grasa / Músculo:</span><span class="data-val" id="f-grasa">-</span></div>
+        </div>
+
+        <div class="section-header">Galería fotográfica principal</div>
+        <div class="photo-grid-p1">
+          <div class="photo-box-p1">
+            <img id="img-p1-1" src="" alt="Sin imagen asignada" style="display:none;">
+            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-1">Foto Principal 1</div>
+          </div>
+          <div class="photo-box-p1">
+            <img id="img-p1-2" src="" alt="Sin imagen asignada" style="display:none;">
+            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-2">Foto Principal 2</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-footer">Página 1 de 2</div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- PÁGINA 2: GALERÍA DE DETALLE (ALA, COLA, ETC.) -->
+    <!-- ========================================== -->
+    <div class="pdf-page">
+      <div>
+        <div class="report-title">Galería de detalle morfológico y marcaje</div>
+        
+        <div class="photo-grid-p2">
+          <div class="photo-box-p2">
+            <img id="img-p2-1" src="" alt="" style="display:none;">
+            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-p2-1">Detalle Ala / Primarias</div>
+          </div>
+          <div class="photo-box-p2">
+            <img id="img-p2-2" src="" alt="" style="display:none;">
+            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-p2-2">Detalle Cola / Rectrices</div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <div class="photo-box-p2" style="height: 200px;">
+            <img id="img-p2-3" src="" alt="" style="display:none;">
+            <div class="h-100 d-flex align-items-center justify-content-center text-muted small placeholder-slot-p2-3">Detalle Anillas (Metálica y PVC)</div>
+          </div>
+        </div>
+
+        <div class="section-header mt-3">Observaciones y notas de campo</div>
+        <div class="p-2 border rounded bg-light" style="min-height: 80px; font-size: 0.85rem;">
+          <textarea id="input-notas-ficha" class="form-control border-0 bg-transparent p-0" rows="3" placeholder="Anota aquí observaciones de muda, comportamiento o marcas particulares..."></textarea>
+        </div>
+      </div>
+
+      <div class="page-footer">Página 2 de 2</div>
+    </div>
+
+  </div>
+
+  <script>
+    let slotsFotos = {
+      p1_foto1: "",
+      p1_foto2: "",
+      p2_foto1: "",
+      p2_foto2: "",
+      p2_foto3: ""
+    };
+
+    function formatearPvcLimpio(pvcStr) {
+      if (!pvcStr || pvcStr === "-") return "-";
+      let limpio = String(pvcStr).trim();
+      limpio = limpio.replace(/^LBGW\s*\(([^)]+)\)$/i, '$1');
+      limpio = limpio.replace(/^LBGW\s*/i, '');
+      return limpio.trim() || "-";
+    }
+
+    function inicializarFicha() {
+      const raw = localStorage.getItem("ave_ficha_actual");
+      if (!raw) {
+        alert("No se ha seleccionado ningún ave. Volviendo a Anillamiento.");
+        window.location.href = "anillamiento.html";
+        return;
+      }
+
+      const ave = JSON.parse(raw);
+      document.title = `Ficha_${ave.metal}_${ave.especie.replace(/\s+/g, '_')}`;
+
+      document.getElementById('f-metal').innerText = ave.metal || '-';
+      document.getElementById('f-pvc').innerText = formatearPvcLimpio(ave.pvc);
+      document.getElementById('f-fecha').innerText = ave.fecha || '-';
+      document.getElementById('f-especie').innerText = ave.especie || '-';
+      document.getElementById('f-cientifico').innerText = ave.especie || '-'; // O mapear si procede
+      document.getElementById('f-localidad').innerText = ave.localidad || '-';
+      document.getElementById('f-coords').innerText = `${ave.lat || ''}, ${ave.lng || ''}`;
+      document.getElementById('f-anillador').innerText = ave.anillador || 'Alberto de la Rosa';
+
+      document.getElementById('f-ala').innerText = ave.ala !== '-' ? ave.ala : '-';
+      document.getElementById('f-cola').innerText = ave.cola !== '-' ? ave.cola : '-';
+      document.getElementById('f-edad').innerText = ave.edad || '-';
+      document.getElementById('f-p8').innerText = ave.p8 !== '-' ? ave.p8 : '-';
+      document.getElementById('f-tarso').innerText = ave.tarso !== '-' ? ave.tarso : '-';
+      document.getElementById('f-sexo').innerText = ave.sexo || '-';
+      document.getElementById('f-peso').innerText = ave.peso !== '-' ? ave.peso : '-';
+      document.getElementById('f-grasa').innerText = ave.grasa || '-';
+    }
+
+    function cargarFotoSlot() {
+      const input = document.getElementById('input-foto-campo');
+      const slotKey = document.getElementById('select-ubicacion-foto').value;
+      
+      if (!input.files || input.files.length === 0) {
+        return alert("Selecciona una fotografía.");
+      }
+
+      const file = input.files[0];
+      const urlLocal = URL.createObjectURL(file);
+      slotsFotos[slotKey] = urlLocal;
+
+      actualizarVistaSlot(slotKey, urlLocal);
+      input.value = "";
+    }
+
+    function actualizarVistaSlot(slotKey, url) {
+      if (slotKey === 'p1_foto1') {
+        const img = document.getElementById('img-p1-1');
+        img.src = url; img.style.display = 'block';
+        document.querySelector('.placeholder-slot-1').style.display = 'none';
+      } else if (slotKey === 'p1_foto2') {
+        const img = document.getElementById('img-p1-2');
+        img.src = url; img.style.display = 'block';
+        document.querySelector('.placeholder-slot-2').style.display = 'none';
+      } else if (slotKey === 'p2_foto1') {
+        const img = document.getElementById('img-p2-1');
+        img.src = url; img.style.display = 'block';
+        document.querySelector('.placeholder-slot-p2-1').style.display = 'none';
+      } else if (slotKey === 'p2_foto2') {
+        const img = document.getElementById('img-p2-2');
+        img.src = url; img.style.display = 'block';
+        document.querySelector('.placeholder-slot-p2-2').style.display = 'none';
+      } else if (slotKey === 'p2_foto3') {
+        const img = document.getElementById('img-p2-3');
+        img.src = url; img.style.display = 'block';
+        document.querySelector('.placeholder-slot-p2-3').style.display = 'none';
+      }
+    }
+
+    window.onload = inicializarFicha;
+  </script>
+</body>
+</html>
