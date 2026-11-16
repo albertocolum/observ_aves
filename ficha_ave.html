@@ -109,7 +109,7 @@
       top: 0;
       left: 0;
       max-width: none;
-      pointer-events: none; /* Evita el arrastre fantasma nativo del navegador */
+      pointer-events: none;
       will-change: left, top, width, height;
     }
 
@@ -182,7 +182,7 @@
     }
 
     @media print {
-      body { background-color: white !important; }
+      body { background-color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .main-container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
       .no-print { display: none !important; }
       .pdf-page {
@@ -205,10 +205,10 @@
     <div class="d-flex justify-content-between align-items-center no-print card p-3 shadow-sm bg-white mb-3">
       <div>
         <h5 class="fw-bold mb-0 text-primary">Ficha de Seguimiento Ornitológico</h5>
-        <small class="text-muted">Haz clic o arrastra las fotos dentro de cada marco para encuadrar.</small>
+        <small class="text-muted">Fecha en formato dd/mm/aaaa.</small>
       </div>
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-danger fw-bold px-4" onclick="window.print()">
+        <button type="button" class="btn btn-danger fw-bold px-4" onclick="imprimirGuardarPDF()">
           📄 Imprimir / Guardar PDF
         </button>
         <a href="anillamiento.html" class="btn btn-outline-secondary">&larr; Volver</a>
@@ -225,8 +225,8 @@
         <div class="col-md-3">
           <label class="form-label small fw-bold mb-1">Contenedor Seleccionado:</label>
           <select id="select-ubicacion-foto" class="form-select form-select-sm fw-bold text-primary" onchange="cambiarSlotDesdeSelect(this.value)">
-            <option value="p1_foto1">Pág 1 - Izquierda</option>
-            <option value="p1_foto2">Pág 1 - Derecha</option>
+            <option value="p1_foto1">Pág 1 - Pecho</option>
+            <option value="p1_foto2">Pág 1 - Dorso</option>
             <option value="p2_foto1">Pág 2 - Ala (Superior)</option>
             <option value="p2_foto2">Pág 2 - Cola (Media)</option>
             <option value="p2_foto3">Pág 2 - Anillas (Inferior)</option>
@@ -235,7 +235,7 @@
         <div class="col-md-5 bg-light p-2 rounded border">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <small class="fw-bold text-success">🔍 Zoom (Mín. 100%) y Encuadre:</small>
-            <span class="badge bg-secondary" id="txt-slot-activo">Pág 1 - Izquierda</span>
+            <span class="badge bg-secondary" id="txt-slot-activo">Pág 1 - Pecho</span>
           </div>
           <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-outline-dark btn-sm py-0 px-1" onclick="modificarZoom(-10)">🔍-</button>
@@ -282,7 +282,7 @@
         <div class="foto-grid-container-p1">
           <div class="canva-frame slot-ui" id="box-p1_foto1" data-slot="p1_foto1" onclick="seleccionarSlotActivo('p1_foto1')">
             <img id="img-p1-1" src="" style="display:none;">
-            <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-1 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Izquierda)</span>
+            <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-1 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Pecho)</span>
             <div class="overlay-controles no-print">
               <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 0, -10)" title="Arriba">⬆️</button>
               <button onclick="event.stopPropagation(); moverImagen('p1_foto1', 0, 10)" title="Abajo">⬇️</button>
@@ -292,7 +292,7 @@
           </div>
           <div class="canva-frame slot-ui" id="box-p1_foto2" data-slot="p1_foto2" onclick="seleccionarSlotActivo('p1_foto2')">
             <img id="img-p1-2" src="" style="display:none;">
-            <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-2 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Derecha)</span>
+            <span class="text-white small text-center p-2 z-1 bg-dark bg-opacity-75 rounded placeholder-slot-2 position-absolute top-50 start-50 translate-middle">📷 Clic para seleccionar (Dorso)</span>
             <div class="overlay-controles no-print">
               <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 0, -10)" title="Arriba">⬆️</button>
               <button onclick="event.stopPropagation(); moverImagen('p1_foto2', 0, 10)" title="Abajo">⬇️</button>
@@ -360,8 +360,8 @@
 
   <script>
     let datosFotos = {
-      p1_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Foto Izquierda", imgNatW: 0, imgNatH: 0 },
-      p1_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Foto Derecha", imgNatW: 0, imgNatH: 0 },
+      p1_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Pecho", imgNatW: 0, imgNatH: 0 },
+      p1_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 1 - Dorso", imgNatW: 0, imgNatH: 0 },
       p2_foto1: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Ala (Superior)", imgNatW: 0, imgNatH: 0 },
       p2_foto2: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Cola (Media)", imgNatW: 0, imgNatH: 0 },
       p2_foto3: { url: "", zoom: 100, offsetX: 0, offsetY: 0, label: "Pág 2 - Anillas (Inferior)", imgNatW: 0, imgNatH: 0 }
@@ -369,7 +369,6 @@
 
     let slotActivo = "p1_foto1";
 
-    // Variables para arrastre con ratón o táctil
     let arrastrando = false;
     let slotArrastrado = null;
     let inicioX = 0;
@@ -383,6 +382,38 @@
       return limpio.trim() || "-";
     }
 
+    function obtenerNombreComunEspecie(especieStr) {
+      if (!especieStr) return "-";
+      let esp = String(especieStr).trim().toUpperCase();
+      if (esp.includes("FAL") && esp.includes("TIN")) {
+        return "Cernícalo Vulgar";
+      }
+      return especieStr;
+    }
+
+    function formatearFechaDDMMAAAA(fechaStr) {
+      if (!fechaStr || fechaStr === "-") return "-";
+      let limpio = String(fechaStr).trim();
+      
+      let matchISO = limpio.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+      if (matchISO) {
+        let anio = matchISO[1];
+        let mes = matchISO[2].padStart(2, '0');
+        let dia = matchISO[3].padStart(2, '0');
+        return `${dia}/${mes}/${anio}`;
+      }
+
+      let partes = limpio.split(/[\/\-]/);
+      if (partes.length === 3) {
+        if (partes[0].length === 4) {
+          return `${partes[2].padStart(2, '0')}/${partes[1].padStart(2, '0')}/${partes[0]}`;
+        }
+        return `${partes[0].padStart(2, '0')}/${partes[1].padStart(2, '0')}/${partes[2]}`;
+      }
+
+      return limpio;
+    }
+
     function inicializarFicha() {
       const raw = localStorage.getItem("ave_ficha_actual");
       if (!raw) {
@@ -392,13 +423,18 @@
       }
 
       const ave = JSON.parse(raw);
-      document.title = `Ficha_${ave.metal}_${ave.especie.replace(/\s+/g, '_')}`;
+      
+      const metalAnilla = ave.metal ? ave.metal.trim() : "S_ANILLA";
+      document.title = `FAL_TIN_${metalAnilla}`;
 
       document.getElementById('f-metal').innerText = ave.metal || '-';
       document.getElementById('f-pvc').innerText = formatearPvcLimpio(ave.pvc);
-      document.getElementById('f-fecha').innerText = ave.fecha || '-';
-      document.getElementById('f-especie').innerText = ave.especie || '-';
+      document.getElementById('f-fecha').innerText = formatearFechaDDMMAAAA(ave.fecha);
+      
+      const nombreComun = obtenerNombreComunEspecie(ave.especie);
+      document.getElementById('f-especie').innerText = nombreComun;
       document.getElementById('f-cientifico').innerText = ave.especie || '-';
+
       document.getElementById('f-localidad').innerText = ave.localidad || '-';
       document.getElementById('f-coords').innerText = `${ave.lat || ''}, ${ave.lng || ''}`;
       document.getElementById('f-anillador').innerText = ave.anillador || 'Alberto de la Rosa';
@@ -414,6 +450,16 @@
 
       inicializarArrastreMarcos();
       seleccionarSlotActivo('p1_foto1');
+    }
+
+    function imprimirGuardarPDF() {
+      const raw = localStorage.getItem("ave_ficha_actual");
+      if (raw) {
+        const ave = JSON.parse(raw);
+        const metalAnilla = ave.metal ? ave.metal.trim() : "S_ANILLA";
+        document.title = `FAL_TIN_${metalAnilla}`;
+      }
+      window.print();
     }
 
     function inicializarArrastreMarcos() {
