@@ -16,6 +16,25 @@
     .table-history { font-size: 0.76rem; }
     .badge-metal { background-color: #718096; color: #ffffff; letter-spacing: 0.4px; }
     .badge-pvc { background-color: #15803d; color: #ffffff; letter-spacing: 0.5px; font-family: monospace; }
+
+    /* ESTILO DISTINTIVO PARA RECAPTURAS Y CONTROLES */
+    tr.fila-recaptura td {
+      background-color: #fef3c7 !important; /* Fondo ámbar suave */
+    }
+    tr.fila-recaptura td:first-child {
+      border-left: 4px solid #d97706 !important;
+    }
+    tr.fila-recaptura:hover td {
+      background-color: #fde68a !important;
+    }
+    .badge-recaptura {
+      background-color: #d97706;
+      color: #ffffff;
+      font-size: 0.65rem;
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-left: 3px;
+    }
   </style>
 </head>
 <body>
@@ -171,10 +190,16 @@
       <!-- COLUMNA DERECHA: TABLA Y ACCIONES -->
       <div class="col-lg-8">
         <div class="card-panel">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <div>
               <h4 class="form-title mb-1" style="border:none; padding:0;">Capturas y Registros Biométricos</h4>
-              <small class="text-muted">Sincronizado con Firebase Firestore</small>
+              <div class="d-flex align-items-center gap-3">
+                <small class="text-muted">Sincronizado con Firebase Firestore</small>
+                <small class="d-inline-flex align-items-center gap-1 text-dark fw-semibold">
+                  <span style="display:inline-block; width:12px; height:12px; background-color:#fef3c7; border:1px solid #d97706; border-radius:2px;"></span>
+                  Recaptura / Control
+                </small>
+              </div>
             </div>
             <div class="btn-group">
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
@@ -289,7 +314,7 @@
       }
 
       let repetida = window.anillamientos.some(item => {
-        if (editId && item.docId === editId) return false; // Ignorar el propio registro al editar
+        if (editId && item.docId === editId) return false;
         if (tipo === 'metal') {
           return String(item.metal || '').trim().toLowerCase() === valTrim.toLowerCase();
         } else {
@@ -420,12 +445,10 @@
 
       try {
         if (editDocId) {
-          // Actualizar registro existente
           await updateDoc(doc(db, "anillamientos", editDocId), item);
           alert("¡Registro actualizado con éxito en Firebase!");
           cancelarEdicion();
         } else {
-          // Crear nuevo registro
           await addDoc(collection(db, "anillamientos"), item);
 
           if (codigoNido && codigoNido !== "-" && (sexo === "Macho" || sexo === "Hembra") && edad !== "1") {
@@ -662,8 +685,14 @@
         var pvcBadge = pvcLimpio !== "-" ? `<span class="badge badge-pvc">${esc(pvcLimpio)}</span>` : '<span class="text-muted">-</span>';
         var especieAbreviada = formatearEspecieAbreviada(r.especie);
 
-        tbody.innerHTML += `<tr>
-          <td><b>#${numReal}</b></td>
+        // Detección de Recaptura / Control para colorear la fila
+        var tipoCap = String(r.tipoCaptura || "").toLowerCase();
+        var esRecaptura = tipoCap.includes("recaptura") || tipoCap.includes("control") || tipoCap === "r" || tipoCap === "c";
+        var claseFila = esRecaptura ? "fila-recaptura" : "";
+        var badgeRec = esRecaptura ? `<span class="badge-recaptura" title="Recaptura / Control">REC</span>` : "";
+
+        tbody.innerHTML += `<tr class="${claseFila}">
+          <td class="text-nowrap"><b>#${numReal}</b>${badgeRec}</td>
           <td>${nidoBadge}</td>
           <td>${formatearFecha(r.fecha)}</td>
           <td><span class="badge badge-metal">${esc(r.metal)}</span></td>
