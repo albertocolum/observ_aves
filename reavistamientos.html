@@ -116,20 +116,20 @@
                 <input type="text" id="input-coords" class="form-control" value="" placeholder="Ej: 39.7709, -0.1840" onchange="actualizarMapaDesdeCoordenadas()">
                 <button class="btn btn-outline-secondary" type="button" onclick="actualizarMapaDesdeCoordenadas()">Centrar y Obtener Localidad</button>
               </div>
-              <small class="text-muted" style="font-size: 0.7rem;">Haz clic en el mapa o escribe lat, lng y pulsa el botón.</small>
+              <small class="text-muted" style="font-size: 0.7rem;">Haz clic en el mapa o escribe lat, lng y pulsa el botón[cite: 6].</small>
             </div>
 
             <!-- LOCALIDAD -->
             <div class="mb-3">
               <label class="form-label">Nombre de la localidad <span class="required-asterisk">*</span></label>
-              <input type="text" id="input-localidad" class="form-control form-control-sm" value="" placeholder="Se autocompletará con las coordenadas o escríbelo...">
+              <input type="text" id="input-localidad" class="form-control form-control-sm" value="" placeholder="Se autocompletará con las coordenadas o escríbelo..."[cite: 6]>
             </div>
 
             <!-- Vista previa dinámica de la marca -->
             <div class="ring-preview-box">
               <div>
                 <span class="fw-bold text-secondary d-block small">VISTA PREVIA DE LA MARCA</span>
-                <small class="text-muted" style="font-size: 0.75rem;">Ajusta la inscripción y colores abajo</small>
+                <small class="text-muted" style="font-size: 0.75rem;">Ajusta la inscripción y colores abajo[cite: 6]</small>
               </div>
               <div id="badge-preview" class="ring-badge" style="background-color: #28a745; color: #ffffff;">
                 ---
@@ -185,6 +185,21 @@
               </div>
             </div>
 
+            <!-- NUEVOS CAMPOS: ANILLA METÁLICA Y PVC OFICIALES -->
+            <div class="row g-2 mb-2 bg-light p-2 rounded border mx-0">
+              <div class="col-12 mb-1">
+                <small class="fw-bold text-primary">📋 Datos del Historial Oficial (Oficina de Anillamiento):</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Anilla Metálica oficial</label>
+                <input type="text" id="input-anilla-metalica" class="form-control form-control-sm" placeholder="Ej: M32481">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Anilla PVC / Marca oficial</label>
+                <input type="text" id="input-anilla-pvc" class="form-control form-control-sm" placeholder="Ej: C/CR">
+              </div>
+            </div>
+
             <div class="row g-2 mb-2">
               <div class="col-md-6">
                 <label class="form-label">Orden de lectura</label>
@@ -203,6 +218,7 @@
                   <option>Anilla metálica oficial</option>
                   <option>Marca alar</option>
                   <option>Collar</option>
+                  <option value="Anilla ajena / Lectura externa">⚠️ Anilla ajena / Lectura externa</option>
                 </select>
               </div>
             </div>
@@ -246,7 +262,7 @@
 
             <div class="mb-2">
               <label class="form-label">Observador / Colaborador</label>
-              <input type="text" id="input-observador" class="form-control form-control-sm" value="" placeholder="Tu nombre...">
+              <input type="text" id="input-observador" class="form-control form-control-sm" value="" placeholder="Tu nombre..."[cite: 6]>
             </div>
 
             <button type="button" class="btn btn-primary w-100 fw-bold mt-3" onclick="guardarObservacion()">
@@ -261,23 +277,23 @@
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
-              <h4 class="form-title mb-1" style="border:none; padding:0;">Observaciones Registradas</h4>
-              <small class="text-muted">Selecciona una anilla abajo para ver su trayectoria</small>
+              <h4 class="form-title mb-1" style="border:none; padding:0;">Observaciones Registradas[cite: 6]</h4>
+              <small class="text-muted">Selecciona una anilla abajo para ver su trayectoria[cite: 6]</small>
             </div>
             <div class="btn-group">
-              <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoRegistro()" title="Borrar el último registro">🗑️ Borrar último</button>
-              <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodo()" title="Vaciar toda la tabla local">⚠️ Vaciar todo</button>
-              <button class="btn btn-outline-secondary btn-sm" onclick="exportarCSV()">CSV</button>
-              <button class="btn btn-outline-primary btn-sm" onclick="exportarKML()">🌍 KML</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoRegistro()" title="Borrar el último registro">🗑️ Borrar último[cite: 6]</button>
+              <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodo()" title="Vaciar toda la tabla local">⚠️ Vaciar todo[cite: 6]</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="exportarCSV()">CSV[cite: 6]</button>
+              <button class="btn btn-outline-primary btn-sm" onclick="exportarKML()">🌍 KML[cite: 6]</button>
             </div>
           </div>
 
           <!-- Filtro por anilla OBLIGATORIO PARA VISUALIZAR -->
           <div class="row mb-3 align-items-center bg-light p-2 rounded mx-0">
-            <label class="col-auto col-form-label fw-bold small py-0 text-danger">Selecciona anilla para ver en mapa:</label>
+            <label class="col-auto col-form-label fw-bold small py-0 text-danger">Selecciona anilla para ver en mapa:[cite: 6]</label>
             <div class="col">
               <select id="filtro-anilla" class="form-select form-select-sm fw-bold border-primary" onchange="renderizarTodoElMapaYTabla()">
-                <option value="" disabled selected>-- Elige una anilla para visualizar --</option>
+                <option value="" disabled selected>-- Elige una anilla para visualizar --[cite: 6]</option>
               </select>
             </div>
           </div>
@@ -289,6 +305,7 @@
                   <th>#</th>
                   <th>Fecha</th>
                   <th>Anilla</th>
+                  <th>Metálica / PVC</th>
                   <th>Localidad</th>
                   <th>EURING</th>
                   <th>Puntos</th>
@@ -299,7 +316,7 @@
               </thead>
               <tbody id="tabla-registros">
                 <tr>
-                  <td colspan="9" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.</td>
+                  <td colspan="10" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.[cite: 6]</td>
                 </tr>
               </tbody>
             </table>
@@ -342,7 +359,6 @@
         });
     }
 
-    // Inicializar mapa centrado genéricamente en España
     var map = L.map('map', {
       center: [40.4168, -3.7038],
       zoom: 6,
@@ -456,6 +472,8 @@
         especie: document.getElementById('input-especie').value,
         localidad: document.getElementById('input-localidad').value,
         inscripcion: anilla,
+        anillaMetalica: document.getElementById('input-anilla-metalica').value.trim() || "-",
+        anillaPvc: document.getElementById('input-anilla-pvc').value.trim() || "-",
         bgColor: document.getElementById('input-bg-color').value,
         textColor: document.getElementById('input-text-color').value,
         tipoMarca: document.getElementById('input-tipo-marca').value,
@@ -472,14 +490,14 @@
       guardarLocal();
       actualizarSelectorFiltro();
       
-      // Seleccionar automáticamente la anilla recién guardada para verla al instante
       document.getElementById('filtro-anilla').value = anilla;
       renderizarTodoElMapaYTabla();
 
-      // Limpiar formulario a la izquierda dejándolo en blanco
       document.getElementById('input-coords').value = "";
       document.getElementById('input-localidad').value = "";
       document.getElementById('input-inscripcion').value = "";
+      document.getElementById('input-anilla-metalica').value = "";
+      document.getElementById('input-anilla-pvc').value = "";
       document.getElementById('badge-preview').innerText = "---";
 
       fetch(URL_GOOGLE_SCRIPT, {
@@ -536,7 +554,7 @@
       if (anillasUnicas.includes(valorPrevio)) {
         select.value = valorPrevio;
       } else if (anillasUnicas.length > 0) {
-        select.value = ""; // Por defecto limpio si hay cambios
+        select.value = "";
       }
     }
 
@@ -546,7 +564,7 @@
       var tbody = document.getElementById('tabla-registros');
 
       if (!filtro) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.[cite: 6]</td></tr>';
         return;
       }
 
@@ -577,7 +595,6 @@
 
       var registrosFiltrados = observaciones.filter(o => o.inscripcion === filtro);
 
-      // Dibujar línea de ruta si hay más de un punto para esa anilla
       if (agrupadosPorAnilla[filtro] && agrupadosPorAnilla[filtro].length > 1) {
         var lista = agrupadosPorAnilla[filtro];
         var coords = lista.map(item => [item.lat, item.lng]);
@@ -588,7 +605,6 @@
           opacity: 0.8
         }).addTo(capaMapaElementos);
         
-        // Centrar el mapa automáticamente en el último punto registrado de la anilla
         var ultimoPunto = lista[lista.length - 1];
         map.setView([ultimoPunto.lat, ultimoPunto.lng], 11);
       } else if (registrosFiltrados.length === 1) {
@@ -607,7 +623,7 @@
           fillOpacity: 0.9
         }).addTo(capaMapaElementos);
 
-        pMarker.bindPopup(`<b>Anilla: ${esc(o.inscripcion)}</b><br>Especie: ${o.especie}<br><b>${o.esOrigen ? '🔵 Punto de Anillaje (Origen)' : '🟢 Reavistamiento'}</b><br>Localidad: ${esc(o.localidad)}<br>Edad EURING: ${o.edad}<br>Condición: ${o.condicion}<br>Distancia: ${o.distanciaKm} km<br>Días: ${o.diasDesdeInicio}d`);
+        pMarker.bindPopup(`<b>Marca/Inscripción: ${esc(o.inscripcion)}</b><br>Metálica: <code>${esc(o.anillaMetalica)}</code> | PVC: <code>${esc(o.anillaPvc)}</code><br>Especie: ${o.especie}<br><b>${o.esOrigen ? '🔵 Punto de Anillaje (Origen)' : '🟢 Reavistamiento'}</b><br>Localidad: ${esc(o.localidad)}<br>Edad EURING: ${o.edad}<br>Condición: ${o.condicion}<br>Distancia: ${o.distanciaKm} km<br>Días: ${o.diasDesdeInicio}d`);
       });
 
       actualizarTabla(registrosFiltrados);
@@ -618,7 +634,7 @@
       tbody.innerHTML = "";
 
       if (lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">No hay registros para esta anilla.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay registros para esta anilla.</td></tr>';
         return;
       }
 
@@ -630,12 +646,14 @@
         else if (o.condicion === 'Muerta') badgeCondClass = 'bg-danger';
 
         var badgeAnilloColor = o.esOrigen ? '#007bff' : o.bgColor;
+        var infoMetales = (o.anillaMetalica !== '-' || o.anillaPvc !== '-') ? `<small class="text-muted d-block">🪶 ${esc(o.anillaMetalica)} / ${esc(o.anillaPvc)}</small>` : '';
 
         var tr = document.createElement('tr');
         tr.innerHTML = `
           <td><b>#${o.id}</b></td>
           <td>${o.fecha}</td>
           <td><span class="badge" style="background-color:${badgeAnilloColor}; color:${o.textColor}" title="${o.esOrigen ? 'Punto de Anillaje (Origen)' : 'Reavistamiento'}">${esc(o.inscripcion)} ${o.esOrigen ? '🔵' : ''}</span></td>
+          <td>${infoMetales}</td>
           <td>${esc(o.localidad)}</td>
           <td><span class="badge bg-light text-dark border">${o.edad}</span></td>
           <td><span class="badge bg-secondary">${o.totalPuntos}</span></td>
@@ -649,8 +667,8 @@
 
     function exportarCSV() {
       if (observaciones.length === 0) return alert("No hay datos para exportar.");
-      var csvContent = "data:text/csv;charset=utf-8,ID,Fecha,Anilla,Localidad,EdadEURING,PuntosTotal,DiasDesdeInicio,DistanciaKm,Lat,Lng,Condicion,Observador\n"
-        + observaciones.map(o => `${o.id},"${o.fecha}","${o.inscripcion}","${o.localidad}","${o.edad}",${o.totalPuntos},${o.diasDesdeInicio},${o.distanciaKm},${o.lat},${o.lng},"${o.condicion}","${o.observador}"`).join("\n");
+      var csvContent = "data:text/csv;charset=utf-8,ID,Fecha,InscripcionMarca,AnillaMetalica,AnillaPVC,Localidad,TipoMarca,EdadEURING,PuntosTotal,DiasDesdeInicio,DistanciaKm,Lat,Lng,Condicion,Observador\n"
+        + observaciones.map(o => `${o.id},"${o.fecha}","${o.inscripcion}","${o.anillaMetalica}","${o.anillaPvc}","${o.localidad}","${o.tipoMarca}","${o.edad}",${o.totalPuntos},${o.diasDesdeInicio},${o.distanciaKm},${o.lat},${o.lng},"${o.condicion}","${o.observador}"`).join("\n");
       
       var encodedUri = URL.createObjectURL(new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" }));
       var link = document.createElement("a");
@@ -673,11 +691,14 @@
       var kmlPlacemarks = observaciones.map(o => {
         return `
     <Placemark>
-      <name>Anilla: ${o.inscripcion} (${o.condicion})</name>
+      <name>Marca: ${o.inscripcion} [Metal: ${o.anillaMetalica}]</name>
       <description><![CDATA[
         <h3>Especie: ${o.especie}</h3>
+        <p><b>Anilla Metálica:</b> ${o.anillaMetalica}</p>
+        <p><b>Anilla PVC / Marca:</b> ${o.anillaPvc}</p>
         <p><b>Fecha:</b> ${o.fecha}</p>
         <p><b>Localidad:</b> ${o.localidad}</p>
+        <p><b>Tipo de Marca:</b> ${o.tipoMarca}</p>
         <p><b>Edad EURING:</b> ${o.edad}</p>
         <p><b>Días desde anillamiento:</b> ${o.diasDesdeInicio} días</p>
         <p><b>Distancia desde origen:</b> ${o.distanciaKm} km</p>
@@ -703,7 +724,6 @@
       document.body.removeChild(link);
     }
 
-    // Inicializar selector de filtro al cargar la página (manteniendo el mapa limpio y formulario en blanco)
     actualizarSelectorFiltro();
   </script>
 
