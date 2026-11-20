@@ -6,23 +6,33 @@
   <title>Anillamiento y Biometría - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .main-container { max-width: 1450px; margin: 30px auto; }
-    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 25px; height: 100%; }
-    .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.25rem; }
-    .section-subtitle { font-size: 0.85rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 15px; margin-bottom: 10px; }
-    .form-label { font-weight: 600; color: #4a5568; font-size: 0.85rem; }
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
+    .main-container { max-width: 1520px; margin: 20px auto; }
+    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 20px; height: 100%; }
+    .form-title { color: #2d3748; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.2rem; }
+    .section-subtitle { font-size: 0.8rem; font-weight: 700; color: #2b6cb0; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; margin-bottom: 8px; }
+    .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
     .required-asterisk { color: #e53e3e; }
-    .table-history { font-size: 0.76rem; }
-    .badge-metal { background-color: #718096; color: #ffffff; letter-spacing: 0.4px; }
-    .badge-pvc { background-color: #15803d; color: #ffffff; letter-spacing: 0.5px; font-family: monospace; }
+
+    /* TABLA COMPACTA SIN SCROLL HORIZONTAL */
+    .table-history { font-size: 0.71rem; width: 100%; margin-bottom: 0; }
+    .table-history th, .table-history td {
+      padding: 4px 4px !important;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .table-history th { font-size: 0.7rem; }
+
+    .badge-metal { background-color: #718096; color: #ffffff; letter-spacing: 0.2px; font-size: 0.68rem; }
+    .badge-pvc { background-color: #15803d; color: #ffffff; letter-spacing: 0.2px; font-family: monospace; font-size: 0.68rem; }
+    .badge-cond { font-size: 0.68rem; padding: 3px 6px; }
 
     /* ESTILO DISTINTIVO PARA RECAPTURAS Y CONTROLES */
     tr.fila-recaptura td {
-      background-color: #fef3c7 !important; /* Fondo ámbar suave */
+      background-color: #fef3c7 !important;
     }
     tr.fila-recaptura td:first-child {
-      border-left: 4px solid #d97706 !important;
+      border-left: 3px solid #d97706 !important;
     }
     tr.fila-recaptura:hover td {
       background-color: #fde68a !important;
@@ -30,15 +40,15 @@
     .badge-recaptura {
       background-color: #d97706;
       color: #ffffff;
-      font-size: 0.65rem;
-      padding: 2px 5px;
-      border-radius: 4px;
-      margin-left: 3px;
+      font-size: 0.6rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 2px;
     }
     .condicion-box-vivo {
       border-radius: 6px;
       padding: 6px 10px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       border: 1px solid #cbd5e1;
       background: #f8fafc;
     }
@@ -46,11 +56,11 @@
 </head>
 <body>
 
-  <div class="container-fluid px-4 main-container">
-    <div class="row g-4">
+  <div class="container-fluid px-3 main-container">
+    <div class="row g-3">
       
       <!-- COLUMNA IZQUIERDA: FORMULARIO DE CAPTURA -->
-      <div class="col-lg-4">
+      <div class="col-xl-3 col-lg-4">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h4 class="form-title mb-0" id="titulo-formulario" style="border:none; padding:0;">Anillamiento y Biometría</h4>
@@ -100,12 +110,12 @@
               <div class="col-md-6">
                 <label class="form-label">Anilla Metálica <span class="required-asterisk">*</span></label>
                 <input type="text" id="input-metal-anil" class="form-control form-control-sm" placeholder="Ej: M32481" onblur="verificarAnillaRepetida(this.value, 'metal')" required>
-                <div id="alerta-metal" class="form-text text-danger fw-bold" style="display:none; font-size: 0.75rem;"></div>
+                <div id="alerta-metal" class="form-text text-danger fw-bold" style="display:none; font-size: 0.72rem;"></div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Anilla PVC / Marca Alar</label>
                 <input type="text" id="input-pvc-anil" class="form-control form-control-sm" placeholder="Ej: C/CR" onblur="verificarAnillaRepetida(this.value, 'pvc')">
-                <div id="alerta-pvc" class="form-text text-danger fw-bold" style="display:none; font-size: 0.75rem;"></div>
+                <div id="alerta-pvc" class="form-text text-danger fw-bold" style="display:none; font-size: 0.72rem;"></div>
               </div>
             </div>
 
@@ -122,7 +132,7 @@
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label">Edad EURING</label>
+                <label class="form-label">Edad</label>
                 <select id="input-edad-anil" class="form-select form-select-sm" onchange="evaluarCondicionEnVivo()">
                   <option value="1">1 (Pullus)</option>
                   <option value="2">2 (Volantón)</option>
@@ -145,7 +155,7 @@
             <div class="section-subtitle">3. Datos Biométricos</div>
             <div class="row g-2 mb-2">
               <div class="col-md-3">
-                <label class="form-label">Ala Máx (mm)</label>
+                <label class="form-label">Ala (mm)</label>
                 <input type="number" step="0.1" id="input-ala-anil" class="form-control form-control-sm" placeholder="mm" oninput="evaluarCondicionEnVivo()">
               </div>
               <div class="col-md-3">
@@ -172,14 +182,14 @@
                 <input type="number" step="0.1" id="input-peso-anil" class="form-control form-control-sm" placeholder="g" oninput="evaluarCondicionEnVivo()">
               </div>
               <div class="col-md-4">
-                <label class="form-label">Grasa / Músculo</label>
+                <label class="form-label">Grasa/Músc.</label>
                 <input type="text" id="input-grasa-anil" class="form-control form-control-sm" placeholder="G2 / M3">
               </div>
             </div>
 
             <!-- INDICADOR DE CONDICIÓN FÍSICA EN VIVO -->
             <div id="indicador-condicion-vivo" class="condicion-box-vivo mb-2">
-              <span class="text-muted">🦅 <b>Condición física:</b> Introduce Ala (mm) y Peso (g) para evaluar estado.</span>
+              🦅 <b>Condición:</b> <span class="badge bg-info text-dark">Normal</span>
             </div>
 
             <div class="mb-2">
@@ -188,10 +198,10 @@
             </div>
 
             <div class="d-flex gap-2 mt-3">
-              <button type="button" class="btn btn-success flex-grow-1 fw-bold" id="btn-guardar-anil" onclick="guardarAnillamiento()">
-                ☁️ Guardar Captura en la Nube
+              <button type="button" class="btn btn-success flex-grow-1 fw-bold btn-sm" id="btn-guardar-anil" onclick="guardarAnillamiento()">
+                ☁️ Guardar Captura
               </button>
-              <button type="button" class="btn btn-outline-secondary fw-bold" id="btn-cancelar-edicion" style="display:none;" onclick="cancelarEdicion()">
+              <button type="button" class="btn btn-outline-secondary fw-bold btn-sm" id="btn-cancelar-edicion" style="display:none;" onclick="cancelarEdicion()">
                 Cancelar
               </button>
             </div>
@@ -199,21 +209,21 @@
         </div>
       </div>
 
-      <!-- COLUMNA DERECHA: TABLA Y ACCIONES -->
-      <div class="col-lg-8">
+      <!-- COLUMNA DERECHA: TABLA Y ACCIONES SIN SCROLL HORIZONTAL -->
+      <div class="col-xl-9 col-lg-8">
         <div class="card-panel">
-          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
             <div>
               <h4 class="form-title mb-1" style="border:none; padding:0;">Capturas y Registros Biométricos</h4>
               <div class="d-flex align-items-center gap-3">
                 <small class="text-muted">Sincronizado con Firebase Firestore</small>
                 <small class="d-inline-flex align-items-center gap-1 text-dark fw-semibold">
-                  <span style="display:inline-block; width:12px; height:12px; background-color:#fef3c7; border:1px solid #d97706; border-radius:2px;"></span>
+                  <span style="display:inline-block; width:11px; height:11px; background-color:#fef3c7; border:1px solid #d97706; border-radius:2px;"></span>
                   Recaptura / Control
                 </small>
               </div>
             </div>
-            <div class="btn-group">
+            <div class="btn-group flex-wrap">
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
               <a href="graficas.html" class="btn btn-outline-success btn-sm">📊 Gráficas y SMI</a>
               <button class="btn btn-outline-danger btn-sm fw-bold" onclick="borrarUltimoRegistro()" title="Borrar el último registro guardado">🗑️ Borrar Último</button>
@@ -224,7 +234,7 @@
             </div>
           </div>
 
-          <div class="table-responsive">
+          <div class="w-100">
             <table class="table table-hover align-middle table-history">
               <thead class="table-light">
                 <tr>
@@ -251,7 +261,7 @@
             </table>
           </div>
 
-          <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top" id="paginacion-container" style="display: none !important;">
+          <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top" id="paginacion-container" style="display: none !important;">
             <button class="btn btn-outline-primary btn-sm px-3" id="btn-anterior" onclick="cambiarPagina(-1)">&larr; Anterior</button>
             <span id="info-paginacion" class="small fw-semibold text-muted">Página 1 de 1</span>
             <button class="btn btn-outline-primary btn-sm px-3" id="btn-siguiente" onclick="cambiarPagina(1)">Siguiente &rarr;</button>
@@ -284,6 +294,8 @@
     var paginaActual = 1;
     var registrosPorPagina = 15;
 
+    const ESTADOS_VALIDOS = ["Muy buena", "Buena", "Normal", "Mala", "Muy mala"];
+
     document.getElementById('input-fecha-anil').value = new Date().toISOString().slice(0,10);
 
     function leerMapaCondicionesGraficas() {
@@ -292,6 +304,26 @@
         return raw ? JSON.parse(raw) : {};
       } catch (e) {
         return {};
+      }
+    }
+
+    function normalizarEstadoCincoNiveles(rawEstado) {
+      var s = String(rawEstado || "").trim().toLowerCase();
+      if (s === "muy buena" || s.includes("muy buena") || s.includes("elevado")) return "Muy buena";
+      if (s === "buena" || s.includes("buena")) return "Buena";
+      if (s === "muy mala" || s.includes("muy mala") || s.includes("marcada")) return "Muy mala";
+      if (s === "mala" || s.includes("mala") || s.includes("alerta") || s.includes("leve")) return "Mala";
+      return "Normal";
+    }
+
+    function badgeParaEstadoCincoNiveles(estado) {
+      switch (estado) {
+        case "Muy buena": return "bg-primary";
+        case "Buena": return "bg-success";
+        case "Mala": return "bg-warning text-dark";
+        case "Muy mala": return "bg-danger";
+        case "Normal":
+        default: return "bg-info text-dark";
       }
     }
 
@@ -320,7 +352,7 @@
       return 'Desconocido';
     }
 
-    // Prioriza el estado exacto calculado en graficas.html; si aún no existe, usa respaldo de umbral/SMI
+    // Devuelve SIEMPRE uno de: "Muy buena", "Buena", "Normal", "Mala", "Muy mala"
     window.calcularCondicionRegistro = function(item) {
       var mapa = leerMapaCondicionesGraficas();
       var metalNorm = String(item.metal || '').trim().toLowerCase();
@@ -336,49 +368,59 @@
       }
 
       if (matchGraficas && matchGraficas.estado) {
+        var estSync = normalizarEstadoCincoNiveles(matchGraficas.estado);
         return {
-          corta: matchGraficas.estado,
-          badge: matchGraficas.badge || 'bg-secondary',
-          detalle: matchGraficas.detalle || 'Evaluado en Gráficas y SMI'
+          corta: estSync,
+          badge: badgeParaEstadoCincoNiveles(estSync),
+          detalle: matchGraficas.detalle || estSync
         };
       }
 
       var ala = parseNum(item.ala);
       var peso = parseNum(item.peso);
       var sexo = normalizarSexo(item.sexo);
-      var edad = String(item.edad || '');
-      var esPollo = (edad === '1' || edad.toLowerCase().includes('pollo'));
       var espLower = String(item.especie || '').trim().toLowerCase();
       var esCernicalo = (!espLower || espLower.includes('tinnunculus') || espLower.includes('cernícalo') || espLower.includes('cernicalo') || espLower.includes('fal tin'));
 
-      if (isNaN(ala) || isNaN(peso)) {
-        return { corta: 'Sin datos suficientes', badge: 'bg-secondary', detalle: 'Falta Ala (mm) o Peso (g)' };
-      }
+      var estado = "Normal";
+      var detalle = "Condición normal";
 
-      if (esPollo) {
-        return { corta: 'Pollo en crecimiento', badge: 'bg-info text-dark', detalle: `Peso ${peso}g · Pollo en crecimiento` };
-      }
+      if (!isNaN(ala) && !isNaN(peso)) {
+        if (esCernicalo && (sexo === 'Macho' || sexo === 'Hembra')) {
+          var umbral = (sexo === 'Macho')
+            ? Math.round((148 + (ala - 225) * 0.7333) * 10) / 10
+            : Math.round((165 + (ala - 235) * 0.8333) * 10) / 10;
 
-      if (esCernicalo) {
-        var umbral = NaN;
-        if (sexo === 'Macho') umbral = Math.round((148 + (ala - 225) * 0.7333) * 10) / 10;
-        else if (sexo === 'Hembra') umbral = Math.round((165 + (ala - 235) * 0.8333) * 10) / 10;
-
-        if (!isNaN(umbral)) {
           if (peso <= umbral - 14) {
-            return { corta: 'ALERTA MARCADA (Umbral - 14g)', badge: 'bg-danger', detalle: `Peso ${peso}g ≤ ${(umbral - 14).toFixed(1)}g (Umbral: ${umbral.toFixed(1)}g)` };
+            estado = "Muy mala";
+          } else if (peso <= umbral) {
+            estado = "Mala";
+          } else if (peso >= umbral + 45) {
+            estado = "Muy buena";
+          } else if (peso > umbral + 12) {
+            estado = "Buena";
+          } else {
+            estado = "Normal";
           }
-          if (peso <= umbral) {
-            return { corta: 'Alerta leve (Umbral)', badge: 'bg-warning text-dark', detalle: `Peso ${peso}g ≤ Umbral ${umbral.toFixed(1)}g` };
-          }
-          if (peso >= umbral + 45) {
-            return { corta: 'Peso elevado / Reproductor', badge: 'bg-primary', detalle: `Peso ${peso}g ≥ ${(umbral + 45).toFixed(1)}g (Umbral: ${umbral.toFixed(1)}g)` };
-          }
-          return { corta: 'Normal / Buena', badge: 'bg-success', detalle: `Peso ${peso}g · Umbral alerta ≤ ${umbral.toFixed(1)}g` };
+          detalle = `Peso: ${peso}g · Umbral: ${umbral.toFixed(1)}g · Ratio: ${(peso / ala).toFixed(2)} g/mm`;
+        } else {
+          var ratio = peso / ala;
+          if (ratio < 0.62) estado = "Muy mala";
+          else if (ratio < 0.70) estado = "Mala";
+          else if (ratio > 0.92) estado = "Muy buena";
+          else if (ratio > 0.83) estado = "Buena";
+          else estado = "Normal";
+          detalle = `Peso: ${peso}g · Ratio: ${ratio.toFixed(2)} g/mm`;
         }
       }
 
-      return { corta: 'Normal / Buena (por SMI)', badge: 'bg-success', detalle: `Peso ${peso}g · Ala ${ala}mm (abre Gráficas y SMI para desv. SMI exacto)` };
+      if (!ESTADOS_VALIDOS.includes(estado)) estado = "Normal";
+
+      return {
+        corta: estado,
+        badge: badgeParaEstadoCincoNiveles(estado),
+        detalle: detalle
+      };
     };
 
     window.evaluarCondicionEnVivo = function() {
@@ -392,11 +434,7 @@
         peso: document.getElementById('input-peso-anil').value
       };
       var res = window.calcularCondicionRegistro(item);
-      if (res.corta === 'Sin datos suficientes') {
-        box.innerHTML = '<span class="text-muted">🦅 <b>Condición física:</b> <span class="badge bg-secondary">Sin datos suficientes</span></span>';
-      } else {
-        box.innerHTML = `🦅 <b>Condición estimada:</b> <span class="badge ${res.badge}">${res.corta}</span> <small class="text-muted ms-1">${res.detalle}</small>`;
-      }
+      box.innerHTML = `🦅 <b>Condición:</b> <span class="badge ${res.badge}">${res.corta}</span> <small class="text-muted ms-1">${res.detalle}</small>`;
     };
 
     function formatearFecha(fechaStr) {
@@ -644,8 +682,8 @@
 
       document.getElementById('titulo-formulario').innerText = "✏️ Editando Anillamiento";
       let btnGuardar = document.getElementById('btn-guardar-anil');
-      btnGuardar.innerText = "💾 Actualizar Registro en la Nube";
-      btnGuardar.className = "btn btn-primary flex-grow-1 fw-bold";
+      btnGuardar.innerText = "💾 Actualizar Registro";
+      btnGuardar.className = "btn btn-primary flex-grow-1 fw-bold btn-sm";
       document.getElementById('btn-cancelar-edicion').style.display = 'block';
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -663,8 +701,8 @@
 
       document.getElementById('titulo-formulario').innerText = "Anillamiento y Biometría";
       let btnGuardar = document.getElementById('btn-guardar-anil');
-      btnGuardar.innerText = "☁️ Guardar Captura en la Nube";
-      btnGuardar.className = "btn btn-success flex-grow-1 fw-bold";
+      btnGuardar.innerText = "☁️ Guardar Captura";
+      btnGuardar.className = "btn btn-success flex-grow-1 fw-bold btn-sm";
       document.getElementById('btn-cancelar-edicion').style.display = 'none';
     }
 
@@ -813,8 +851,9 @@
       tbody.innerHTML = '';
       registrosPagina.forEach((r, idx) => {
         var numReal = datosOrdenados.length - (inicio + idx);
-        var edadTexto = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : r.edad));
-        var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
+        var edadCorta = r.edad || "-";
+        var edadTitle = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : `Edad ${r.edad}`));
+        var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success" style="font-size:0.65rem;">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
         
         var pvcLimpio = formatearPvcLimpio(r.pvc);
         var pvcBadge = pvcLimpio !== "-" ? `<span class="badge badge-pvc">${esc(pvcLimpio)}</span>` : '<span class="text-muted">-</span>';
@@ -827,18 +866,18 @@
         var badgeRec = esRecaptura ? `<span class="badge-recaptura" title="Recaptura / Control">REC</span>` : "";
 
         tbody.innerHTML += `<tr class="${claseFila}">
-          <td class="text-nowrap"><b>#${numReal}</b>${badgeRec}</td>
+          <td><b>#${numReal}</b>${badgeRec}</td>
           <td>${nidoBadge}</td>
           <td>${formatearFecha(r.fecha)}</td>
           <td><span class="badge badge-metal">${esc(r.metal)}</span></td>
           <td>${pvcBadge}</td>
           <td>${esc(especieAbreviada)}</td>
-          <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
+          <td><span class="badge bg-secondary" style="font-size:0.65rem;" title="${esc(edadTitle)}">${esc(edadCorta)}</span></td>
           <td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${r.r5}</td><td>${r.peso}</td>
-          <td><span class="badge ${cond.badge}" title="${esc(cond.detalle)}">${esc(cond.corta)}</span></td>
-          <td class="text-center text-nowrap">
-            <button class="btn btn-sm btn-outline-warning py-0 px-2 fw-bold me-1" onclick="cargarParaEditar('${r.docId}')" title="Editar este registro">✏️ Editar</button>
-            <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" onclick="abrirFichaAve('${r.docId}')" title="Abrir Ficha Fotográfica y de Campo">📷 Ficha</button>
+          <td><span class="badge badge-cond ${cond.badge}" title="${esc(cond.detalle)}">${esc(cond.corta)}</span></td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-warning py-0 px-1 fw-bold" style="font-size:0.68rem;" onclick="cargarParaEditar('${r.docId}')" title="Editar este registro">✏️ Edit</button>
+            <button class="btn btn-sm btn-outline-primary py-0 px-1 fw-bold" style="font-size:0.68rem;" onclick="abrirFichaAve('${r.docId}')" title="Abrir Ficha Fotográfica y de Campo">📷 Ficha</button>
           </td>
         </tr>`;
       });
