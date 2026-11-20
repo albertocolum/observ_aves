@@ -156,16 +156,12 @@
         <!-- PESTAÑA 1: GRÁFICA FENOLÓGICA MENSUAL ORIGINAL                 -->
         <!-- ============================================================== -->
         <div class="tab-pane fade show active" id="pane-fenologia" role="tabpanel">
-          <!-- MENSAJE INICIAL / SIN DATOS -->
           <div id="sin-datos-aviso" class="text-center py-5 text-muted">
             <h4>Panel listo para consultar.</h4>
             <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>
           </div>
 
-          <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
           <div id="contenedor-resultados" style="display: none;">
-            
-            <!-- TARJETAS DE RESUMEN Y MEDIAS -->
             <div class="row g-3 mb-4">
               <div class="col-md-3">
                 <div class="stat-card shadow-sm text-center">
@@ -197,7 +193,6 @@
               </div>
             </div>
 
-            <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
             <div class="card p-3 shadow-sm border-0 bg-light">
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Ciclo Fenológico Mensual</h6>
@@ -207,7 +202,6 @@
                 <canvas id="chartDinamica"></canvas>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -244,7 +238,9 @@
                       <option value="cola">Cola (mm)</option>
                       <option value="tarso">Tarso (mm)</option>
                       <option value="r5">R5 (mm)</option>
-                      <option value="condicion_corporal">Índice Condición (Peso / Ala³ × 10⁵)</option>
+                      <option value="condicion_corporal">Índice Condición Cúbica (Peso / Ala³ × 10⁵)</option>
+                      <option value="ratio_peso_ala">Ratio Masa / Ala (g / mm)</option>
+                      <option value="residuo_masa_ala">Condición Residual Lineal (Peso − Peso_esp en g)</option>
                     </select>
                   </div>
 
@@ -371,17 +367,19 @@
       tarso: "Tarso (mm)",
       r5: "R5 (mm)",
       peso: "Masa / Peso (g)",
-      condicion_corporal: "Índice Condición (Peso/Ala³×10⁵)"
+      condicion_corporal: "Condición Cúbica (Peso/Ala³×10⁵)",
+      ratio_peso_ala: "Ratio Masa / Ala (g/mm)",
+      residuo_masa_ala: "Condición Residual Lineal (g)"
     };
 
     const paletaRStudio = [
-      "#0072B2", // Azul Okabe-Ito
-      "#D55E00", // Naranja rojizo
-      "#009E73", // Verde azulado
-      "#CC79A7", // Magenta
-      "#E69F00", // Ámbar
-      "#56B4E9", // Azul claro
-      "#64748B"  // Gris pizarra
+      "#0072B2",
+      "#D55E00",
+      "#009E73",
+      "#CC79A7",
+      "#E69F00",
+      "#56B4E9",
+      "#64748B"
     ];
 
     function parsearFecha(strFecha) {
@@ -405,15 +403,74 @@
       return (!isNaN(n) && n > 0) ? n : NaN;
     }
 
-    function obtenerValorVariable(item, varKey) {
-      if (varKey === "condicion_corporal") {
-        var peso = parsearNumeroBiometria(item.peso);
+    function calcularRegresionDesdePares(pares) {
+      var n = pares.length;
+      if (n < 2) return null;
+
+      var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+      pares.forEach(p => {
+        sumX += p.x;
+        sumY += p.y;
+        sumXY += p.x * p.y;
+        sumX2 += p.x * p.x;
+        sumY2 += p.y * p.y;
+      });
+
+      var denomX = (n * sumX2 - sumX * sumX);
+      var denomY = (n * sumY2 - sumY * sumY);
+      if (denomX === 0) return null;
+
+      var slope = (n * sumXY - sumX * sumY) / denomX;
+      var intercept = (sumY - slope * sumX) / n;
+      var r2 = (denomY === 0) ? 0 : Math.pow((n * sumXY - sumX * sumY), 2) / (denomX * denomY);
+
+      return { slope: slope, intercept: intercept, r2: r2 };
+    }
+
+    function construirMapaResiduosMasaAla(registros) {
+      var mapa = new Map();
+      var pares = [];
+      registros.forEach((item, idx) => {
         var ala = parsearNumeroBiometria(item.ala);
+        var peso = parsearNumeroBiometria(item.peso);
+        if (!isNaN(ala) && !isNaN(peso)) {
+          pares.push({ idx: idx, x: ala, y: peso });
+        }
+      });
+
+      var modelo = calcularRegresionDesdePares(pares);
+      if (!modelo) return mapa;
+
+      pares.forEach(p => {
+        var esperado = modelo.slope * p.x + modelo.intercept;
+        var residuo = parseFloat((p.y - esperado).toFixed(2));
+        mapa.set(p.idx, residuo);
+      });
+      return mapa;
+    }
+
+    function obtenerValorVariable(item, varKey, idx, mapaResiduos) {
+      var peso = parsearNumeroBiometria(item.peso);
+      var ala = parsearNumeroBiometria(item.ala);
+
+      if (varKey === "condicion_corporal") {
         if (!isNaN(peso) && !isNaN(ala) && ala > 0) {
           return parseFloat(((peso / Math.pow(ala, 3)) * 100000).toFixed(3));
         }
         return NaN;
       }
+
+      if (varKey === "ratio_peso_ala") {
+        if (!isNaN(peso) && !isNaN(ala) && ala > 0) {
+          return parseFloat((peso / ala).toFixed(3));
+        }
+        return NaN;
+      }
+
+      if (varKey === "residuo_masa_ala") {
+        return mapaResiduos && mapaResiduos.has(idx) ? mapaResiduos.get(idx) : NaN;
+      }
+
       return parsearNumeroBiometria(item[varKey]);
     }
 
@@ -550,7 +607,7 @@
       enlace.click();
     }
 
-    function clasificarItemBase(item, valR5Opcional) {
+    function clasificarItemBase(item) {
       var esPollo = (String(item.edad) === "1");
       var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
       if (esPollo) return "Pollo";
@@ -844,36 +901,22 @@
       var n = puntosXY.length;
       if (n < 2) return null;
 
-      var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
-      puntosXY.forEach(p => {
-        sumX += p.x;
-        sumY += p.y;
-        sumXY += p.x * p.y;
-        sumX2 += p.x * p.x;
-        sumY2 += p.y * p.y;
-      });
-
-      var denomX = (n * sumX2 - sumX * sumX);
-      var denomY = (n * sumY2 - sumY * sumY);
-      if (denomX === 0) return null;
-
-      var slope = (n * sumXY - sumX * sumY) / denomX;
-      var intercept = (sumY - slope * sumX) / n;
-      var r2 = (denomY === 0) ? 0 : Math.pow((n * sumXY - sumX * sumY), 2) / (denomX * denomY);
+      var modelo = calcularRegresionDesdePares(puntosXY);
+      if (!modelo) return null;
 
       var xs = puntosXY.map(p => p.x);
       var minX = Math.min(...xs);
       var maxX = Math.max(...xs);
 
       return {
-        slope: slope,
-        intercept: intercept,
-        r2: r2,
+        slope: modelo.slope,
+        intercept: modelo.intercept,
+        r2: modelo.r2,
         minX: minX,
         maxX: maxX,
         linea: [
-          { x: minX, y: slope * minX + intercept },
-          { x: maxX, y: slope * maxX + intercept }
+          { x: minX, y: modelo.slope * minX + modelo.intercept },
+          { x: maxX, y: modelo.slope * maxX + modelo.intercept }
         ]
       };
     }
@@ -914,11 +957,12 @@
         pasaFiltrosGlobales(item, dDesde, dHasta, especieSeleccionada, checks, NaN)
       );
 
-      // 1. Preparar puntos para Dispersión (X vs Y)
+      var mapaResiduos = construirMapaResiduosMasaAla(registrosFiltrados);
+
       var puntosScatter = [];
-      registrosFiltrados.forEach(item => {
-        var vx = obtenerValorVariable(item, varX);
-        var vy = obtenerValorVariable(item, varY);
+      registrosFiltrados.forEach((item, idx) => {
+        var vx = obtenerValorVariable(item, varX, idx, mapaResiduos);
+        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos);
         if (!isNaN(vx) && !isNaN(vy)) {
           puntosScatter.push({
             x: vx,
@@ -931,10 +975,9 @@
         }
       });
 
-      // 2. Preparar valores para Distribución y Summary() sobre variable Y
       var registrosY = [];
-      registrosFiltrados.forEach(item => {
-        var vy = obtenerValorVariable(item, varY);
+      registrosFiltrados.forEach((item, idx) => {
+        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos);
         if (!isNaN(vy)) {
           registrosY.push({
             y: vy,
@@ -1055,7 +1098,6 @@
 
       var labels = statsPorGrupo.map(x => `${x.grp} (n=${x.stats.n})`);
 
-      // Banda IQR [Q1, Q3] como barra flotante + puntos para Mediana, Mín y Máx
       var datosIQR = statsPorGrupo.map(x => [x.stats.q1, x.stats.q3]);
       var datosMediana = statsPorGrupo.map(x => x.stats.median);
       var datosMedia = statsPorGrupo.map(x => parseFloat(x.stats.mean.toFixed(2)));
@@ -1198,7 +1240,6 @@
         });
       }
 
-      // Consola R con resultados de regresión lineal y atípicos
       var reg = calcularRegresionLineal(puntosScatter);
       var htmlConsola = `<span class="cmd">&gt; lm(${varY} ~ ${varX}, n = ${puntosScatter.length})</span><br>`;
 
