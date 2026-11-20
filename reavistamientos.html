@@ -300,6 +300,8 @@
             <button type="button" class="btn btn-primary w-100 fw-bold mt-3" onclick="guardarObservacion()">
               + Añadir Observación al Mapa y Sheets
             </button>
+
+            <div id="estado-sincronizacion" class="alert alert-secondary py-1 px-2 mt-2 mb-0 small d-none" role="status"></div>
           </form>
         </div>
       </div>
@@ -492,12 +494,12 @@
       if (partes.length === 2) {
         var lat = parseFloat(partes[0].trim());
         var lng = parseFloat(partes[1].trim());
-        if (!isNaN(lat) && !isNaN(lng)) {
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
           marker.setLatLng([lat, lng]);
           map.setView([lat, lng], 13);
           obtenerLocalidadPorCoordenadas(lat, lng);
         } else {
-          alert("Introduce coordenadas válidas separadas por coma (ej: 39.7709, -0.1840)");
+          alert("Introduce coordenadas válidas dentro de rango (Lat: -90 a 90, Lng: -180 a 180).");
         }
       }
     }
@@ -511,6 +513,14 @@
       badge.innerText = inscripcion;
       badge.style.backgroundColor = bgColor;
       badge.style.color = textColor;
+    }
+
+    function mostrarEstadoSync(mensaje, tipo) {
+      var el = document.getElementById('estado-sincronizacion');
+      if (!el) return;
+      el.className = "alert py-1 px-2 mt-2 mb-0 small alert-" + (tipo || "info");
+      el.innerText = mensaje;
+      el.classList.remove('d-none');
     }
 
     function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -572,6 +582,8 @@
       var lat = parseFloat(rawCoords[0]);
       var lng = parseFloat(rawCoords[1]);
       var anilla = document.getElementById('input-inscripcion').value.trim().toUpperCase();
+      var fecha = document.getElementById('input-fecha').value;
+      var localidad = document.getElementById('input-localidad').value.trim();
 
       if (!anilla) {
         alert("Debes introducir una inscripción o código de anilla.");
@@ -579,16 +591,45 @@
         return;
       }
 
-      if (isNaN(lat) || isNaN(lng)) {
-        alert("Las coordenadas no son válidas. Selecciona un punto en el mapa o introduce lat, lng.");
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        alert("Las coordenadas no son válidas. Selecciona un punto en el mapa o introduce lat, lng válidos.");
         return;
+      }
+
+      if (!fecha) {
+        alert("Debes indicar la fecha de la observación.");
+        document.getElementById('input-fecha').focus();
+        return;
+      }
+
+      var hoyISO = new Date().toISOString().slice(0, 10);
+      if (fecha > hoyISO) {
+        var confirmarFutura = confirm("La fecha introducida (" + fecha + ") es posterior a hoy (" + hoyISO + "). ¿Quieres guardarla de todos modos?");
+        if (!confirmarFutura) return;
+      }
+
+      if (!localidad) {
+        localidad = lat.toFixed(4) + ", " + lng.toFixed(4);
+        document.getElementById('input-localidad').value = localidad;
+      }
+
+      var posibleDuplicado = observaciones.some(function(o) {
+        return o.inscripcion === anilla &&
+               o.fecha === fecha &&
+               Math.abs(Number(o.lat) - lat) < 0.0002 &&
+               Math.abs(Number(o.lng) - lng) < 0.0002;
+      });
+
+      if (posibleDuplicado) {
+        var confirmarDuplicado = confirm("Ya existe un registro con la anilla " + anilla + " en la fecha " + fecha + " y coordenadas muy próximas. ¿Deseas guardar otro registro igual?");
+        if (!confirmarDuplicado) return;
       }
 
       var registro = {
         id: observaciones.reduce(function(m,o){return Math.max(m,o.id||0);},0) + 1,
-        fecha: document.getElementById('input-fecha').value,
+        fecha: fecha,
         especie: document.getElementById('input-especie').value,
-        localidad: document.getElementById('input-localidad').value,
+        localidad: localidad,
         inscripcion: anilla,
         anillaMetalica: document.getElementById('input-anilla-metalica').value.trim() || "-",
         anillaPvc: document.getElementById('input-anilla-pvc').value.trim() || "-",
@@ -610,6 +651,7 @@
       
       document.getElementById('filtro-anilla').value = anilla;
       renderizarTodoElMapaYTabla();
+      mostrarEstadoSync("Guardado en local (anilla " + anilla + "). Enviando a Google Sheets...", "success");
 
       document.getElementById('input-coords').value = "";
       document.getElementById('input-localidad').value = "";
@@ -626,9 +668,11 @@
       })
       .then(() => {
         console.log("Datos enviados correctamente a Google Sheets.");
+        mostrarEstadoSync("Guardado en local y sincronizado con Google Sheets (" + anilla + ").", "success");
       })
       .catch(error => {
         console.error("Error al sincronizar con Google Sheets:", error);
+        mostrarEstadoSync("Guardado en local, pero revisa la conexión con Google Sheets.", "warning");
       });
     }
 
@@ -934,6 +978,7 @@
       document.body.removeChild(link);
     }
 
+    document.getElementById('input-fecha').value = new Date().toISOString().slice(0, 10);
     actualizarSelectorFiltro();
   </script>
 
