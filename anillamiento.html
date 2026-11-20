@@ -35,6 +35,13 @@
       border-radius: 4px;
       margin-left: 3px;
     }
+    .condicion-box-vivo {
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+    }
   </style>
 </head>
 <body>
@@ -105,7 +112,7 @@
             <div class="row g-2 mb-2">
               <div class="col-md-6">
                 <label class="form-label">Especie <span class="required-asterisk">*</span></label>
-                <select id="input-especie-anil" class="form-select form-select-sm" required>
+                <select id="input-especie-anil" class="form-select form-select-sm" onchange="evaluarCondicionEnVivo()" required>
                   <option value="Tyto alba">Lechuza común (Tyto alba)</option>
                   <option value="Falco tinnunculus" selected>Cernícalo vulgar (Falco tinnunculus)</option>
                   <option value="Athene noctua">Mochuelo europeo (Athene noctua)</option>
@@ -116,7 +123,7 @@
               </div>
               <div class="col-md-3">
                 <label class="form-label">Edad EURING</label>
-                <select id="input-edad-anil" class="form-select form-select-sm">
+                <select id="input-edad-anil" class="form-select form-select-sm" onchange="evaluarCondicionEnVivo()">
                   <option value="1">1 (Pullus)</option>
                   <option value="2">2 (Volantón)</option>
                   <option value="3" selected>3 (1er año)</option>
@@ -127,7 +134,7 @@
               </div>
               <div class="col-md-3">
                 <label class="form-label">Sexo</label>
-                <select id="input-sexo-anil" class="form-select form-select-sm fw-bold text-primary">
+                <select id="input-sexo-anil" class="form-select form-select-sm fw-bold text-primary" onchange="evaluarCondicionEnVivo()">
                   <option value="Desconocido">?</option>
                   <option value="Macho">Macho (M)</option>
                   <option value="Hembra">Hembra (F)</option>
@@ -139,7 +146,7 @@
             <div class="row g-2 mb-2">
               <div class="col-md-3">
                 <label class="form-label">Ala Máx (mm)</label>
-                <input type="number" step="0.1" id="input-ala-anil" class="form-control form-control-sm" placeholder="mm">
+                <input type="number" step="0.1" id="input-ala-anil" class="form-control form-control-sm" placeholder="mm" oninput="evaluarCondicionEnVivo()">
               </div>
               <div class="col-md-3">
                 <label class="form-label">P8 (mm)</label>
@@ -162,12 +169,17 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label">Peso (g)</label>
-                <input type="number" step="0.1" id="input-peso-anil" class="form-control form-control-sm" placeholder="g">
+                <input type="number" step="0.1" id="input-peso-anil" class="form-control form-control-sm" placeholder="g" oninput="evaluarCondicionEnVivo()">
               </div>
               <div class="col-md-4">
                 <label class="form-label">Grasa / Músculo</label>
                 <input type="text" id="input-grasa-anil" class="form-control form-control-sm" placeholder="G2 / M3">
               </div>
+            </div>
+
+            <!-- INDICADOR DE CONDICIÓN FÍSICA EN VIVO -->
+            <div id="indicador-condicion-vivo" class="condicion-box-vivo mb-2">
+              <span class="text-muted">🦅 <b>Condición física:</b> Introduce Ala (mm) y Peso (g) para evaluar umbral / SMI.</span>
             </div>
 
             <div class="mb-2">
@@ -203,6 +215,7 @@
             </div>
             <div class="btn-group">
               <a href="mapa.html" class="btn btn-outline-primary btn-sm">🌍 Mapa</a>
+              <a href="graficas.html" class="btn btn-outline-success btn-sm">📊 Gráficas y SMI</a>
               <button class="btn btn-outline-danger btn-sm fw-bold" onclick="borrarUltimoRegistro()" title="Borrar el último registro guardado">🗑️ Borrar Último</button>
               <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-csv').click()" title="Subir tu archivo CSV original">☁️ Importar CSV</button>
               <input type="file" id="input-migrar-csv" accept=".csv" style="display:none;" onchange="migrarCSVAFirebase(event)">
@@ -228,11 +241,12 @@
                   <th>Tarso</th>
                   <th>R5</th>
                   <th>Peso</th>
+                  <th>Condición</th>
                   <th class="text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tabla-registros-anil">
-                <tr><td colspan="14" class="text-center text-muted py-3">Conectando con Firebase...</td></tr>
+                <tr><td colspan="15" class="text-center text-muted py-3">Conectando con Firebase...</td></tr>
               </tbody>
             </table>
           </div>
@@ -271,6 +285,81 @@
     var registrosPorPagina = 15;
 
     document.getElementById('input-fecha-anil').value = new Date().toISOString().slice(0,10);
+
+    function parseNum(v) {
+      if (v === null || v === undefined) return NaN;
+      var s = String(v).replace(/[^\d.,-]/g, '').replace(',', '.').trim();
+      if (!s || s === '-') return NaN;
+      var n = parseFloat(s);
+      return (!isNaN(n) && n > 0) ? n : NaN;
+    }
+
+    function normalizarSexo(raw) {
+      var s = String(raw || '').trim().toLowerCase();
+      if (s === 'm' || s === 'macho' || s === 'male') return 'Macho';
+      if (s === 'f' || s === 'hembra' || s === 'female') return 'Hembra';
+      return 'Desconocido';
+    }
+
+    window.calcularCondicionRegistro = function(item) {
+      var ala = parseNum(item.ala);
+      var peso = parseNum(item.peso);
+      var sexo = normalizarSexo(item.sexo);
+      var edad = String(item.edad || '');
+      var esPollo = (edad === '1' || edad.toLowerCase().includes('pollo'));
+      var espLower = String(item.especie || '').trim().toLowerCase();
+      var esCernicalo = (!espLower || espLower.includes('tinnunculus') || espLower.includes('cernícalo') || espLower.includes('cernicalo'));
+
+      if (isNaN(ala) || isNaN(peso)) {
+        return { corta: '-', badge: 'bg-light text-muted border', detalle: 'Sin Ala/Peso' };
+      }
+
+      if (esPollo) {
+        return { corta: 'Pollo', badge: 'bg-info text-dark', detalle: 'Pollo en crecimiento (usar curva nido)' };
+      }
+
+      if (esCernicalo) {
+        var umbral = NaN;
+        if (sexo === 'Macho') umbral = Math.round((148 + (ala - 225) * 0.7333) * 10) / 10;
+        else if (sexo === 'Hembra') umbral = Math.round((165 + (ala - 235) * 0.8333) * 10) / 10;
+
+        if (!isNaN(umbral)) {
+          if (peso <= umbral - 14) {
+            return { corta: 'ALERTA MARCADA', badge: 'bg-danger', detalle: `Peso ${peso}g ≤ umbral alerta marcada (${(umbral - 14).toFixed(1)}g)` };
+          }
+          if (peso <= umbral) {
+            return { corta: 'Alerta leve', badge: 'bg-warning text-dark', detalle: `Peso ${peso}g ≤ umbral leve (${umbral.toFixed(1)}g)` };
+          }
+          if (peso >= umbral + 45) {
+            return { corta: 'Peso elevado', badge: 'bg-primary', detalle: `Peso ${peso}g ≥ umbral + 45g (${(umbral + 45).toFixed(1)}g)` };
+          }
+          return { corta: 'Normal', badge: 'bg-success', detalle: `Normal (Umbral alerta ≤ ${umbral.toFixed(1)}g)` };
+        }
+        return { corta: 'Sin sexo', badge: 'bg-secondary', detalle: 'Indica Macho/Hembra para umbral exacto' };
+      }
+
+      // Para otras especies: ratio g/mm orientativo
+      var ratio = (peso / ala).toFixed(2);
+      return { corta: `${ratio} g/mm`, badge: 'bg-secondary', detalle: `Ratio Masa/Ala: ${ratio} g/mm` };
+    };
+
+    window.evaluarCondicionEnVivo = function() {
+      var box = document.getElementById('indicador-condicion-vivo');
+      if (!box) return;
+      var item = {
+        especie: document.getElementById('input-especie-anil').value,
+        edad: document.getElementById('input-edad-anil').value,
+        sexo: document.getElementById('input-sexo-anil').value,
+        ala: document.getElementById('input-ala-anil').value,
+        peso: document.getElementById('input-peso-anil').value
+      };
+      var res = window.calcularCondicionRegistro(item);
+      if (res.corta === '-') {
+        box.innerHTML = '<span class="text-muted">🦅 <b>Condición física:</b> Introduce Ala (mm) y Peso (g) para evaluar umbral / ratio.</span>';
+      } else {
+        box.innerHTML = `🦅 <b>Condición estimada:</b> <span class="badge ${res.badge}">${res.corta}</span> <small class="text-muted ms-1">${res.detalle}</small>`;
+      }
+    };
 
     function formatearFecha(fechaStr) {
       if (!fechaStr) return '-';
@@ -342,6 +431,7 @@
           if (p.edad) document.getElementById('input-edad-anil').value = p.edad;
           
           localStorage.removeItem("preset_anillamiento_nidada");
+          window.evaluarCondicionEnVivo();
         } catch (e) {
           console.error("Error leyendo preset de nidada:", e);
         }
@@ -361,6 +451,7 @@
         querySnapshot.forEach((docSnap) => {
           window.anillamientos.push({ docId: docSnap.id, ...docSnap.data() });
         });
+        localStorage.setItem("anillamiento_biometria_data", JSON.stringify(window.anillamientos));
         renderizarTablaPaginada();
       } catch (e) {
         console.error("Error cargando anillamientos:", e);
@@ -473,8 +564,10 @@
           alert("¡Captura guardada en Firebase correctamente!");
           document.getElementById('input-metal-anil').value = "";
           document.getElementById('input-pvc-anil').value = "";
+          document.getElementById('input-peso-anil').value = "";
           document.getElementById('alerta-metal').style.display = 'none';
           document.getElementById('alerta-pvc').style.display = 'none';
+          window.evaluarCondicionEnVivo();
         }
 
         paginaActual = 1;
@@ -509,6 +602,8 @@
       document.getElementById('input-grasa-anil').value = ave.grasa !== "-" ? ave.grasa : "";
       document.getElementById('input-anillador-anil').value = ave.anillador || "Alberto de la Rosa";
 
+      window.evaluarCondicionEnVivo();
+
       document.getElementById('titulo-formulario').innerText = "✏️ Editando Anillamiento";
       let btnGuardar = document.getElementById('btn-guardar-anil');
       btnGuardar.innerText = "💾 Actualizar Registro en la Nube";
@@ -526,6 +621,7 @@
       document.getElementById('input-anillador-anil').value = "Alberto de la Rosa";
       document.getElementById('alerta-metal').style.display = 'none';
       document.getElementById('alerta-pvc').style.display = 'none';
+      window.evaluarCondicionEnVivo();
 
       document.getElementById('titulo-formulario').innerText = "Anillamiento y Biometría";
       let btnGuardar = document.getElementById('btn-guardar-anil');
@@ -576,7 +672,7 @@
         if (lineas.length < 2) return alert("Archivo sin datos.");
 
         var contador = 0;
-        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="14" class="text-center text-primary py-3"><b>Importando todos los registros a la nube... Por favor espera.</b></td></tr>';
+        document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="15" class="text-center text-primary py-3"><b>Importando todos los registros a la nube... Por favor espera.</b></td></tr>';
 
         for (var i = 1; i < lineas.length; i++) {
           var l = lineas[i].trim();
@@ -622,7 +718,7 @@
     window.vaciarTodoAnilFirebase = async function() {
       if (confirm("¿Estás seguro de que quieres vaciar TODOS los registros de anillamiento de la nube de golpe?")) {
         try {
-          document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="14" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
+          document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="15" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
           
           const querySnapshot = await getDocs(collection(db, "anillamientos"));
           let promesasBorrado = [];
@@ -632,6 +728,7 @@
 
           await Promise.all(promesasBorrado);
           window.anillamientos = [];
+          localStorage.setItem("anillamiento_biometria_data", JSON.stringify([]));
           paginaActual = 1;
           renderizarTablaPaginada();
           alert("¡Nube vaciada por completo con éxito!");
@@ -657,7 +754,7 @@
       if(!tbody) return;
 
       if (window.anillamientos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-3">No hay capturas en la nube. Pulsa "Importar CSV" para cargar tu archivo.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">No hay capturas en la nube. Pulsa "Importar CSV" para cargar tu archivo.</td></tr>';
         if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
         return;
       }
@@ -684,8 +781,8 @@
         var pvcLimpio = formatearPvcLimpio(r.pvc);
         var pvcBadge = pvcLimpio !== "-" ? `<span class="badge badge-pvc">${esc(pvcLimpio)}</span>` : '<span class="text-muted">-</span>';
         var especieAbreviada = formatearEspecieAbreviada(r.especie);
+        var cond = window.calcularCondicionRegistro(r);
 
-        // Detección de Recaptura / Control para colorear la fila
         var tipoCap = String(r.tipoCaptura || "").toLowerCase();
         var esRecaptura = tipoCap.includes("recaptura") || tipoCap.includes("control") || tipoCap === "r" || tipoCap === "c";
         var claseFila = esRecaptura ? "fila-recaptura" : "";
@@ -700,6 +797,7 @@
           <td>${esc(especieAbreviada)}</td>
           <td><span class="badge bg-secondary">${esc(edadTexto)}</span></td>
           <td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${r.r5}</td><td>${r.peso}</td>
+          <td><span class="badge ${cond.badge}" title="${esc(cond.detalle)}">${esc(cond.corta)}</span></td>
           <td class="text-center text-nowrap">
             <button class="btn btn-sm btn-outline-warning py-0 px-2 fw-bold me-1" onclick="cargarParaEditar('${r.docId}')" title="Editar este registro">✏️ Editar</button>
             <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" onclick="abrirFichaAve('${r.docId}')" title="Abrir Ficha Fotográfica y de Campo">📷 Ficha</button>
