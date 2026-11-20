@@ -116,20 +116,20 @@
                 <input type="text" id="input-coords" class="form-control" value="" placeholder="Ej: 39.7709, -0.1840" onchange="actualizarMapaDesdeCoordenadas()">
                 <button class="btn btn-outline-secondary" type="button" onclick="actualizarMapaDesdeCoordenadas()">Centrar y Obtener Localidad</button>
               </div>
-              <small class="text-muted" style="font-size: 0.7rem;">Haz clic en el mapa o escribe lat, lng y pulsa el botón[cite: 6].</small>
+              <small class="text-muted" style="font-size: 0.7rem;">Haz clic en el mapa o escribe lat, lng y pulsa el botón.</small>
             </div>
 
             <!-- LOCALIDAD -->
             <div class="mb-3">
               <label class="form-label">Nombre de la localidad <span class="required-asterisk">*</span></label>
-              <input type="text" id="input-localidad" class="form-control form-control-sm" value="" placeholder="Se autocompletará con las coordenadas o escríbelo..."[cite: 6]>
+              <input type="text" id="input-localidad" class="form-control form-control-sm" value="" placeholder="Se autocompletará con las coordenadas o escríbelo...">
             </div>
 
             <!-- Vista previa dinámica de la marca -->
             <div class="ring-preview-box">
               <div>
                 <span class="fw-bold text-secondary d-block small">VISTA PREVIA DE LA MARCA</span>
-                <small class="text-muted" style="font-size: 0.75rem;">Ajusta la inscripción y colores abajo[cite: 6]</small>
+                <small class="text-muted" style="font-size: 0.75rem;">Ajusta la inscripción y colores abajo</small>
               </div>
               <div id="badge-preview" class="ring-badge" style="background-color: #28a745; color: #ffffff;">
                 ---
@@ -185,7 +185,7 @@
               </div>
             </div>
 
-            <!-- NUEVOS CAMPOS: ANILLA METÁLICA Y PVC OFICIALES -->
+            <!-- CAMPOS: ANILLA METÁLICA Y PVC OFICIALES -->
             <div class="row g-2 mb-2 bg-light p-2 rounded border mx-0">
               <div class="col-12 mb-1">
                 <small class="fw-bold text-primary">📋 Datos del Historial Oficial (Oficina de Anillamiento):</small>
@@ -262,7 +262,7 @@
 
             <div class="mb-2">
               <label class="form-label">Observador / Colaborador</label>
-              <input type="text" id="input-observador" class="form-control form-control-sm" value="" placeholder="Tu nombre..."[cite: 6]>
+              <input type="text" id="input-observador" class="form-control form-control-sm" value="" placeholder="Tu nombre...">
             </div>
 
             <button type="button" class="btn btn-primary w-100 fw-bold mt-3" onclick="guardarObservacion()">
@@ -275,26 +275,35 @@
       <!-- COLUMNA DERECHA: FILTRO Y TABLA -->
       <div class="col-lg-7">
         <div class="card-panel">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
             <div>
-              <h4 class="form-title mb-1" style="border:none; padding:0;">Observaciones Registradas[cite: 6]</h4>
-              <small class="text-muted">Selecciona una anilla abajo para ver su trayectoria[cite: 6]</small>
+              <h4 class="form-title mb-1" style="border:none; padding:0;">Observaciones Registradas</h4>
+              <small class="text-muted">Busca o selecciona una anilla para ver su trayectoria y saltar a su ficha</small>
             </div>
             <div class="btn-group">
-              <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoRegistro()" title="Borrar el último registro">🗑️ Borrar último[cite: 6]</button>
-              <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodo()" title="Vaciar toda la tabla local">⚠️ Vaciar todo[cite: 6]</button>
-              <button class="btn btn-outline-secondary btn-sm" onclick="exportarCSV()">CSV[cite: 6]</button>
-              <button class="btn btn-outline-primary btn-sm" onclick="exportarKML()">🌍 KML[cite: 6]</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="eliminarUltimoRegistro()" title="Borrar el último registro">🗑️ Borrar último</button>
+              <button class="btn btn-outline-dark btn-sm" onclick="vaciarTodo()" title="Vaciar toda la tabla local">⚠️ Vaciar todo</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="exportarCSV()">CSV</button>
+              <button class="btn btn-outline-primary btn-sm" onclick="exportarKML()">🌍 KML</button>
             </div>
           </div>
 
-          <!-- Filtro por anilla OBLIGATORIO PARA VISUALIZAR -->
-          <div class="row mb-3 align-items-center bg-light p-2 rounded mx-0">
-            <label class="col-auto col-form-label fw-bold small py-0 text-danger">Selecciona anilla para ver en mapa:[cite: 6]</label>
-            <div class="col">
+          <!-- BUSCADOR RÁPIDO + SELECTOR DE ANILLA + ACCESO A FICHA -->
+          <div class="row g-2 mb-3 align-items-center bg-light p-2 rounded mx-0 border">
+            <div class="col-md-4">
+              <label for="buscador-anilla" class="form-label small fw-bold mb-1 text-primary">🔎 Buscar anilla:</label>
+              <input type="text" id="buscador-anilla" class="form-control form-control-sm" placeholder="Marca, metal o PVC..." oninput="filtrarSelectorPorTexto()">
+            </div>
+            <div class="col-md-5">
+              <label for="filtro-anilla" class="form-label small fw-bold mb-1 text-danger">Selecciona anilla en mapa:</label>
               <select id="filtro-anilla" class="form-select form-select-sm fw-bold border-primary" onchange="renderizarTodoElMapaYTabla()">
-                <option value="" disabled selected>-- Elige una anilla para visualizar --[cite: 6]</option>
+                <option value="" disabled selected>-- Elige una anilla para visualizar --</option>
               </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button type="button" id="btn-abrir-ficha-seleccionada" class="btn btn-success btn-sm w-100 fw-bold" onclick="abrirFichaDeSeleccionada()" disabled title="Abrir ficha técnica del ave seleccionada">
+                📄 Ver Ficha
+              </button>
             </div>
           </div>
 
@@ -312,11 +321,12 @@
                   <th>Días</th>
                   <th>Km</th>
                   <th>Condición</th>
+                  <th>Ficha</th>
                 </tr>
               </thead>
               <tbody id="tabla-registros">
                 <tr>
-                  <td colspan="10" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.[cite: 6]</td>
+                  <td colspan="11" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.</td>
                 </tr>
               </tbody>
             </table>
@@ -449,6 +459,50 @@
       localStorage.setItem("observaciones_aves_data", JSON.stringify(observaciones));
     }
 
+    function irAFichaDesdeRegistro(registro) {
+      if (!registro) return;
+      var metalValor = (registro.anillaMetalica && registro.anillaMetalica !== '-') ? registro.anillaMetalica : registro.inscripcion;
+      var pvcValor = (registro.anillaPvc && registro.anillaPvc !== '-') ? registro.anillaPvc : registro.inscripcion;
+
+      var fichaPayload = {
+        metal: metalValor || '-',
+        pvc: pvcValor || '-',
+        fecha: registro.fecha || '-',
+        especie: registro.especie || '-',
+        localidad: registro.localidad || '-',
+        lat: registro.lat ?? '',
+        lng: registro.lng ?? '',
+        anillador: registro.observador || 'Alberto de la Rosa',
+        ala: registro.ala || '-',
+        cola: registro.cola || '-',
+        edad: registro.edad || '-',
+        p8: registro.p8 || '-',
+        tarso: registro.tarso || '-',
+        sexo: registro.sexo || '-',
+        peso: registro.peso || '-',
+        grasa: registro.grasa || '-'
+      };
+
+      localStorage.setItem("ave_ficha_actual", JSON.stringify(fichaPayload));
+      window.location.href = "ficha_ave.html";
+    }
+
+    function abrirFichaPorId(id) {
+      var encontrado = observaciones.find(function(o) { return o.id === id; });
+      if (encontrado) {
+        irAFichaDesdeRegistro(encontrado);
+      }
+    }
+
+    function abrirFichaDeSeleccionada() {
+      var filtro = document.getElementById('filtro-anilla').value;
+      if (!filtro) return;
+      var coincidencia = observaciones.find(function(o) { return o.inscripcion === filtro; });
+      if (coincidencia) {
+        irAFichaDesdeRegistro(coincidencia);
+      }
+    }
+
     function guardarObservacion() {
       var rawCoords = document.getElementById('input-coords').value.split(',');
       var lat = parseFloat(rawCoords[0]);
@@ -537,24 +591,76 @@
       }
     }
 
+    function obtenerAnillasFiltradasPorTexto(textoBusqueda) {
+      var q = (textoBusqueda || "").trim().toUpperCase();
+      var anillasUnicas = [...new Set(observaciones.map(o => o.inscripcion))];
+
+      if (!q) return anillasUnicas;
+
+      return anillasUnicas.filter(function(anillaCode) {
+        if (String(anillaCode).toUpperCase().includes(q)) return true;
+        return observaciones.some(function(o) {
+          if (o.inscripcion !== anillaCode) return false;
+          var metal = String(o.anillaMetalica || "").toUpperCase();
+          var pvc = String(o.anillaPvc || "").toUpperCase();
+          var loc = String(o.localidad || "").toUpperCase();
+          return metal.includes(q) || pvc.includes(q) || loc.includes(q);
+        });
+      });
+    }
+
     function actualizarSelectorFiltro() {
       var select = document.getElementById('filtro-anilla');
+      var buscador = document.getElementById('buscador-anilla');
+      var texto = buscador ? buscador.value : "";
       var valorPrevio = select.value;
-      
-      var anillasUnicas = [...new Set(observaciones.map(o => o.inscripcion))];
-      
+
+      var anillasCandidatas = obtenerAnillasFiltradasPorTexto(texto);
+
       select.innerHTML = '<option value="" disabled>-- Elige una anilla para visualizar --</option>';
-      anillasUnicas.forEach(a => {
+      anillasCandidatas.forEach(a => {
         var opt = document.createElement('option');
         opt.value = a;
         opt.innerText = "Anilla " + a;
         select.appendChild(opt);
       });
 
-      if (anillasUnicas.includes(valorPrevio)) {
+      if (anillasCandidatas.includes(valorPrevio)) {
         select.value = valorPrevio;
-      } else if (anillasUnicas.length > 0) {
+      } else {
         select.value = "";
+      }
+
+      actualizarEstadoBotonFicha();
+    }
+
+    function filtrarSelectorPorTexto() {
+      var buscador = document.getElementById('buscador-anilla');
+      var select = document.getElementById('filtro-anilla');
+      var q = (buscador ? buscador.value : "").trim().toUpperCase();
+
+      actualizarSelectorFiltro();
+
+      if (q && select.options.length > 1) {
+        var primeraOpcionReal = select.options[1].value;
+        var coincideExacta = Array.from(select.options).find(function(opt) {
+          return opt.value && opt.value.toUpperCase() === q;
+        });
+        if (coincideExacta) {
+          select.value = coincideExacta.value;
+          renderizarTodoElMapaYTabla();
+        } else if (select.options.length === 2) {
+          select.value = primeraOpcionReal;
+          renderizarTodoElMapaYTabla();
+        }
+      }
+    }
+
+    function actualizarEstadoBotonFicha() {
+      var filtro = document.getElementById('filtro-anilla').value;
+      var btnFicha = document.getElementById('btn-abrir-ficha-seleccionada');
+      if (btnFicha) {
+        btnFicha.disabled = !filtro;
       }
     }
 
@@ -562,9 +668,10 @@
       capaMapaElementos.clearLayers();
       var filtro = document.getElementById('filtro-anilla').value;
       var tbody = document.getElementById('tabla-registros');
+      actualizarEstadoBotonFicha();
 
       if (!filtro) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.[cite: 6]</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.</td></tr>';
         return;
       }
 
@@ -623,7 +730,7 @@
           fillOpacity: 0.9
         }).addTo(capaMapaElementos);
 
-        pMarker.bindPopup(`<b>Marca/Inscripción: ${esc(o.inscripcion)}</b><br>Metálica: <code>${esc(o.anillaMetalica)}</code> | PVC: <code>${esc(o.anillaPvc)}</code><br>Especie: ${o.especie}<br><b>${o.esOrigen ? '🔵 Punto de Anillaje (Origen)' : '🟢 Reavistamiento'}</b><br>Localidad: ${esc(o.localidad)}<br>Edad EURING: ${o.edad}<br>Condición: ${o.condicion}<br>Distancia: ${o.distanciaKm} km<br>Días: ${o.diasDesdeInicio}d`);
+        pMarker.bindPopup(`<b>Marca/Inscripción: ${esc(o.inscripcion)}</b><br>Metálica: <code>${esc(o.anillaMetalica)}</code> | PVC: <code>${esc(o.anillaPvc)}</code><br>Especie: ${esc(o.especie)}<br><b>${o.esOrigen ? '🔵 Punto de Anillaje (Origen)' : '🟢 Reavistamiento'}</b><br>Localidad: ${esc(o.localidad)}<br>Edad EURING: ${o.edad}<br>Condición: ${o.condicion}<br>Distancia: ${o.distanciaKm} km<br>Días: ${o.diasDesdeInicio}d<br><div class="mt-2"><button type="button" class="btn btn-sm btn-success py-0 px-2" onclick="abrirFichaPorId(${o.id})">📄 Abrir Ficha</button></div>`);
       });
 
       actualizarTabla(registrosFiltrados);
@@ -634,7 +741,7 @@
       tbody.innerHTML = "";
 
       if (lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay registros para esta anilla.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">No hay registros para esta anilla.</td></tr>';
         return;
       }
 
@@ -660,6 +767,7 @@
           <td><span class="badge bg-light text-dark border">+${o.diasDesdeInicio}d</span></td>
           <td><span class="badge bg-warning text-dark">${o.distanciaKm} km</span></td>
           <td><span class="badge ${badgeCondClass}">${o.condicion}</span></td>
+          <td><button type="button" class="btn btn-outline-success btn-sm py-0 px-2" onclick="abrirFichaPorId(${o.id})" title="Abrir ficha técnica">📄</button></td>
         `;
         tbody.appendChild(tr);
       });
