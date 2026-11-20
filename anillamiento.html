@@ -286,6 +286,25 @@
 
     document.getElementById('input-fecha-anil').value = new Date().toISOString().slice(0,10);
 
+    function leerMapaCondicionesGraficas() {
+      try {
+        var raw = localStorage.getItem("evaluacion_condicion_por_clave");
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function normalizarFechaClave(f) {
+      if (!f) return '';
+      var s = String(f).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        var p = s.slice(0, 10).split('-');
+        return `${p[2]}/${p[1]}/${p[0]}`;
+      }
+      return s;
+    }
+
     function parseNum(v) {
       if (v === null || v === undefined) return NaN;
       var s = String(v).replace(/[^\d.,-]/g, '').replace(',', '.').trim();
@@ -301,24 +320,43 @@
       return 'Desconocido';
     }
 
-    // Etiquetas de estado igual que en el Evaluador de graficas.html, con detalle numérico al pasar el ratón
+    // Prioriza el estado exacto calculado en graficas.html; si aún no existe, usa respaldo de umbral/SMI
     window.calcularCondicionRegistro = function(item) {
+      var mapa = leerMapaCondicionesGraficas();
+      var metalNorm = String(item.metal || '').trim().toLowerCase();
+      var fechaNorm = normalizarFechaClave(item.fecha);
+
+      var matchGraficas = null;
+      if (item.docId && mapa['doc:' + item.docId]) {
+        matchGraficas = mapa['doc:' + item.docId];
+      } else if (metalNorm && fechaNorm && mapa['mf:' + metalNorm + '|' + fechaNorm]) {
+        matchGraficas = mapa['mf:' + metalNorm + '|' + fechaNorm];
+      } else if (metalNorm && mapa['m:' + metalNorm]) {
+        matchGraficas = mapa['m:' + metalNorm];
+      }
+
+      if (matchGraficas && matchGraficas.estado) {
+        return {
+          corta: matchGraficas.estado,
+          badge: matchGraficas.badge || 'bg-secondary',
+          detalle: matchGraficas.detalle || 'Evaluado en Gráficas y SMI'
+        };
+      }
+
       var ala = parseNum(item.ala);
       var peso = parseNum(item.peso);
       var sexo = normalizarSexo(item.sexo);
       var edad = String(item.edad || '');
       var esPollo = (edad === '1' || edad.toLowerCase().includes('pollo'));
       var espLower = String(item.especie || '').trim().toLowerCase();
-      var esCernicalo = (!espLower || espLower.includes('tinnunculus') || espLower.includes('cernícalo') || espLower.includes('cernicalo'));
+      var esCernicalo = (!espLower || espLower.includes('tinnunculus') || espLower.includes('cernícalo') || espLower.includes('cernicalo') || espLower.includes('fal tin'));
 
       if (isNaN(ala) || isNaN(peso)) {
         return { corta: 'Sin datos suficientes', badge: 'bg-secondary', detalle: 'Falta Ala (mm) o Peso (g)' };
       }
 
-      var ratioNum = (peso / ala).toFixed(2);
-
       if (esPollo) {
-        return { corta: 'Pollo en crecimiento', badge: 'bg-info text-dark', detalle: `Ratio ${ratioNum} g/mm · Pollo en crecimiento` };
+        return { corta: 'Pollo en crecimiento', badge: 'bg-info text-dark', detalle: `Peso ${peso}g · Pollo en crecimiento` };
       }
 
       if (esCernicalo) {
@@ -328,20 +366,19 @@
 
         if (!isNaN(umbral)) {
           if (peso <= umbral - 14) {
-            return { corta: 'ALERTA MARCADA', badge: 'bg-danger', detalle: `Peso ${peso}g ≤ ${(umbral - 14).toFixed(1)}g · Ratio ${ratioNum} g/mm` };
+            return { corta: 'ALERTA MARCADA (Umbral - 14g)', badge: 'bg-danger', detalle: `Peso ${peso}g ≤ ${(umbral - 14).toFixed(1)}g (Umbral: ${umbral.toFixed(1)}g)` };
           }
           if (peso <= umbral) {
-            return { corta: 'Alerta leve', badge: 'bg-warning text-dark', detalle: `Peso ${peso}g ≤ ${umbral.toFixed(1)}g · Ratio ${ratioNum} g/mm` };
+            return { corta: 'Alerta leve (Umbral)', badge: 'bg-warning text-dark', detalle: `Peso ${peso}g ≤ Umbral ${umbral.toFixed(1)}g` };
           }
           if (peso >= umbral + 45) {
-            return { corta: 'Peso elevado', badge: 'bg-primary', detalle: `Peso ${peso}g ≥ ${(umbral + 45).toFixed(1)}g · Ratio ${ratioNum} g/mm` };
+            return { corta: 'Peso elevado / Reproductor', badge: 'bg-primary', detalle: `Peso ${peso}g ≥ ${(umbral + 45).toFixed(1)}g (Umbral: ${umbral.toFixed(1)}g)` };
           }
-          return { corta: 'Normal / Buena', badge: 'bg-success', detalle: `Umbral alerta ≤ ${umbral.toFixed(1)}g · Ratio ${ratioNum} g/mm` };
+          return { corta: 'Normal / Buena', badge: 'bg-success', detalle: `Peso ${peso}g · Umbral alerta ≤ ${umbral.toFixed(1)}g` };
         }
-        return { corta: 'Normal / Buena (por SMI)', badge: 'bg-success', detalle: `Ratio ${ratioNum} g/mm (sin sexo para umbral)` };
       }
 
-      return { corta: 'Normal / Buena (por SMI)', badge: 'bg-success', detalle: `Ratio Masa/Ala: ${ratioNum} g/mm` };
+      return { corta: 'Normal / Buena (por SMI)', badge: 'bg-success', detalle: `Peso ${peso}g · Ala ${ala}mm (abre Gráficas y SMI para desv. SMI exacto)` };
     };
 
     window.evaluarCondicionEnVivo = function() {
