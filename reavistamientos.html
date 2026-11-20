@@ -84,6 +84,38 @@
       border-radius: 50%;
     }
 
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      height: 100%;
+    }
+    .stat-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #64748b;
+      font-weight: 700;
+      display: block;
+    }
+    .stat-value {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.25;
+      margin-top: 2px;
+    }
+    .stat-sub {
+      font-size: 0.72rem;
+      color: #64748b;
+      display: block;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .table-history { font-size: 0.82rem; }
   </style>
 </head>
@@ -272,7 +304,7 @@
         </div>
       </div>
 
-      <!-- COLUMNA DERECHA: FILTRO Y TABLA -->
+      <!-- COLUMNA DERECHA: FILTRO, ESTADÍSTICAS Y TABLA -->
       <div class="col-lg-7">
         <div class="card-panel">
           <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
@@ -304,6 +336,38 @@
               <button type="button" id="btn-abrir-ficha-seleccionada" class="btn btn-success btn-sm w-100 fw-bold" onclick="abrirFichaDeSeleccionada()" disabled title="Abrir ficha técnica del ave seleccionada">
                 📄 Ver Ficha
               </button>
+            </div>
+          </div>
+
+          <!-- RESUMEN ESTADÍSTICO RÁPIDO DEL AVE SELECCIONADA -->
+          <div id="resumen-estadistico-anilla" class="row g-2 mb-3 d-none">
+            <div class="col-6 col-md-3">
+              <div class="stat-card">
+                <span class="stat-label">Observaciones</span>
+                <div class="stat-value text-primary" id="stat-total-puntos">0</div>
+                <span class="stat-sub" id="stat-fecha-inicio">Inicio: -</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card">
+                <span class="stat-label">Distancia Máx.</span>
+                <div class="stat-value text-warning" id="stat-dist-max">0 km</div>
+                <span class="stat-sub">Desde origen</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card">
+                <span class="stat-label">Tiempo Total</span>
+                <div class="stat-value text-dark" id="stat-dias-total">0 días</div>
+                <span class="stat-sub" id="stat-fecha-fin">Última: -</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card">
+                <span class="stat-label">Última Condición</span>
+                <div class="stat-value text-success" id="stat-ultima-condicion">-</div>
+                <span class="stat-sub" id="stat-ultima-localidad">-</span>
+              </div>
             </div>
           </div>
 
@@ -664,6 +728,43 @@
       }
     }
 
+    function actualizarResumenEstadistico(listaOrdenada) {
+      var box = document.getElementById('resumen-estadistico-anilla');
+      if (!box) return;
+
+      if (!listaOrdenada || listaOrdenada.length === 0) {
+        box.classList.add('d-none');
+        return;
+      }
+
+      box.classList.remove('d-none');
+
+      var primero = listaOrdenada[0];
+      var ultimo = listaOrdenada[listaOrdenada.length - 1];
+
+      var distMax = listaOrdenada.reduce(function(max, item) {
+        var d = Number(item.distanciaKm) || 0;
+        return d > max ? d : max;
+      }, 0);
+
+      var diasMax = listaOrdenada.reduce(function(max, item) {
+        var dias = Number(item.diasDesdeInicio) || 0;
+        return dias > max ? dias : max;
+      }, 0);
+
+      document.getElementById('stat-total-puntos').innerText = listaOrdenada.length;
+      document.getElementById('stat-fecha-inicio').innerText = "Inicio: " + (primero.fecha || '-');
+      document.getElementById('stat-dist-max').innerText = distMax + " km";
+      document.getElementById('stat-dias-total').innerText = diasMax + (diasMax === 1 ? " día" : " días");
+      document.getElementById('stat-fecha-fin').innerText = "Última: " + (ultimo.fecha || '-');
+
+      var elCond = document.getElementById('stat-ultima-condicion');
+      elCond.innerText = ultimo.condicion || '-';
+      elCond.className = "stat-value " + (ultimo.condicion === 'Muerta' ? 'text-danger' : 'text-success');
+
+      document.getElementById('stat-ultima-localidad').innerText = ultimo.localidad || '-';
+    }
+
     function renderizarTodoElMapaYTabla() {
       capaMapaElementos.clearLayers();
       var filtro = document.getElementById('filtro-anilla').value;
@@ -671,6 +772,7 @@
       actualizarEstadoBotonFicha();
 
       if (!filtro) {
+        actualizarResumenEstadistico([]);
         tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-3">Selecciona una anilla en el selector superior para mostrar sus datos y mapa.</td></tr>';
         return;
       }
@@ -700,19 +802,19 @@
         });
       });
 
-      var registrosFiltrados = observaciones.filter(o => o.inscripcion === filtro);
+      var registrosFiltrados = agrupadosPorAnilla[filtro] || [];
+      actualizarResumenEstadistico(registrosFiltrados);
 
-      if (agrupadosPorAnilla[filtro] && agrupadosPorAnilla[filtro].length > 1) {
-        var lista = agrupadosPorAnilla[filtro];
-        var coords = lista.map(item => [item.lat, item.lng]);
+      if (registrosFiltrados.length > 1) {
+        var coords = registrosFiltrados.map(item => [item.lat, item.lng]);
         L.polyline(coords, {
-          color: lista[0].bgColor === '#ffffff' ? '#000000' : lista[0].bgColor,
+          color: registrosFiltrados[0].bgColor === '#ffffff' ? '#000000' : registrosFiltrados[0].bgColor,
           weight: 3,
           dashArray: '5, 5',
           opacity: 0.8
         }).addTo(capaMapaElementos);
         
-        var ultimoPunto = lista[lista.length - 1];
+        var ultimoPunto = registrosFiltrados[registrosFiltrados.length - 1];
         map.setView([ultimoPunto.lat, ultimoPunto.lng], 11);
       } else if (registrosFiltrados.length === 1) {
         map.setView([registrosFiltrados[0].lat, registrosFiltrados[0].lng], 12);
