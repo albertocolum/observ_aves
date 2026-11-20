@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estadísticas y Laboratorio Biométrico - Tracking Ornitológico</title>
+  <title>Estadísticas, Laboratorio Biométrico y Evaluador Individual - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -48,16 +48,38 @@
     .table-summary-r { font-size: 0.8rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .nav-pills .nav-link.active { background-color: #198754; font-weight: 700; }
     .nav-pills .nav-link { color: #334155; font-weight: 600; }
+
+    .kpi-condicion {
+      border-radius: 8px;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      height: 100%;
+    }
+    .kpi-condicion .kpi-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      display: block;
+    }
+    .kpi-condicion .kpi-num {
+      font-size: 1.35rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+    .table-evaluador { font-size: 0.8rem; }
   </style>
 </head>
 <body>
 
-  <div class="container my-4" style="max-width: 1320px;">
+  <div class="container my-4" style="max-width: 1360px;">
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Estadísticas Fenológicas y Laboratorio Biométrico</h2>
-          <p class="text-muted mb-0 small">Análisis estacional mensual, regresiones bivariantes, distribuciones por grupo (IQR) y detección de atípicos.</p>
+          <h2 class="fw-bold text-success mb-1">📊 Estadísticas, Laboratorio Biométrico y Evaluador Individual</h2>
+          <p class="text-muted mb-0 small">Ciclo fenológico mensual, análisis tipo RStudio y evaluación individual de condición física y SMI.</p>
         </div>
         <div class="d-flex gap-2 align-items-center flex-wrap">
           <label class="btn btn-outline-primary btn-sm mb-0" title="Cargar un CSV externo solo para analizar en esta sesión">
@@ -72,7 +94,7 @@
       <!-- PESTAÑAS DE MODO DE ANÁLISIS -->
       <ul class="nav nav-pills mb-4 bg-light p-2 rounded border" id="tabs-analisis" role="tablist">
         <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="tab-fenologia-btn" data-bs-toggle="pill" data-bs-target="#pane-fenologia" type="button" role="tab">
+          <button class="nav-link active" id="tab-fenologia-btn" data-bs-toggle="pill" data-bs-target="#pane-fenologia" type="button" role="tab" onclick="actualizarGrafica()">
             📈 1. Ciclo Fenológico Mensual
           </button>
         </li>
@@ -81,11 +103,16 @@
             🔬 2. Laboratorio Biométrico (Estilo RStudio)
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-evaluador-btn" data-bs-toggle="pill" data-bs-target="#pane-evaluador" type="button" role="tab" onclick="actualizarEvaluadorIndividual()">
+            🦅 3. Evaluador Individual y SMI
+          </button>
+        </li>
       </ul>
 
       <!-- PANEL DE FILTRADO GLOBAL COMPARTIDO -->
       <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
-        <h6 class="fw-bold text-dark mb-2">⚙️ Filtros Globales de Muestra (Aplican a ambos paneles)</h6>
+        <h6 class="fw-bold text-dark mb-2">⚙️ Filtros Globales de Muestra (Aplican a todas las pestañas)</h6>
         <div class="row g-3 align-items-end">
           <div class="col-md-2">
             <label class="form-label fw-bold small">Especie</label>
@@ -238,6 +265,7 @@
                       <option value="cola">Cola (mm)</option>
                       <option value="tarso">Tarso (mm)</option>
                       <option value="r5">R5 (mm)</option>
+                      <option value="smi">SMI — Scaled Mass Index (g, por sexo)</option>
                       <option value="condicion_corporal">Índice Condición Cúbica (Peso / Ala³ × 10⁵)</option>
                       <option value="ratio_peso_ala">Ratio Masa / Ala (g / mm)</option>
                       <option value="residuo_masa_ala">Condición Residual Lineal (Peso − Peso_esp en g)</option>
@@ -346,6 +374,93 @@
             </div>
           </div>
         </div>
+
+        <!-- ============================================================== -->
+        <!-- PESTAÑA 3: EVALUADOR INDIVIDUAL DE CONDICIÓN Y SMI (PEIG & GREEN) -->
+        <!-- ============================================================== -->
+        <div class="tab-pane fade" id="pane-evaluador" role="tabpanel">
+          
+          <!-- KPIs SUPERIORES DEL EVALUADOR -->
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="kpi-condicion">
+                <span class="kpi-title">Individuos Evaluados</span>
+                <div class="kpi-num text-dark" id="eval-kpi-total">0</div>
+                <small class="text-muted" style="font-size: 0.72rem;" id="eval-kpi-smi-params">SMI: L0 = - | b_SMA = -</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="kpi-condicion" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <span class="kpi-title text-success">Normal / Buena</span>
+                <div class="kpi-num text-success" id="eval-kpi-normal">0</div>
+                <small class="text-muted" style="font-size: 0.72rem;" id="eval-kpi-elevado">Peso elevado / Repr.: 0</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="kpi-condicion" style="background: #fffbeb; border-color: #fde68a;">
+                <span class="kpi-title text-warning">Alerta Leve (Delgadez)</span>
+                <div class="kpi-num text-warning" id="eval-kpi-leve">0</div>
+                <small class="text-muted" style="font-size: 0.72rem;">Peso ≤ Umbral por ala</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="kpi-condicion" style="background: #fef2f2; border-color: #fecaca;">
+                <span class="kpi-title text-danger">Alerta Marcada (Muy bajo)</span>
+                <div class="kpi-num text-danger" id="eval-kpi-marcada">0</div>
+                <small class="text-muted" style="font-size: 0.72rem;">Peso ≤ Umbral − 14 g</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- BARRA DE FILTRO RÁPIDO POR ESTADO Y EXPORTACIÓN -->
+          <div class="rstudio-pane">
+            <div class="rstudio-pane-header flex-wrap gap-2">
+              <span>📋 Evaluación Individual de Condición Física (Umbral Cernícalo + SMI Peig &amp; Green 2009)</span>
+              <div class="d-flex gap-2 align-items-center">
+                <input type="text" id="eval-buscador" class="form-control form-control-sm" style="width: 170px;" placeholder="Buscar anilla..." oninput="actualizarEvaluadorIndividual()">
+                <select id="eval-filtro-estado" class="form-select form-select-sm" style="width: 210px;" onchange="actualizarEvaluadorIndividual()">
+                  <option value="TODOS" selected>Todos los estados</option>
+                  <option value="ALERTAS">⚠️ Todas las alertas (Leve + Marcada)</option>
+                  <option value="ALERTA MARCADA">🔴 Solo Alerta Marcada</option>
+                  <option value="Alerta leve">🟡 Solo Alerta Leve</option>
+                  <option value="Normal / Buena">🟢 Normal / Buena</option>
+                  <option value="Peso elevado">🔵 Peso elevado / Reproductor</option>
+                  <option value="Pollo">🐣 Pollo en crecimiento</option>
+                </select>
+                <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportarEvaluadorIndividualCSV()">📥 Exportar CSV</button>
+              </div>
+            </div>
+
+            <div class="table-responsive" style="max-height: 520px;">
+              <table class="table table-sm table-hover align-middle mb-0 table-evaluador">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>ID / Anilla</th>
+                    <th>Fecha</th>
+                    <th>Especie</th>
+                    <th>Sexo</th>
+                    <th>Edad</th>
+                    <th class="text-end">Ala (mm)</th>
+                    <th class="text-end">Peso Neto (g)</th>
+                    <th class="text-end">Ratio (g/mm)</th>
+                    <th class="text-end">SMI (g)</th>
+                    <th class="text-end">Desv. SMI (%)</th>
+                    <th class="text-end">Umbral Alerta (g)</th>
+                    <th>Estado Condición Física</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-evaluador-individual">
+                  <tr><td colspan="12" class="text-center text-muted py-4">No hay registros cargados para evaluar.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+            <b>Nota metodológica:</b> Para <i>Falco tinnunculus</i> voladores se aplica la referencia por cuerda alar del Excel (Machos: <code>148 + (Ala − 225) × 0.7333</code>; Hembras: <code>165 + (Ala − 235) × 0.8333</code>). El <b>SMI</b> (<i>Scaled Mass Index</i>, Peig &amp; Green 2009) se calcula por separado para cada sexo dentro de la muestra filtrada usando <code>L₀ = media(Ala)</code> y <code>b_SMA = SD(ln Peso) / SD(ln Ala)</code>.
+          </div>
+
+        </div>
       </div>
 
     </div>
@@ -358,6 +473,7 @@
     var chartRScatterInstance = null;
     var chartRDistribucionInstance = null;
     var ultimoResumenTabla = [];
+    var ultimasFilasEvaluador = [];
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -367,6 +483,7 @@
       tarso: "Tarso (mm)",
       r5: "R5 (mm)",
       peso: "Masa / Peso (g)",
+      smi: "SMI — Scaled Mass Index (g)",
       condicion_corporal: "Condición Cúbica (Peso/Ala³×10⁵)",
       ratio_peso_ala: "Ratio Masa / Ala (g/mm)",
       residuo_masa_ala: "Condición Residual Lineal (g)"
@@ -403,6 +520,23 @@
       return (!isNaN(n) && n > 0) ? n : NaN;
     }
 
+    function normalizarSexo(rawSexo) {
+      var s = String(rawSexo || "").trim().toLowerCase();
+      if (s === "m" || s === "macho" || s === "male") return "Macho";
+      if (s === "f" || s === "hembra" || s === "female") return "Hembra";
+      return "Indeterminado";
+    }
+
+    function obtenerPesoNeto(item) {
+      var pesoBruto = parsearNumeroBiometria(item.peso);
+      if (isNaN(pesoBruto)) return NaN;
+      var buche = String(item.buche || "").trim().toLowerCase();
+      var descuento = 0;
+      if (buche.includes("lleno") || buche.includes("20")) descuento = 20;
+      else if (buche.includes("medio") || buche.includes("10")) descuento = 10;
+      return Math.max(0, pesoBruto - descuento);
+    }
+
     function calcularRegresionDesdePares(pares) {
       var n = pares.length;
       if (n < 2) return null;
@@ -432,7 +566,7 @@
       var pares = [];
       registros.forEach((item, idx) => {
         var ala = parsearNumeroBiometria(item.ala);
-        var peso = parsearNumeroBiometria(item.peso);
+        var peso = obtenerPesoNeto(item);
         if (!isNaN(ala) && !isNaN(peso)) {
           pares.push({ idx: idx, x: ala, y: peso });
         }
@@ -449,9 +583,151 @@
       return mapa;
     }
 
-    function obtenerValorVariable(item, varKey, idx, mapaResiduos) {
-      var peso = parsearNumeroBiometria(item.peso);
+    // Cálculo de SMI (Peig & Green 2009) separado por sexo
+    function calcularSMIPorSexo(registros) {
+      var grupos = { Macho: [], Hembra: [], Indeterminado: [] };
+
+      registros.forEach((item, idx) => {
+        var ala = parsearNumeroBiometria(item.ala);
+        var peso = obtenerPesoNeto(item);
+        var sexo = normalizarSexo(item.sexo);
+        if (!isNaN(ala) && ala > 0 && !isNaN(peso) && peso > 0) {
+          grupos[sexo].push({
+            idx: idx,
+            ala: ala,
+            peso: peso,
+            lnAla: Math.log(ala),
+            lnPeso: Math.log(peso)
+          });
+        }
+      });
+
+      var resultadoPorIdx = new Map();
+      var resumenParams = {};
+
+      Object.keys(grupos).forEach(sexo => {
+        var lista = grupos[sexo];
+        if (lista.length === 0) return;
+
+        var L0 = lista.reduce((acc, r) => acc + r.ala, 0) / lista.length;
+        var bSMA = 3.0; // Fallback alométrico si n < 2
+
+        if (lista.length >= 2) {
+          var meanLnAla = lista.reduce((acc, r) => acc + r.lnAla, 0) / lista.length;
+          var meanLnPeso = lista.reduce((acc, r) => acc + r.lnPeso, 0) / lista.length;
+          var sdLnAla = Math.sqrt(lista.reduce((acc, r) => acc + Math.pow(r.lnAla - meanLnAla, 2), 0) / (lista.length - 1));
+          var sdLnPeso = Math.sqrt(lista.reduce((acc, r) => acc + Math.pow(r.lnPeso - meanLnPeso, 2), 0) / (lista.length - 1));
+          if (sdLnAla > 0 && sdLnPeso > 0) {
+            bSMA = sdLnPeso / sdLnAla;
+          }
+        }
+
+        lista.forEach(r => {
+          r.smi = r.peso * Math.pow(L0 / r.ala, bSMA);
+        });
+
+        var mediaSMI = lista.reduce((acc, r) => acc + r.smi, 0) / lista.length;
+        resumenParams[sexo] = { n: lista.length, L0: L0, bSMA: bSMA, mediaSMI: mediaSMI };
+
+        lista.forEach(r => {
+          var desvPct = mediaSMI > 0 ? ((r.smi - mediaSMI) / mediaSMI) * 100 : 0;
+          resultadoPorIdx.set(r.idx, {
+            smi: r.smi,
+            desvPct: desvPct,
+            L0: L0,
+            bSMA: bSMA,
+            mediaSMI: mediaSMI
+          });
+        });
+      });
+
+      return { mapa: resultadoPorIdx, params: resumenParams };
+    }
+
+    function evaluarCondicionIndividuo(item, smiInfo) {
+      var sexo = normalizarSexo(item.sexo);
       var ala = parsearNumeroBiometria(item.ala);
+      var pesoNeto = obtenerPesoNeto(item);
+      var esPollo = (String(item.edad) === "1" || String(item.edad || "").toLowerCase().includes("pollo"));
+      var especieStr = String(item.especie || "").trim().toLowerCase();
+      var esCernicalo = (!especieStr || especieStr.includes("tinnunculus") || especieStr.includes("cernícalo") || especieStr.includes("cernicalo"));
+
+      var ratio = (!isNaN(ala) && ala > 0 && !isNaN(pesoNeto)) ? (pesoNeto / ala) : NaN;
+      var umbralLeve = NaN;
+
+      if (!isNaN(ala) && ala > 0 && esCernicalo) {
+        if (sexo === "Macho") {
+          umbralLeve = Math.round((148 + (ala - 225) * 0.7333) * 10) / 10;
+        } else if (sexo === "Hembra") {
+          umbralLeve = Math.round((165 + (ala - 235) * 0.8333) * 10) / 10;
+        }
+      }
+
+      var estado = "Sin datos suficientes";
+      var badgeClass = "bg-secondary";
+
+      if (!isNaN(ala) && !isNaN(pesoNeto)) {
+        if (esPollo) {
+          estado = "Pollo en crecimiento (usar curva nido)";
+          badgeClass = "bg-info text-dark";
+        } else if (!esCernicalo) {
+          // Para otras especies evaluamos por desviación de SMI si existe
+          if (smiInfo && !isNaN(smiInfo.desvPct)) {
+            if (smiInfo.desvPct <= -15) {
+              estado = "ALERTA MARCADA (SMI ≤ -15%)";
+              badgeClass = "bg-danger";
+            } else if (smiInfo.desvPct <= -8) {
+              estado = "Alerta leve (SMI ≤ -8%)";
+              badgeClass = "bg-warning text-dark";
+            } else if (smiInfo.desvPct >= 15) {
+              estado = "Peso elevado / Reproductor";
+              badgeClass = "bg-primary";
+            } else {
+              estado = "Normal / Buena (por SMI)";
+              badgeClass = "bg-success";
+            }
+          } else {
+            estado = "Otra especie (ver SMI)";
+            badgeClass = "bg-secondary";
+          }
+        } else if (sexo === "Indeterminado" || isNaN(umbralLeve)) {
+          estado = "Indicar sexo para umbral exacto";
+          badgeClass = "bg-secondary";
+        } else if (pesoNeto <= (umbralLeve - 14)) {
+          estado = "ALERTA MARCADA (Muy bajo)";
+          badgeClass = "bg-danger";
+        } else if (pesoNeto <= umbralLeve) {
+          estado = "Alerta leve (Delgadez)";
+          badgeClass = "bg-warning text-dark";
+        } else if (pesoNeto >= (umbralLeve + 45)) {
+          estado = "Peso elevado / Reproductor";
+          badgeClass = "bg-primary";
+        } else {
+          estado = "Normal / Buena";
+          badgeClass = "bg-success";
+        }
+      }
+
+      return {
+        sexo: sexo,
+        ala: ala,
+        pesoNeto: pesoNeto,
+        ratio: ratio,
+        umbralLeve: umbralLeve,
+        estado: estado,
+        badgeClass: badgeClass,
+        smi: smiInfo ? smiInfo.smi : NaN,
+        desvPct: smiInfo ? smiInfo.desvPct : NaN
+      };
+    }
+
+    function obtenerValorVariable(item, varKey, idx, mapaResiduos, mapaSMI) {
+      var peso = obtenerPesoNeto(item);
+      var ala = parsearNumeroBiometria(item.ala);
+
+      if (varKey === "smi") {
+        return (mapaSMI && mapaSMI.has(idx)) ? parseFloat(mapaSMI.get(idx).smi.toFixed(2)) : NaN;
+      }
 
       if (varKey === "condicion_corporal") {
         if (!isNaN(peso) && !isNaN(ala) && ala > 0) {
@@ -525,7 +801,7 @@
         var idxMap = {
           fecha: cabeceras.findIndex(h => h.includes('fecha')),
           especie: cabeceras.findIndex(h => h.includes('especie')),
-          metal: cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla')),
+          metal: cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla') || h === 'id'),
           pvc: cabeceras.findIndex(h => h.includes('pvc')),
           sexo: cabeceras.findIndex(h => h.includes('sexo')),
           edad: cabeceras.findIndex(h => h.includes('edad') || h.includes('euring')),
@@ -533,7 +809,8 @@
           cola: cabeceras.findIndex(h => h.includes('cola')),
           r5: cabeceras.findIndex(h => h === 'r5' || h.includes('r5')),
           tarso: cabeceras.findIndex(h => h.includes('tarso')),
-          peso: cabeceras.findIndex(h => h.includes('peso') || h.includes('masa'))
+          peso: cabeceras.findIndex(h => h.includes('peso') || h.includes('masa')),
+          buche: cabeceras.findIndex(h => h.includes('buche'))
         };
 
         var cargados = [];
@@ -550,7 +827,8 @@
             cola: idxMap.cola >= 0 ? cols[idxMap.cola] : "",
             r5: idxMap.r5 >= 0 ? cols[idxMap.r5] : "",
             tarso: idxMap.tarso >= 0 ? cols[idxMap.tarso] : "",
-            peso: idxMap.peso >= 0 ? cols[idxMap.peso] : ""
+            peso: idxMap.peso >= 0 ? cols[idxMap.peso] : "",
+            buche: idxMap.buche >= 0 ? cols[idxMap.buche] : ""
           });
         }
 
@@ -563,9 +841,10 @@
     }
 
     function refrescarVistaActiva() {
-      var rstudioActivo = document.getElementById('pane-rstudio').classList.contains('show');
-      if (rstudioActivo) {
+      if (document.getElementById('pane-rstudio').classList.contains('show')) {
         actualizarLaboratorioBiometrico();
+      } else if (document.getElementById('pane-evaluador').classList.contains('show')) {
+        actualizarEvaluadorIndividual();
       } else {
         actualizarGrafica();
       }
@@ -588,6 +867,7 @@
       aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las medias mensuales globales y ver su ciclo estacional.</p>`;
 
       actualizarLaboratorioBiometrico();
+      actualizarEvaluadorIndividual();
     }
 
     function descargarGrafica() {
@@ -616,34 +896,6 @@
       return "Desconocido";
     }
 
-    function pasaFiltrosGlobales(item, dDesde, dHasta, especieSeleccionada, checksActivos, r5ValParaFiltro) {
-      if (especieSeleccionada && especieSeleccionada !== "TODAS") {
-        if (String(item.especie || "").trim() !== especieSeleccionada) return false;
-      }
-
-      var dItem = parsearFecha(item.fecha);
-      if (dDesde || dHasta) {
-        if (!dItem) return false;
-        if (dDesde && dItem < dDesde) return false;
-        if (dHasta && dItem > dHasta) return false;
-      }
-
-      var catBase = clasificarItemBase(item);
-      var r5Num = !isNaN(r5ValParaFiltro) ? r5ValParaFiltro : parsearNumeroBiometria(item.r5);
-
-      if (!isNaN(r5Num)) {
-        if (r5Num <= 19.0 && !checksActivos.Joven) return false;
-        if (r5Num >= 19.1 && !checksActivos.Adulto) return false;
-      }
-
-      if (catBase === "Macho" && !checksActivos.Macho) return false;
-      if (catBase === "Hembra" && !checksActivos.Hembra) return false;
-      if (catBase === "Pollo" && !checksActivos.Pollo) return false;
-      if (catBase === "Desconocido" && !checksActivos.Desconocido) return false;
-
-      return true;
-    }
-
     function obtenerChecksActivos() {
       return {
         Macho: document.getElementById('chk-macho').checked,
@@ -653,6 +905,46 @@
         Adulto: document.getElementById('chk-adulto').checked,
         Desconocido: document.getElementById('chk-desconocido').checked
       };
+    }
+
+    function obtenerRegistrosFiltradosGlobales() {
+      var fechaDesdeVal = document.getElementById('filtro-desde').value;
+      var fechaHastaVal = document.getElementById('filtro-hasta').value;
+      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
+      var checks = obtenerChecksActivos();
+
+      var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
+      var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
+      if (dDesde) dDesde.setHours(0,0,0,0);
+      if (dHasta) dHasta.setHours(23,59,59,999);
+
+      return anillamientos.filter(item => {
+        if (especieSeleccionada && especieSeleccionada !== "TODAS") {
+          if (String(item.especie || "").trim() !== especieSeleccionada) return false;
+        }
+
+        var dItem = parsearFecha(item.fecha);
+        if (dDesde || dHasta) {
+          if (!dItem) return false;
+          if (dDesde && dItem < dDesde) return false;
+          if (dHasta && dItem > dHasta) return false;
+        }
+
+        var catBase = clasificarItemBase(item);
+        var r5Num = parsearNumeroBiometria(item.r5);
+
+        if (!isNaN(r5Num)) {
+          if (r5Num <= 19.0 && !checks.Joven) return false;
+          if (r5Num >= 19.1 && !checks.Adulto) return false;
+        }
+
+        if (catBase === "Macho" && !checks.Macho) return false;
+        if (catBase === "Hembra" && !checks.Hembra) return false;
+        if (catBase === "Pollo" && !checks.Pollo) return false;
+        if (catBase === "Desconocido" && !checks.Desconocido) return false;
+
+        return true;
+      });
     }
 
     // =========================================================================
@@ -671,7 +963,7 @@
       if (!metrica) {
         contenedor.style.display = 'none';
         aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>Selecciona una métrica biométrica.</h4><p class="small">Elige entre Peso, Ala, Cola, R5 o Tarso en el desplegable superior.</p>`;
+        aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>`;
         return;
       }
 
@@ -702,19 +994,12 @@
         var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
 
         if (metrica === "r5") {
-          if (val <= 19.0) {
-            categoria = "Joven";
-          } else if (val >= 19.1) {
-            categoria = "Adulto";
-          }
+          if (val <= 19.0) categoria = "Joven";
+          else if (val >= 19.1) categoria = "Adulto";
         } else {
-          if (esPollo) {
-            categoria = "Pollo";
-          } else if (sexoItem === "m" || sexoItem === "macho") {
-            categoria = "Macho";
-          } else if (sexoItem === "f" || sexoItem === "hembra") {
-            categoria = "Hembra";
-          }
+          if (esPollo) categoria = "Pollo";
+          else if (sexoItem === "m" || sexoItem === "macho") categoria = "Macho";
+          else if (sexoItem === "f" || sexoItem === "hembra") categoria = "Hembra";
         }
 
         if (categoria === "Macho" && !checks.Macho) return;
@@ -884,17 +1169,7 @@
       var q3 = cuantil(sorted, 0.75);
       var iqr = q3 - q1;
 
-      return {
-        n: n,
-        mean: mean,
-        sd: sd,
-        median: median,
-        q1: q1,
-        q3: q3,
-        iqr: iqr,
-        min: sorted[0],
-        max: sorted[n - 1]
-      };
+      return { n, mean, sd, median, q1, q3, iqr, min: sorted[0], max: sorted[n - 1] };
     }
 
     function calcularRegresionLineal(puntosXY) {
@@ -943,26 +1218,14 @@
       var mostrarLm = document.getElementById('r-mostrar-lm').checked;
       var lmPorGrupo = document.getElementById('r-lm-por-grupo').checked;
 
-      var fechaDesdeVal = document.getElementById('filtro-desde').value;
-      var fechaHastaVal = document.getElementById('filtro-hasta').value;
-      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
-      var checks = obtenerChecksActivos();
-
-      var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
-      var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
-      if (dDesde) dDesde.setHours(0,0,0,0);
-      if (dHasta) dHasta.setHours(23,59,59,999);
-
-      var registrosFiltrados = anillamientos.filter(item =>
-        pasaFiltrosGlobales(item, dDesde, dHasta, especieSeleccionada, checks, NaN)
-      );
-
+      var registrosFiltrados = obtenerRegistrosFiltradosGlobales();
       var mapaResiduos = construirMapaResiduosMasaAla(registrosFiltrados);
+      var smiData = calcularSMIPorSexo(registrosFiltrados);
 
       var puntosScatter = [];
       registrosFiltrados.forEach((item, idx) => {
-        var vx = obtenerValorVariable(item, varX, idx, mapaResiduos);
-        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos);
+        var vx = obtenerValorVariable(item, varX, idx, mapaResiduos, smiData.mapa);
+        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos, smiData.mapa);
         if (!isNaN(vx) && !isNaN(vy)) {
           puntosScatter.push({
             x: vx,
@@ -977,7 +1240,7 @@
 
       var registrosY = [];
       registrosFiltrados.forEach((item, idx) => {
-        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos);
+        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos, smiData.mapa);
         if (!isNaN(vy)) {
           registrosY.push({
             y: vy,
@@ -1281,6 +1544,137 @@
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = "resumen_biometrico_rstudio.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // =========================================================================
+    // PESTAÑA 3: EVALUADOR INDIVIDUAL DE CONDICIÓN Y SMI
+    // =========================================================================
+    function escHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function actualizarEvaluadorIndividual() {
+      var registros = obtenerRegistrosFiltradosGlobales();
+      var smiData = calcularSMIPorSexo(registros);
+      var filtroEstado = document.getElementById('eval-filtro-estado').value;
+      var queryAnilla = document.getElementById('eval-buscador').value.trim().toUpperCase();
+
+      var cntEvaluados = 0;
+      var cntNormal = 0;
+      var cntElevado = 0;
+      var cntLeve = 0;
+      var cntMarcada = 0;
+
+      var filasProcesadas = [];
+
+      registros.forEach((item, idx) => {
+        var smiInfo = smiData.mapa.get(idx);
+        var ev = evaluarCondicionIndividuo(item, smiInfo);
+        var anillaId = item.metal || item.pvc || ("REG-" + (idx + 1));
+
+        if (!isNaN(ev.ala) && !isNaN(ev.pesoNeto)) {
+          cntEvaluados++;
+          if (ev.estado.includes("ALERTA MARCADA")) cntMarcada++;
+          else if (ev.estado.includes("Alerta leve")) cntLeve++;
+          else if (ev.estado.includes("Peso elevado")) cntElevado++;
+          else if (ev.estado.includes("Normal / Buena")) cntNormal++;
+        }
+
+        filasProcesadas.push({
+          anilla: anillaId,
+          pvc: item.pvc || "",
+          fecha: item.fecha || "-",
+          especie: item.especie || "-",
+          sexo: ev.sexo,
+          edad: item.edad || "-",
+          ala: ev.ala,
+          pesoNeto: ev.pesoNeto,
+          ratio: ev.ratio,
+          smi: ev.smi,
+          desvPct: ev.desvPct,
+          umbralLeve: ev.umbralLeve,
+          estado: ev.estado,
+          badgeClass: ev.badgeClass
+        });
+      });
+
+      document.getElementById('eval-kpi-total').innerText = cntEvaluados;
+      document.getElementById('eval-kpi-normal').innerText = cntNormal;
+      document.getElementById('eval-kpi-elevado').innerText = "Peso elevado / Repr.: " + cntElevado;
+      document.getElementById('eval-kpi-leve').innerText = cntLeve;
+      document.getElementById('eval-kpi-marcada').innerText = cntMarcada;
+
+      var txtParams = [];
+      if (smiData.params.Macho) {
+        txtParams.push(`M: L0=${smiData.params.Macho.L0.toFixed(1)}, b=${smiData.params.Macho.bSMA.toFixed(2)}`);
+      }
+      if (smiData.params.Hembra) {
+        txtParams.push(`H: L0=${smiData.params.Hembra.L0.toFixed(1)}, b=${smiData.params.Hembra.bSMA.toFixed(2)}`);
+      }
+      document.getElementById('eval-kpi-smi-params').innerText = txtParams.length ? txtParams.join(" | ") : "SMI: Sin muestra por sexo";
+
+      var filtradasTabla = filasProcesadas.filter(f => {
+        if (queryAnilla) {
+          var matchId = String(f.anilla).toUpperCase().includes(queryAnilla) || String(f.pvc).toUpperCase().includes(queryAnilla);
+          if (!matchId) return false;
+        }
+        if (filtroEstado === "TODOS") return true;
+        if (filtroEstado === "ALERTAS") return f.estado.includes("ALERTA MARCADA") || f.estado.includes("Alerta leve");
+        return f.estado.includes(filtroEstado);
+      });
+
+      ultimasFilasEvaluador = filtradasTabla;
+
+      var tbody = document.getElementById('tbody-evaluador-individual');
+      tbody.innerHTML = "";
+
+      if (filtradasTabla.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No hay individuos que coincidan con los filtros actuales.</td></tr>';
+        return;
+      }
+
+      filtradasTabla.forEach(f => {
+        var desvClass = "";
+        var desvStr = "-";
+        if (!isNaN(f.desvPct)) {
+          desvStr = (f.desvPct >= 0 ? "+" : "") + f.desvPct.toFixed(1) + "%";
+          if (f.desvPct <= -10) desvClass = "text-danger fw-bold";
+          else if (f.desvPct >= 10) desvClass = "text-primary fw-bold";
+        }
+
+        var tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="fw-bold">${escHtml(f.anilla)}${f.pvc && f.pvc !== f.anilla ? ` <small class="text-muted">(${escHtml(f.pvc)})</small>` : ''}</td>
+          <td>${escHtml(f.fecha)}</td>
+          <td><i>${escHtml(f.especie)}</i></td>
+          <td>${escHtml(f.sexo)}</td>
+          <td>${escHtml(f.edad)}</td>
+          <td class="text-end">${!isNaN(f.ala) ? f.ala.toFixed(1) : '-'}</td>
+          <td class="text-end fw-bold">${!isNaN(f.pesoNeto) ? f.pesoNeto.toFixed(1) : '-'}</td>
+          <td class="text-end">${!isNaN(f.ratio) ? f.ratio.toFixed(3) : '-'}</td>
+          <td class="text-end fw-bold text-primary">${!isNaN(f.smi) ? f.smi.toFixed(1) : '-'}</td>
+          <td class="text-end ${desvClass}">${desvStr}</td>
+          <td class="text-end">${!isNaN(f.umbralLeve) ? f.umbralLeve.toFixed(1) : '-'}</td>
+          <td><span class="badge ${f.badgeClass}">${escHtml(f.estado)}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportarEvaluadorIndividualCSV() {
+      if (ultimasFilasEvaluador.length === 0) return alert("No hay datos evaluados para exportar.");
+      var cab = "Anilla,PVC,Fecha,Especie,Sexo,Edad,Ala_mm,PesoNeto_g,Ratio_g_mm,SMI_g,Desv_SMI_pct,Umbral_Alerta_g,Estado_Condicion\n";
+      var filas = ultimasFilasEvaluador.map(f =>
+        `"${f.anilla}","${f.pvc}","${f.fecha}","${f.especie}","${f.sexo}","${f.edad}",${!isNaN(f.ala)?f.ala:''},${!isNaN(f.pesoNeto)?f.pesoNeto:''},${!isNaN(f.ratio)?f.ratio.toFixed(3):''},${!isNaN(f.smi)?f.smi.toFixed(1):''},${!isNaN(f.desvPct)?f.desvPct.toFixed(1):''},${!isNaN(f.umbralLeve)?f.umbralLeve.toFixed(1):''},"${f.estado}"`
+      ).join("\n");
+
+      var blob = new Blob(["\uFEFF" + cab + filas], { type: "text/csv;charset=utf-8;" });
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "evaluacion_condicion_individual.csv";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
