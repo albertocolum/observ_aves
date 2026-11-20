@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estadísticas y Gráficas Fenológicas - Tracking Ornitológico</title>
+  <title>Estadísticas y Laboratorio Biométrico - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -12,34 +12,97 @@
     .stat-card { background: #e8f5e9; border-left: 4px solid #28a745; border-radius: 8px; padding: 15px; }
     .checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; padding-top: 5px; }
     .sub-desglose { font-size: 0.75rem; color: #555; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
+
+    /* ESTILO TIPO RSTUDIO / LABORATORIO BIOMÉTRICO */
+    .rstudio-pane {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .rstudio-pane-header {
+      background: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rstudio-console {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.78rem;
+      padding: 12px 14px;
+      border-radius: 6px;
+      line-height: 1.45;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .rstudio-console .cmd { color: #38bdf8; font-weight: 700; }
+    .rstudio-console .warn { color: #fbbf24; }
+    .rstudio-console .ok { color: #4ade80; }
+    .table-summary-r { font-size: 0.8rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .nav-pills .nav-link.active { background-color: #198754; font-weight: 700; }
+    .nav-pills .nav-link { color: #334155; font-weight: 600; }
   </style>
 </head>
 <body>
 
-  <div class="container my-5" style="max-width: 1200px;">
+  <div class="container my-4" style="max-width: 1320px;">
     <div class="card-panel">
-      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Gráfica Fenológica Global por Meses</h2>
-          <p class="text-muted mb-0">Ciclo estacional de Enero a Diciembre (agrupando todos los años), con desglose por sexo/edad y criterios R5.</p>
+          <h2 class="fw-bold text-success mb-1">📊 Estadísticas Fenológicas y Laboratorio Biométrico</h2>
+          <p class="text-muted mb-0 small">Análisis estacional mensual, regresiones bivariantes, distribuciones por grupo (IQR) y detección de atípicos.</p>
         </div>
-        <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <label class="btn btn-outline-primary btn-sm mb-0" title="Cargar un CSV externo solo para analizar en esta sesión">
+            📂 Cargar CSV externo
+            <input type="file" id="input-csv-externo" accept=".csv" hidden onchange="cargarCsvExterno(event)">
+          </label>
+          <span id="badge-fuente-datos" class="badge bg-light text-dark border py-2 px-2">Fuente: Base Local (0 reg.)</span>
+          <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
+        </div>
       </div>
 
-      <!-- PANEL DE FILTRADO CON CHECKBOXES -->
+      <!-- PESTAÑAS DE MODO DE ANÁLISIS -->
+      <ul class="nav nav-pills mb-4 bg-light p-2 rounded border" id="tabs-analisis" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="tab-fenologia-btn" data-bs-toggle="pill" data-bs-target="#pane-fenologia" type="button" role="tab">
+            📈 1. Ciclo Fenológico Mensual
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="tab-rstudio-btn" data-bs-toggle="pill" data-bs-target="#pane-rstudio" type="button" role="tab" onclick="actualizarLaboratorioBiometrico()">
+            🔬 2. Laboratorio Biométrico (Estilo RStudio)
+          </button>
+        </li>
+      </ul>
+
+      <!-- PANEL DE FILTRADO GLOBAL COMPARTIDO -->
       <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
-        <h5 class="fw-bold text-dark mb-3">⚙️ Configuración de Filtros y Métrica</h5>
+        <h6 class="fw-bold text-dark mb-2">⚙️ Filtros Globales de Muestra (Aplican a ambos paneles)</h6>
         <div class="row g-3 align-items-end">
-          <div class="col-md-3">
-            <label class="form-label fw-bold small">Fecha Inicio</label>
-            <input type="date" id="filtro-desde" class="form-control form-control-sm" onchange="actualizarGrafica()">
+          <div class="col-md-2">
+            <label class="form-label fw-bold small">Especie</label>
+            <select id="filtro-especie-global" class="form-select form-select-sm" onchange="refrescarVistaActiva()">
+              <option value="TODAS" selected>Todas las especies</option>
+            </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
+            <label class="form-label fw-bold small">Fecha Inicio</label>
+            <input type="date" id="filtro-desde" class="form-control form-control-sm" onchange="refrescarVistaActiva()">
+          </div>
+          <div class="col-md-2">
             <label class="form-label fw-bold small">Fecha Fin</label>
-            <input type="date" id="filtro-hasta" class="form-control form-control-sm" onchange="actualizarGrafica()">
+            <input type="date" id="filtro-hasta" class="form-control form-control-sm" onchange="refrescarVistaActiva()">
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-bold small">Métrica Biométrica</label>
+            <label class="form-label fw-bold small">Métrica Principal (Ciclo Mensual)</label>
             <select id="filtro-metrica" class="form-select form-select-sm fw-bold text-success" onchange="actualizarGrafica()">
               <option value="" disabled selected>-- Elige métrica biométrica --</option>
               <option value="peso">Masa / Peso (g)</option>
@@ -55,32 +118,32 @@
         </div>
 
         <!-- FILTROS DE CATEGORÍA / SEXO / EDAD CON CHECKBOXES -->
-        <div class="row mt-3 pt-3 border-top">
+        <div class="row mt-3 pt-2 border-top">
           <div class="col-12">
-            <label class="form-label fw-bold small text-secondary d-block mb-1">Mostrar en la Gráfica / Filtrar:</label>
+            <label class="form-label fw-bold small text-secondary d-block mb-1">Categorías / Grupos activos:</label>
             <div class="checkbox-group">
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="refrescarVistaActiva()">
                 <label class="form-check-label small fw-semibold" for="chk-macho">Macho</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" checked onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" checked onchange="refrescarVistaActiva()">
                 <label class="form-check-label small fw-semibold" for="chk-hembra">Hembra</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" checked onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" checked onchange="refrescarVistaActiva()">
                 <label class="form-check-label small fw-semibold" for="chk-pollo">Pollo / Pullus (EURING 1)</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Joven" id="chk-joven" checked onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Joven" id="chk-joven" checked onchange="refrescarVistaActiva()">
                 <label class="form-check-label small fw-semibold" for="chk-joven">Joven (R5 ≤ 19mm)</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Adulto" id="chk-adulto" checked onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Adulto" id="chk-adulto" checked onchange="refrescarVistaActiva()">
                 <label class="form-check-label small fw-semibold" for="chk-adulto">Adulto (R5 ≥ 19.1mm)</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="actualizarGrafica()">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="refrescarVistaActiva()">
                 <label class="form-check-label small fw-semibold" for="chk-desconocido">Desconocido</label>
               </div>
             </div>
@@ -88,58 +151,205 @@
         </div>
       </div>
 
-      <!-- MENSAJE INICIAL / SIN DATOS -->
-      <div id="sin-datos-aviso" class="text-center py-5 text-muted">
-        <h4>Panel listo para consultar.</h4>
-        <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>
-      </div>
+      <div class="tab-content">
+        <!-- ============================================================== -->
+        <!-- PESTAÑA 1: GRÁFICA FENOLÓGICA MENSUAL ORIGINAL                 -->
+        <!-- ============================================================== -->
+        <div class="tab-pane fade show active" id="pane-fenologia" role="tabpanel">
+          <!-- MENSAJE INICIAL / SIN DATOS -->
+          <div id="sin-datos-aviso" class="text-center py-5 text-muted">
+            <h4>Panel listo para consultar.</h4>
+            <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>
+          </div>
 
-      <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
-      <div id="contenedor-resultados" style="display: none;">
-        
-        <!-- TARJETAS DE RESUMEN Y MEDIAS -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-3">
-            <div class="stat-card shadow-sm text-center">
-              <span class="text-muted small fw-bold d-block">VALOR MEDIO GLOBAL</span>
-              <h3 id="stat-media" class="fw-bold text-success mb-0">0</h3>
-              <div id="desglose-media" class="sub-desglose">Desglose...</div>
+          <!-- CONTENEDOR DE ESTADÍSTICAS Y GRÁFICA -->
+          <div id="contenedor-resultados" style="display: none;">
+            
+            <!-- TARJETAS DE RESUMEN Y MEDIAS -->
+            <div class="row g-3 mb-4">
+              <div class="col-md-3">
+                <div class="stat-card shadow-sm text-center">
+                  <span class="text-muted small fw-bold d-block">VALOR MEDIO GLOBAL</span>
+                  <h3 id="stat-media" class="fw-bold text-success mb-0">0</h3>
+                  <div id="desglose-media" class="sub-desglose">Desglose...</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card shadow-sm text-center" style="border-left-color: #007bff; background: #e3f2fd;">
+                  <span class="text-muted small fw-bold d-block">VALOR MÍNIMO</span>
+                  <h3 id="stat-min" class="fw-bold text-primary mb-0">0</h3>
+                  <div id="desglose-min" class="sub-desglose">Mínimos...</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card shadow-sm text-center" style="border-left-color: #ffc107; background: #fff9c4;">
+                  <span class="text-muted small fw-bold d-block">VALOR MÁXIMO</span>
+                  <h3 id="stat-max" class="fw-bold text-dark mb-0">0</h3>
+                  <div id="desglose-max" class="sub-desglose">Máximos...</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card shadow-sm text-center" style="border-left-color: #6c757d; background: #f8f9fa;">
+                  <span class="text-muted small fw-bold d-block">TOTAL MUESTRAS (N)</span>
+                  <h3 id="stat-count" class="fw-bold text-secondary mb-0">0</h3>
+                  <div id="desglose-count" class="sub-desglose">Muestras...</div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="col-md-3">
-            <div class="stat-card shadow-sm text-center" style="border-left-color: #007bff; background: #e3f2fd;">
-              <span class="text-muted small fw-bold d-block">VALOR MÍNIMO</span>
-              <h3 id="stat-min" class="fw-bold text-primary mb-0">0</h3>
-              <div id="desglose-min" class="sub-desglose">Mínimos...</div>
+
+            <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
+            <div class="card p-3 shadow-sm border-0 bg-light">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Ciclo Fenológico Mensual</h6>
+                <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica PNG</button>
+              </div>
+              <div style="height: 400px; position: relative;">
+                <canvas id="chartDinamica"></canvas>
+              </div>
             </div>
-          </div>
-          <div class="col-md-3">
-            <div class="stat-card shadow-sm text-center" style="border-left-color: #ffc107; background: #fff9c4;">
-              <span class="text-muted small fw-bold d-block">VALOR MÁXIMO</span>
-              <h3 id="stat-max" class="fw-bold text-dark mb-0">0</h3>
-              <div id="desglose-max" class="sub-desglose">Máximos...</div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="stat-card shadow-sm text-center" style="border-left-color: #6c757d; background: #f8f9fa;">
-              <span class="text-muted small fw-bold d-block">TOTAL MUESTRAS (N)</span>
-              <h3 id="stat-count" class="fw-bold text-secondary mb-0">0</h3>
-              <div id="desglose-count" class="sub-desglose">Muestras...</div>
-            </div>
+
           </div>
         </div>
 
-        <!-- GRÁFICA CON BOTÓN DE DESCARGA -->
-        <div class="card p-3 shadow-sm border-0 bg-light">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Ciclo Fenológico Mensual</h6>
-            <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica</button>
-          </div>
-          <div style="height: 400px; position: relative;">
-            <canvas id="chartDinamica"></canvas>
+        <!-- ============================================================== -->
+        <!-- PESTAÑA 2: LABORATORIO BIOMÉTRICO ESTILO RSTUDIO               -->
+        <!-- ============================================================== -->
+        <div class="tab-pane fade" id="pane-rstudio" role="tabpanel">
+          <div class="row g-3">
+            
+            <!-- COLUMNA IZQUIERDA: CONTROLES DE PLOT Y CONSOLA R -->
+            <div class="col-lg-4">
+              <div class="rstudio-pane mb-3">
+                <div class="rstudio-pane-header">
+                  <span>🎛️ Plot Controls (ggplot2 Builder)</span>
+                  <span class="badge bg-primary">R-Style</span>
+                </div>
+                <div class="p-3">
+                  <div class="mb-2">
+                    <label class="form-label fw-bold small mb-1">Variable Eje X (Dispersión):</label>
+                    <select id="r-eje-x" class="form-select form-select-sm" onchange="actualizarLaboratorioBiometrico()">
+                      <option value="ala" selected>Ala Máx (mm)</option>
+                      <option value="cola">Cola (mm)</option>
+                      <option value="tarso">Tarso (mm)</option>
+                      <option value="r5">R5 (mm)</option>
+                      <option value="peso">Masa / Peso (g)</option>
+                    </select>
+                  </div>
+
+                  <div class="mb-2">
+                    <label class="form-label fw-bold small mb-1">Variable Eje Y (Dispersión y Boxplot):</label>
+                    <select id="r-eje-y" class="form-select form-select-sm" onchange="actualizarLaboratorioBiometrico()">
+                      <option value="peso" selected>Masa / Peso (g)</option>
+                      <option value="ala">Ala Máx (mm)</option>
+                      <option value="cola">Cola (mm)</option>
+                      <option value="tarso">Tarso (mm)</option>
+                      <option value="r5">R5 (mm)</option>
+                      <option value="condicion_corporal">Índice Condición (Peso / Ala³ × 10⁵)</option>
+                    </select>
+                  </div>
+
+                  <div class="mb-2">
+                    <label class="form-label fw-bold small mb-1">Agrupar / Colorear por (`aes(color = ...)`):</label>
+                    <select id="r-agrupar" class="form-select form-select-sm" onchange="actualizarLaboratorioBiometrico()">
+                      <option value="sexo_edad" selected>Sexo / Edad (Macho, Hembra, Pollo, Desconocido)</option>
+                      <option value="r5_criterio">Criterio R5 (Joven ≤19mm vs Adulto ≥19.1mm)</option>
+                      <option value="edad_euring">Código Edad EURING</option>
+                      <option value="especie">Especie</option>
+                    </select>
+                  </div>
+
+                  <div class="form-check form-switch mt-3">
+                    <input class="form-check-input" type="checkbox" id="r-mostrar-lm" checked onchange="actualizarLaboratorioBiometrico()">
+                    <label class="form-check-label small fw-semibold" for="r-mostrar-lm">
+                      Añadir recta lineal <code>geom_smooth(method="lm")</code>
+                    </label>
+                  </div>
+
+                  <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" id="r-lm-por-grupo" onchange="actualizarLaboratorioBiometrico()">
+                    <label class="form-check-label small fw-semibold" for="r-lm-por-grupo">
+                      Recta de regresión independiente por grupo
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- CONSOLA R SIMULADA (MODELO LINEAL + OUTLIERS) -->
+              <div class="rstudio-pane">
+                <div class="rstudio-pane-header">
+                  <span>💻 Console / Model Output</span>
+                  <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.72rem;" onclick="copiarResumenConsola()">Copiar</button>
+                </div>
+                <div class="p-2 bg-dark">
+                  <div id="r-console-output" class="rstudio-console">
+                    <span class="cmd">&gt; summary(lm(y ~ x, data = biometria))</span><br>
+                    Esperando datos...
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- COLUMNA DERECHA: PLOTS Y TABLA SUMMARY() -->
+            <div class="col-lg-8">
+              
+              <!-- PLOT 1: DISPERSIÓN BIVARIANTE + LM -->
+              <div class="rstudio-pane mb-3">
+                <div class="rstudio-pane-header">
+                  <span id="titulo-plot-scatter">Plots — Dispersión Bivariante y Ajuste Lineal</span>
+                  <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="descargarCanvas('chartRScatter', 'plot_dispersion_biometria.png')">📥 Exportar PNG</button>
+                </div>
+                <div class="p-3">
+                  <div style="height: 310px; position: relative;">
+                    <canvas id="chartRScatter"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PLOT 2: DISTRIBUCIÓN POR GRUPO (MEDIANA + IQR + JITTER) -->
+              <div class="rstudio-pane mb-3">
+                <div class="rstudio-pane-header">
+                  <span id="titulo-plot-box">Plots — Distribución por Grupo (Mediana, Q1–Q3 e Individuos)</span>
+                  <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="descargarCanvas('chartRDistribucion', 'plot_distribucion_iqr.png')">📥 Exportar PNG</button>
+                </div>
+                <div class="p-3">
+                  <div style="height: 260px; position: relative;">
+                    <canvas id="chartRDistribucion"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TABLA SUMMARY() POR GRUPO -->
+              <div class="rstudio-pane">
+                <div class="rstudio-pane-header">
+                  <span id="titulo-tabla-summary">Data Viewer — Estadísticos Descriptivos por Grupo (summary)</span>
+                  <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" onclick="exportarTablaSummaryCSV()">📥 CSV Resumen</button>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped table-hover mb-0 table-summary-r">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Grupo</th>
+                        <th class="text-end">N</th>
+                        <th class="text-end">Media</th>
+                        <th class="text-end">SD</th>
+                        <th class="text-end">Mediana</th>
+                        <th class="text-end">Q1 (25%)</th>
+                        <th class="text-end">Q3 (75%)</th>
+                        <th class="text-end">IQR</th>
+                        <th class="text-end">Mín</th>
+                        <th class="text-end">Máx</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-r-summary">
+                      <tr><td colspan="10" class="text-center text-muted py-3">Sin datos calculados todavía.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
-
       </div>
 
     </div>
@@ -149,12 +359,34 @@
   <script>
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
     var chartDinamicaInstance = null;
+    var chartRScatterInstance = null;
+    var chartRDistribucionInstance = null;
+    var ultimoResumenTabla = [];
 
     const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
+    const etiquetasVariablesR = {
+      ala: "Ala Máx (mm)",
+      cola: "Cola (mm)",
+      tarso: "Tarso (mm)",
+      r5: "R5 (mm)",
+      peso: "Masa / Peso (g)",
+      condicion_corporal: "Índice Condición (Peso/Ala³×10⁵)"
+    };
+
+    const paletaRStudio = [
+      "#0072B2", // Azul Okabe-Ito
+      "#D55E00", // Naranja rojizo
+      "#009E73", // Verde azulado
+      "#CC79A7", // Magenta
+      "#E69F00", // Ámbar
+      "#56B4E9", // Azul claro
+      "#64748B"  // Gris pizarra
+    ];
+
     function parsearFecha(strFecha) {
       if (!strFecha) return null;
-      strFecha = strFecha.trim();
+      strFecha = String(strFecha).trim();
       if (strFecha.includes('/')) {
         var p = strFecha.split('/');
         if (p.length === 3) {
@@ -165,7 +397,47 @@
       return isNaN(d.getTime()) ? null : d;
     }
 
-    window.onload = function() {
+    function parsearNumeroBiometria(raw) {
+      if (raw === null || raw === undefined) return NaN;
+      var s = String(raw).replace(/[^\d.,-]/g, '').replace(',', '.').trim();
+      if (!s || s === '-') return NaN;
+      var n = parseFloat(s);
+      return (!isNaN(n) && n > 0) ? n : NaN;
+    }
+
+    function obtenerValorVariable(item, varKey) {
+      if (varKey === "condicion_corporal") {
+        var peso = parsearNumeroBiometria(item.peso);
+        var ala = parsearNumeroBiometria(item.ala);
+        if (!isNaN(peso) && !isNaN(ala) && ala > 0) {
+          return parseFloat(((peso / Math.pow(ala, 3)) * 100000).toFixed(3));
+        }
+        return NaN;
+      }
+      return parsearNumeroBiometria(item[varKey]);
+    }
+
+    function actualizarBadgeYSectorEspecies(etiquetaFuente) {
+      var badge = document.getElementById('badge-fuente-datos');
+      if (badge) {
+        badge.innerText = "Fuente: " + (etiquetaFuente || "Base Local") + " (" + anillamientos.length + " reg.)";
+      }
+
+      var selEsp = document.getElementById('filtro-especie-global');
+      if (!selEsp) return;
+      var prev = selEsp.value;
+      var especies = [...new Set(anillamientos.map(a => String(a.especie || "").trim()).filter(Boolean))].sort();
+      selEsp.innerHTML = '<option value="TODAS">Todas las especies (' + anillamientos.length + ')</option>';
+      especies.forEach(esp => {
+        var opt = document.createElement('option');
+        opt.value = esp;
+        opt.innerText = esp;
+        selEsp.appendChild(opt);
+      });
+      if (especies.includes(prev)) selEsp.value = prev;
+    }
+
+    function inicializarRangoFechas() {
       if (anillamientos.length > 0) {
         var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
         if (fechasValidas.length > 0) {
@@ -174,29 +446,91 @@
           document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
         }
       }
+    }
+
+    window.onload = function() {
+      actualizarBadgeYSectorEspecies("Base Local");
+      inicializarRangoFechas();
     };
 
-    function limpiarFiltros() {
-      if (anillamientos.length > 0) {
-        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
-        if (fechasValidas.length > 0) {
-          fechasValidas.sort((a, b) => a - b);
-          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
-          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
+    function cargarCsvExterno(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var texto = e.target.result;
+        var lineas = texto.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lineas.length < 2) return alert("El CSV no contiene filas de datos.");
+
+        var sep = lineas[0].includes(';') ? ';' : ',';
+        var cabeceras = lineas[0].split(sep).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+
+        var idxMap = {
+          fecha: cabeceras.findIndex(h => h.includes('fecha')),
+          especie: cabeceras.findIndex(h => h.includes('especie')),
+          metal: cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla')),
+          pvc: cabeceras.findIndex(h => h.includes('pvc')),
+          sexo: cabeceras.findIndex(h => h.includes('sexo')),
+          edad: cabeceras.findIndex(h => h.includes('edad') || h.includes('euring')),
+          ala: cabeceras.findIndex(h => h.includes('ala')),
+          cola: cabeceras.findIndex(h => h.includes('cola')),
+          r5: cabeceras.findIndex(h => h === 'r5' || h.includes('r5')),
+          tarso: cabeceras.findIndex(h => h.includes('tarso')),
+          peso: cabeceras.findIndex(h => h.includes('peso') || h.includes('masa'))
+        };
+
+        var cargados = [];
+        for (var i = 1; i < lineas.length; i++) {
+          var cols = lineas[i].split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+          cargados.push({
+            fecha: idxMap.fecha >= 0 ? cols[idxMap.fecha] : "",
+            especie: idxMap.especie >= 0 ? cols[idxMap.especie] : "",
+            metal: idxMap.metal >= 0 ? cols[idxMap.metal] : ("REG-" + i),
+            pvc: idxMap.pvc >= 0 ? cols[idxMap.pvc] : "",
+            sexo: idxMap.sexo >= 0 ? cols[idxMap.sexo] : "Desconocido",
+            edad: idxMap.edad >= 0 ? cols[idxMap.edad] : "0",
+            ala: idxMap.ala >= 0 ? cols[idxMap.ala] : "",
+            cola: idxMap.cola >= 0 ? cols[idxMap.cola] : "",
+            r5: idxMap.r5 >= 0 ? cols[idxMap.r5] : "",
+            tarso: idxMap.tarso >= 0 ? cols[idxMap.tarso] : "",
+            peso: idxMap.peso >= 0 ? cols[idxMap.peso] : ""
+          });
         }
+
+        anillamientos = cargados;
+        actualizarBadgeYSectorEspecies(file.name);
+        inicializarRangoFechas();
+        refrescarVistaActiva();
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function refrescarVistaActiva() {
+      var rstudioActivo = document.getElementById('pane-rstudio').classList.contains('show');
+      if (rstudioActivo) {
+        actualizarLaboratorioBiometrico();
       } else {
+        actualizarGrafica();
+      }
+    }
+
+    function limpiarFiltros() {
+      inicializarRangoFechas();
+      if (anillamientos.length === 0) {
         document.getElementById('filtro-desde').value = "";
         document.getElementById('filtro-hasta').value = "";
       }
+      document.getElementById('filtro-especie-global').value = "TODAS";
       document.getElementById('filtro-metrica').value = "";
       
-      var checks = document.querySelectorAll('.chk-filtro');
-      checks.forEach(chk => chk.checked = true);
+      document.querySelectorAll('.chk-filtro').forEach(chk => chk.checked = true);
 
       document.getElementById('contenedor-resultados').style.display = 'none';
       var aviso = document.getElementById('sin-datos-aviso');
       aviso.style.display = 'block';
       aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las medias mensuales globales y ver su ciclo estacional.</p>`;
+
+      actualizarLaboratorioBiometrico();
     }
 
     function descargarGrafica() {
@@ -207,17 +541,72 @@
       enlace.click();
     }
 
+    function descargarCanvas(canvasId, filename) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      var enlace = document.createElement('a');
+      enlace.href = canvas.toDataURL('image/png', 1.0);
+      enlace.download = filename;
+      enlace.click();
+    }
+
+    function clasificarItemBase(item, valR5Opcional) {
+      var esPollo = (String(item.edad) === "1");
+      var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
+      if (esPollo) return "Pollo";
+      if (sexoItem === "m" || sexoItem === "macho") return "Macho";
+      if (sexoItem === "f" || sexoItem === "hembra") return "Hembra";
+      return "Desconocido";
+    }
+
+    function pasaFiltrosGlobales(item, dDesde, dHasta, especieSeleccionada, checksActivos, r5ValParaFiltro) {
+      if (especieSeleccionada && especieSeleccionada !== "TODAS") {
+        if (String(item.especie || "").trim() !== especieSeleccionada) return false;
+      }
+
+      var dItem = parsearFecha(item.fecha);
+      if (dDesde || dHasta) {
+        if (!dItem) return false;
+        if (dDesde && dItem < dDesde) return false;
+        if (dHasta && dItem > dHasta) return false;
+      }
+
+      var catBase = clasificarItemBase(item);
+      var r5Num = !isNaN(r5ValParaFiltro) ? r5ValParaFiltro : parsearNumeroBiometria(item.r5);
+
+      if (!isNaN(r5Num)) {
+        if (r5Num <= 19.0 && !checksActivos.Joven) return false;
+        if (r5Num >= 19.1 && !checksActivos.Adulto) return false;
+      }
+
+      if (catBase === "Macho" && !checksActivos.Macho) return false;
+      if (catBase === "Hembra" && !checksActivos.Hembra) return false;
+      if (catBase === "Pollo" && !checksActivos.Pollo) return false;
+      if (catBase === "Desconocido" && !checksActivos.Desconocido) return false;
+
+      return true;
+    }
+
+    function obtenerChecksActivos() {
+      return {
+        Macho: document.getElementById('chk-macho').checked,
+        Hembra: document.getElementById('chk-hembra').checked,
+        Pollo: document.getElementById('chk-pollo').checked,
+        Joven: document.getElementById('chk-joven').checked,
+        Adulto: document.getElementById('chk-adulto').checked,
+        Desconocido: document.getElementById('chk-desconocido').checked
+      };
+    }
+
+    // =========================================================================
+    // PESTAÑA 1: GRÁFICA FENOLÓGICA MENSUAL ORIGINAL
+    // =========================================================================
     function actualizarGrafica() {
       var fechaDesdeVal = document.getElementById('filtro-desde').value;
       var fechaHastaVal = document.getElementById('filtro-hasta').value;
+      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
       var metrica = document.getElementById('filtro-metrica').value;
-
-      var aceptarMacho = document.getElementById('chk-macho').checked;
-      var aceptarHembra = document.getElementById('chk-hembra').checked;
-      var aceptarPollo = document.getElementById('chk-pollo').checked;
-      var aceptarJoven = document.getElementById('chk-joven').checked;
-      var aceptarAdulto = document.getElementById('chk-adulto').checked;
-      var aceptarDesconocido = document.getElementById('chk-desconocido').checked;
+      var checks = obtenerChecksActivos();
 
       var aviso = document.getElementById('sin-datos-aviso');
       var contenedor = document.getElementById('contenedor-resultados');
@@ -237,6 +626,10 @@
       var datosProcesados = [];
 
       anillamientos.forEach(item => {
+        if (especieSeleccionada && especieSeleccionada !== "TODAS") {
+          if (String(item.especie || "").trim() !== especieSeleccionada) return;
+        }
+
         var dItem = parsearFecha(item.fecha);
         if (!dItem) return;
 
@@ -267,14 +660,14 @@
           }
         }
 
-        if (categoria === "Macho" && !aceptarMacho) return;
-        if (categoria === "Hembra" && !aceptarHembra) return;
-        if (categoria === "Pollo" && !aceptarPollo) return;
-        if (categoria === "Joven" && !aceptarJoven) return;
-        if (categoria === "Adulto" && !aceptarAdulto) return;
-        if (categoria === "Desconocido" && !aceptarDesconocido) return;
+        if (categoria === "Macho" && !checks.Macho) return;
+        if (categoria === "Hembra" && !checks.Hembra) return;
+        if (categoria === "Pollo" && !checks.Pollo) return;
+        if (categoria === "Joven" && !checks.Joven) return;
+        if (categoria === "Adulto" && !checks.Adulto) return;
+        if (categoria === "Desconocido" && !checks.Desconocido) return;
 
-        var mesIndex = dItem.getMonth(); // 0 = Enero, 11 = Diciembre
+        var mesIndex = dItem.getMonth();
 
         datosProcesados.push({
           mesIndex: mesIndex,
@@ -330,7 +723,6 @@
       document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
       document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
 
-      // Obtener meses únicos con datos ordenados cronológicamente (Enero a Diciembre)
       var mesesConDatosIndices = [...new Set(datosProcesados.map(d => d.mesIndex))].sort((a, b) => a - b);
       var etiquetasMeses = mesesConDatosIndices.map(idx => nombresMeses[idx]);
 
@@ -406,6 +798,451 @@
           }
         }
       });
+    }
+
+    // =========================================================================
+    // PESTAÑA 2: LABORATORIO BIOMÉTRICO ESTILO RSTUDIO
+    // =========================================================================
+    function calcularEstadisticosArray(valores) {
+      var sorted = [...valores].sort((a, b) => a - b);
+      var n = sorted.length;
+      if (n === 0) return null;
+
+      var sum = sorted.reduce((acc, v) => acc + v, 0);
+      var mean = sum / n;
+      var sd = n > 1 ? Math.sqrt(sorted.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1)) : 0;
+
+      function cuantil(arr, q) {
+        var pos = (arr.length - 1) * q;
+        var base = Math.floor(pos);
+        var rest = pos - base;
+        if (arr[base + 1] !== undefined) {
+          return arr[base] + rest * (arr[base + 1] - arr[base]);
+        }
+        return arr[base];
+      }
+
+      var q1 = cuantil(sorted, 0.25);
+      var median = cuantil(sorted, 0.50);
+      var q3 = cuantil(sorted, 0.75);
+      var iqr = q3 - q1;
+
+      return {
+        n: n,
+        mean: mean,
+        sd: sd,
+        median: median,
+        q1: q1,
+        q3: q3,
+        iqr: iqr,
+        min: sorted[0],
+        max: sorted[n - 1]
+      };
+    }
+
+    function calcularRegresionLineal(puntosXY) {
+      var n = puntosXY.length;
+      if (n < 2) return null;
+
+      var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+      puntosXY.forEach(p => {
+        sumX += p.x;
+        sumY += p.y;
+        sumXY += p.x * p.y;
+        sumX2 += p.x * p.x;
+        sumY2 += p.y * p.y;
+      });
+
+      var denomX = (n * sumX2 - sumX * sumX);
+      var denomY = (n * sumY2 - sumY * sumY);
+      if (denomX === 0) return null;
+
+      var slope = (n * sumXY - sumX * sumY) / denomX;
+      var intercept = (sumY - slope * sumX) / n;
+      var r2 = (denomY === 0) ? 0 : Math.pow((n * sumXY - sumX * sumY), 2) / (denomX * denomY);
+
+      var xs = puntosXY.map(p => p.x);
+      var minX = Math.min(...xs);
+      var maxX = Math.max(...xs);
+
+      return {
+        slope: slope,
+        intercept: intercept,
+        r2: r2,
+        minX: minX,
+        maxX: maxX,
+        linea: [
+          { x: minX, y: slope * minX + intercept },
+          { x: maxX, y: slope * maxX + intercept }
+        ]
+      };
+    }
+
+    function obtenerGrupoR(item, modoAgrupacion) {
+      if (modoAgrupacion === "r5_criterio") {
+        var r5 = parsearNumeroBiometria(item.r5);
+        if (isNaN(r5)) return "Sin R5";
+        return r5 <= 19.0 ? "Joven (R5 ≤ 19)" : "Adulto (R5 ≥ 19.1)";
+      }
+      if (modoAgrupacion === "edad_euring") {
+        return "EURING " + (item.edad || "0");
+      }
+      if (modoAgrupacion === "especie") {
+        return String(item.especie || "Sin especie").trim();
+      }
+      return clasificarItemBase(item);
+    }
+
+    function actualizarLaboratorioBiometrico() {
+      var varX = document.getElementById('r-eje-x').value;
+      var varY = document.getElementById('r-eje-y').value;
+      var modoAgrupar = document.getElementById('r-agrupar').value;
+      var mostrarLm = document.getElementById('r-mostrar-lm').checked;
+      var lmPorGrupo = document.getElementById('r-lm-por-grupo').checked;
+
+      var fechaDesdeVal = document.getElementById('filtro-desde').value;
+      var fechaHastaVal = document.getElementById('filtro-hasta').value;
+      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
+      var checks = obtenerChecksActivos();
+
+      var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
+      var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
+      if (dDesde) dDesde.setHours(0,0,0,0);
+      if (dHasta) dHasta.setHours(23,59,59,999);
+
+      var registrosFiltrados = anillamientos.filter(item =>
+        pasaFiltrosGlobales(item, dDesde, dHasta, especieSeleccionada, checks, NaN)
+      );
+
+      // 1. Preparar puntos para Dispersión (X vs Y)
+      var puntosScatter = [];
+      registrosFiltrados.forEach(item => {
+        var vx = obtenerValorVariable(item, varX);
+        var vy = obtenerValorVariable(item, varY);
+        if (!isNaN(vx) && !isNaN(vy)) {
+          puntosScatter.push({
+            x: vx,
+            y: vy,
+            grupo: obtenerGrupoR(item, modoAgrupar),
+            anilla: item.metal || item.pvc || "S/A",
+            especie: item.especie || "-",
+            fecha: item.fecha || "-"
+          });
+        }
+      });
+
+      // 2. Preparar valores para Distribución y Summary() sobre variable Y
+      var registrosY = [];
+      registrosFiltrados.forEach(item => {
+        var vy = obtenerValorVariable(item, varY);
+        if (!isNaN(vy)) {
+          registrosY.push({
+            y: vy,
+            grupo: obtenerGrupoR(item, modoAgrupar),
+            anilla: item.metal || item.pvc || "S/A",
+            fecha: item.fecha || "-"
+          });
+        }
+      });
+
+      renderizarPlotScatterR(puntosScatter, varX, varY, mostrarLm, lmPorGrupo);
+      renderizarPlotDistribucionR(registrosY, varY);
+      renderizarSummaryYConsolaR(puntosScatter, registrosY, varX, varY);
+    }
+
+    function renderizarPlotScatterR(puntos, varX, varY, mostrarLm, lmPorGrupo) {
+      document.getElementById('titulo-plot-scatter').innerText =
+        `Plots — ${etiquetasVariablesR[varY]} vs. ${etiquetasVariablesR[varX]} (n = ${puntos.length})`;
+
+      if (chartRScatterInstance) chartRScatterInstance.destroy();
+
+      var grupos = [...new Set(puntos.map(p => p.grupo))];
+      var datasets = [];
+
+      grupos.forEach((grp, idx) => {
+        var color = paletaRStudio[idx % paletaRStudio.length];
+        var ptsGrupo = puntos.filter(p => p.grupo === grp);
+
+        datasets.push({
+          type: 'scatter',
+          label: `${grp} (n=${ptsGrupo.length})`,
+          data: ptsGrupo,
+          backgroundColor: color + "CC",
+          borderColor: color,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        });
+
+        if (mostrarLm && lmPorGrupo && ptsGrupo.length >= 2) {
+          var regGrp = calcularRegresionLineal(ptsGrupo);
+          if (regGrp) {
+            datasets.push({
+              type: 'line',
+              label: `LM ${grp} (R²=${regGrp.r2.toFixed(2)})`,
+              data: regGrp.linea,
+              borderColor: color,
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            });
+          }
+        }
+      });
+
+      if (mostrarLm && !lmPorGrupo && puntos.length >= 2) {
+        var regGlobal = calcularRegresionLineal(puntos);
+        if (regGlobal) {
+          datasets.push({
+            type: 'line',
+            label: `Ajuste LM Global (R²=${regGlobal.r2.toFixed(3)})`,
+            data: regGlobal.linea,
+            borderColor: "#1e293b",
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false
+          });
+        }
+      }
+
+      var ctx = document.getElementById('chartRScatter').getContext('2d');
+      chartRScatterInstance = new Chart(ctx, {
+        data: { datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  var raw = context.raw;
+                  if (raw && raw.anilla) {
+                    return `${raw.anilla} [${raw.grupo}] — X: ${raw.x}, Y: ${raw.y} (${raw.fecha})`;
+                  }
+                  return `${context.dataset.label}: (${raw.x.toFixed(1)}, ${raw.y.toFixed(2)})`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: etiquetasVariablesR[varX], font: { weight: 'bold' } },
+              grid: { color: '#e2e8f0' }
+            },
+            y: {
+              title: { display: true, text: etiquetasVariablesR[varY], font: { weight: 'bold' } },
+              grid: { color: '#e2e8f0' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderizarPlotDistribucionR(registrosY, varY) {
+      document.getElementById('titulo-plot-box').innerText =
+        `Plots — Distribución de ${etiquetasVariablesR[varY]} por Grupo (Mediana + Banda IQR Q1–Q3)`;
+
+      if (chartRDistribucionInstance) chartRDistribucionInstance.destroy();
+
+      var grupos = [...new Set(registrosY.map(r => r.grupo))];
+      var statsPorGrupo = grupos.map(grp => {
+        var vals = registrosY.filter(r => r.grupo === grp).map(r => r.y);
+        return { grp: grp, stats: calcularEstadisticosArray(vals) };
+      }).filter(x => x.stats !== null);
+
+      var labels = statsPorGrupo.map(x => `${x.grp} (n=${x.stats.n})`);
+
+      // Banda IQR [Q1, Q3] como barra flotante + puntos para Mediana, Mín y Máx
+      var datosIQR = statsPorGrupo.map(x => [x.stats.q1, x.stats.q3]);
+      var datosMediana = statsPorGrupo.map(x => x.stats.median);
+      var datosMedia = statsPorGrupo.map(x => parseFloat(x.stats.mean.toFixed(2)));
+      var datosMin = statsPorGrupo.map(x => x.stats.min);
+      var datosMax = statsPorGrupo.map(x => x.stats.max);
+
+      var ctx = document.getElementById('chartRDistribucion').getContext('2d');
+      chartRDistribucionInstance = new Chart(ctx, {
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Rango Intercuartílico (Q1–Q3)',
+              data: datosIQR,
+              backgroundColor: 'rgba(0, 114, 178, 0.28)',
+              borderColor: '#0072B2',
+              borderWidth: 2,
+              barPercentage: 0.45
+            },
+            {
+              type: 'line',
+              label: 'Mediana (Q2)',
+              data: datosMediana,
+              borderColor: '#D55E00',
+              backgroundColor: '#D55E00',
+              pointStyle: 'rectRot',
+              pointRadius: 7,
+              showLine: false
+            },
+            {
+              type: 'line',
+              label: 'Media',
+              data: datosMedia,
+              borderColor: '#009E73',
+              backgroundColor: '#009E73',
+              pointRadius: 5,
+              showLine: false
+            },
+            {
+              type: 'line',
+              label: 'Máximo',
+              data: datosMax,
+              borderColor: '#475569',
+              backgroundColor: '#475569',
+              pointStyle: 'triangle',
+              pointRadius: 5,
+              showLine: false
+            },
+            {
+              type: 'line',
+              label: 'Mínimo',
+              data: datosMin,
+              borderColor: '#475569',
+              backgroundColor: '#475569',
+              pointStyle: 'triangle',
+              rotation: 180,
+              pointRadius: 5,
+              showLine: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: etiquetasVariablesR[varY], font: { weight: 'bold' } },
+              grid: { color: '#e2e8f0' }
+            },
+            x: {
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function renderizarSummaryYConsolaR(puntosScatter, registrosY, varX, varY) {
+      var tbody = document.getElementById('tbody-r-summary');
+      var consola = document.getElementById('r-console-output');
+      tbody.innerHTML = "";
+      ultimoResumenTabla = [];
+
+      var grupos = [...new Set(registrosY.map(r => r.grupo))];
+      var outliersDetectados = [];
+
+      if (grupos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay datos numéricos válidos para la variable seleccionada.</td></tr>';
+      } else {
+        grupos.forEach(grp => {
+          var itemsGrp = registrosY.filter(r => r.grupo === grp);
+          var st = calcularEstadisticosArray(itemsGrp.map(r => r.y));
+          if (!st) return;
+
+          var limInf = st.q1 - 1.5 * st.iqr;
+          var limSup = st.q3 + 1.5 * st.iqr;
+          itemsGrp.forEach(it => {
+            if (st.iqr > 0 && (it.y < limInf || it.y > limSup)) {
+              outliersDetectados.push({
+                anilla: it.anilla,
+                grupo: grp,
+                valor: it.y,
+                rango: `[${limInf.toFixed(1)}, ${limSup.toFixed(1)}]`
+              });
+            }
+          });
+
+          var filaObj = {
+            grupo: grp,
+            n: st.n,
+            mean: st.mean.toFixed(2),
+            sd: st.sd.toFixed(2),
+            median: st.median.toFixed(2),
+            q1: st.q1.toFixed(2),
+            q3: st.q3.toFixed(2),
+            iqr: st.iqr.toFixed(2),
+            min: st.min.toFixed(2),
+            max: st.max.toFixed(2)
+          };
+          ultimoResumenTabla.push(filaObj);
+
+          var tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="fw-bold">${filaObj.grupo}</td>
+            <td class="text-end">${filaObj.n}</td>
+            <td class="text-end">${filaObj.mean}</td>
+            <td class="text-end">${filaObj.sd}</td>
+            <td class="text-end fw-bold text-primary">${filaObj.median}</td>
+            <td class="text-end">${filaObj.q1}</td>
+            <td class="text-end">${filaObj.q3}</td>
+            <td class="text-end">${filaObj.iqr}</td>
+            <td class="text-end">${filaObj.min}</td>
+            <td class="text-end">${filaObj.max}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // Consola R con resultados de regresión lineal y atípicos
+      var reg = calcularRegresionLineal(puntosScatter);
+      var htmlConsola = `<span class="cmd">&gt; lm(${varY} ~ ${varX}, n = ${puntosScatter.length})</span><br>`;
+
+      if (reg) {
+        var rCorr = Math.sqrt(Math.max(0, reg.r2)) * (reg.slope >= 0 ? 1 : -1);
+        htmlConsola += `Intercepto (a): <b>${reg.intercept.toFixed(4)}</b> | Pendiente (b): <b>${reg.slope.toFixed(4)}</b><br>`;
+        htmlConsola += `R² = <b>${reg.r2.toFixed(4)}</b> | Correlación r = <b>${rCorr.toFixed(3)}</b><br>`;
+      } else {
+        htmlConsola += `<span class="warn">Se necesitan al menos 2 pares válidos (X, Y) para ajustar regresión.</span><br>`;
+      }
+
+      htmlConsola += `<br><span class="cmd">&gt; boxplot.stats(df$${varY})$out</span><br>`;
+      if (outliersDetectados.length === 0) {
+        htmlConsola += `<span class="ok">0 valores atípicos (&gt; 1.5 × IQR) detectados en ${varY}.</span>`;
+      } else {
+        htmlConsola += `<span class="warn">⚠️ ${outliersDetectados.length} posible(s) atípico(s) en ${varY}:</span><br>`;
+        outliersDetectados.forEach(o => {
+          htmlConsola += `• Anilla <b>${o.anilla}</b> (${o.grupo}): <b>${o.valor}</b> fuera de ${o.rango}<br>`;
+        });
+      }
+
+      consola.innerHTML = htmlConsola;
+    }
+
+    function copiarResumenConsola() {
+      var el = document.getElementById('r-console-output');
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText);
+      alert("Salida de consola copiada al portapapeles.");
+    }
+
+    function exportarTablaSummaryCSV() {
+      if (ultimoResumenTabla.length === 0) return alert("No hay resumen estadístico para exportar.");
+      var cab = "Grupo,N,Media,SD,Mediana,Q1,Q3,IQR,Min,Max\n";
+      var filas = ultimoResumenTabla.map(r =>
+        `"${r.grupo}",${r.n},${r.mean},${r.sd},${r.median},${r.q1},${r.q3},${r.iqr},${r.min},${r.max}`
+      ).join("\n");
+      var blob = new Blob(["\uFEFF" + cab + filas], { type: "text/csv;charset=utf-8;" });
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "resumen_biometrico_rstudio.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   </script>
 </body>
