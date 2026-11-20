@@ -179,7 +179,7 @@
 
             <!-- INDICADOR DE CONDICIÓN FÍSICA EN VIVO -->
             <div id="indicador-condicion-vivo" class="condicion-box-vivo mb-2">
-              <span class="text-muted">🦅 <b>Condición física:</b> Introduce Ala (mm) y Peso (g) para evaluar umbral / SMI.</span>
+              <span class="text-muted">🦅 <b>Condición física:</b> Introduce Ala (mm) y Peso (g) para evaluar estado.</span>
             </div>
 
             <div class="mb-2">
@@ -301,6 +301,7 @@
       return 'Desconocido';
     }
 
+    // Etiquetas de estado igual que en el Evaluador de graficas.html, con detalle numérico al pasar el ratón
     window.calcularCondicionRegistro = function(item) {
       var ala = parseNum(item.ala);
       var peso = parseNum(item.peso);
@@ -311,11 +312,13 @@
       var esCernicalo = (!espLower || espLower.includes('tinnunculus') || espLower.includes('cernícalo') || espLower.includes('cernicalo'));
 
       if (isNaN(ala) || isNaN(peso)) {
-        return { corta: '-', badge: 'bg-light text-muted border', detalle: 'Sin Ala/Peso' };
+        return { corta: 'Sin datos suficientes', badge: 'bg-secondary', detalle: 'Falta Ala (mm) o Peso (g)' };
       }
 
+      var ratioNum = (peso / ala).toFixed(2);
+
       if (esPollo) {
-        return { corta: 'Pollo', badge: 'bg-info text-dark', detalle: 'Pollo en crecimiento (usar curva nido)' };
+        return { corta: 'Pollo en crecimiento', badge: 'bg-info text-dark', detalle: `Ratio ${ratioNum} g/mm · Pollo en crecimiento` };
       }
 
       if (esCernicalo) {
@@ -325,22 +328,20 @@
 
         if (!isNaN(umbral)) {
           if (peso <= umbral - 14) {
-            return { corta: 'ALERTA MARCADA', badge: 'bg-danger', detalle: `Peso ${peso}g ≤ umbral alerta marcada (${(umbral - 14).toFixed(1)}g)` };
+            return { corta: 'ALERTA MARCADA', badge: 'bg-danger', detalle: `Peso ${peso}g ≤ ${(umbral - 14).toFixed(1)}g · Ratio ${ratioNum} g/mm` };
           }
           if (peso <= umbral) {
-            return { corta: 'Alerta leve', badge: 'bg-warning text-dark', detalle: `Peso ${peso}g ≤ umbral leve (${umbral.toFixed(1)}g)` };
+            return { corta: 'Alerta leve', badge: 'bg-warning text-dark', detalle: `Peso ${peso}g ≤ ${umbral.toFixed(1)}g · Ratio ${ratioNum} g/mm` };
           }
           if (peso >= umbral + 45) {
-            return { corta: 'Peso elevado', badge: 'bg-primary', detalle: `Peso ${peso}g ≥ umbral + 45g (${(umbral + 45).toFixed(1)}g)` };
+            return { corta: 'Peso elevado', badge: 'bg-primary', detalle: `Peso ${peso}g ≥ ${(umbral + 45).toFixed(1)}g · Ratio ${ratioNum} g/mm` };
           }
-          return { corta: 'Normal', badge: 'bg-success', detalle: `Normal (Umbral alerta ≤ ${umbral.toFixed(1)}g)` };
+          return { corta: 'Normal / Buena', badge: 'bg-success', detalle: `Umbral alerta ≤ ${umbral.toFixed(1)}g · Ratio ${ratioNum} g/mm` };
         }
-        return { corta: 'Sin sexo', badge: 'bg-secondary', detalle: 'Indica Macho/Hembra para umbral exacto' };
+        return { corta: 'Normal / Buena (por SMI)', badge: 'bg-success', detalle: `Ratio ${ratioNum} g/mm (sin sexo para umbral)` };
       }
 
-      // Para otras especies: ratio g/mm orientativo
-      var ratio = (peso / ala).toFixed(2);
-      return { corta: `${ratio} g/mm`, badge: 'bg-secondary', detalle: `Ratio Masa/Ala: ${ratio} g/mm` };
+      return { corta: 'Normal / Buena (por SMI)', badge: 'bg-success', detalle: `Ratio Masa/Ala: ${ratioNum} g/mm` };
     };
 
     window.evaluarCondicionEnVivo = function() {
@@ -354,8 +355,8 @@
         peso: document.getElementById('input-peso-anil').value
       };
       var res = window.calcularCondicionRegistro(item);
-      if (res.corta === '-') {
-        box.innerHTML = '<span class="text-muted">🦅 <b>Condición física:</b> Introduce Ala (mm) y Peso (g) para evaluar umbral / ratio.</span>';
+      if (res.corta === 'Sin datos suficientes') {
+        box.innerHTML = '<span class="text-muted">🦅 <b>Condición física:</b> <span class="badge bg-secondary">Sin datos suficientes</span></span>';
       } else {
         box.innerHTML = `🦅 <b>Condición estimada:</b> <span class="badge ${res.badge}">${res.corta}</span> <small class="text-muted ms-1">${res.detalle}</small>`;
       }
