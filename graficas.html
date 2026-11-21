@@ -3,22 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Estadísticas, Laboratorio Biométrico y Evaluador Individual - Tracking Ornitológico</title>
+  <title>Laboratorio Biométrico y Gráficas RStudio - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 25px; }
-    .stat-card { background: #e8f5e9; border-left: 4px solid #28a745; border-radius: 8px; padding: 15px; }
-    .checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; padding-top: 5px; }
-    .sub-desglose { font-size: 0.75rem; color: #555; margin-top: 4px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
+    .card-panel { background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 22px; }
+    .checkbox-group { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 
-    /* ESTILO TIPO RSTUDIO / LABORATORIO BIOMÉTRICO */
+    /* ESTILO RSTUDIO / LABORATORIO BIOMÉTRICO */
     .rstudio-pane {
       background: #ffffff;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
       overflow: hidden;
+      height: 100%;
     }
     .rstudio-pane-header {
       background: #f1f5f9;
@@ -30,12 +29,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
     }
     .rstudio-console {
       background: #0f172a;
       color: #e2e8f0;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 0.78rem;
+      font-size: 0.77rem;
       padding: 12px 14px;
       border-radius: 6px;
       line-height: 1.45;
@@ -45,99 +45,125 @@
     .rstudio-console .cmd { color: #38bdf8; font-weight: 700; }
     .rstudio-console .warn { color: #fbbf24; }
     .rstudio-console .ok { color: #4ade80; }
-    .table-summary-r { font-size: 0.8rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .nav-pills .nav-link.active { background-color: #198754; font-weight: 700; }
-    .nav-pills .nav-link { color: #334155; font-weight: 600; }
+    .table-summary-r { font-size: 0.79rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+    /* PESTAÑAS DE VARIABLES */
+    .nav-pills .nav-link.active { background-color: #198754; font-weight: 700; color: #ffffff; }
+    .nav-pills .nav-link { color: #334155; font-weight: 600; font-size: 0.85rem; padding: 7px 13px; }
+    .nav-pills .nav-link:hover:not(.active) { background-color: #e2e8f0; }
 
     .kpi-condicion {
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 11px 14px;
       border: 1px solid #e2e8f0;
       background: #f8fafc;
       height: 100%;
     }
     .kpi-condicion .kpi-title {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 700;
       text-transform: uppercase;
       color: #64748b;
       display: block;
     }
     .kpi-condicion .kpi-num {
-      font-size: 1.35rem;
+      font-size: 1.3rem;
       font-weight: 800;
       line-height: 1.2;
       margin-top: 2px;
     }
-    .table-evaluador { font-size: 0.8rem; }
+    .table-evaluador { font-size: 0.79rem; }
   </style>
 </head>
 <body>
 
-  <div class="container my-4" style="max-width: 1360px;">
+  <div class="container-fluid px-4 my-3" style="max-width: 1480px;">
     <div class="card-panel">
+      <!-- CABECERA -->
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
         <div>
-          <h2 class="fw-bold text-success mb-1">📊 Estadísticas, Laboratorio Biométrico y Evaluador Individual</h2>
-          <p class="text-muted mb-0 small">Ciclo fenológico mensual, análisis tipo RStudio y evaluación individual de condición física y SMI.</p>
+          <h3 class="fw-bold text-success mb-0">🔬 Laboratorio Biométrico RStudio &amp; Dimorfismo Sexual</h3>
+          <p class="text-muted mb-0 small">Análisis por pestañas: Masa corporal, Ala máx, R5, Condición (Ala vs Peso), Tarso, Cola y Evaluador Individual.</p>
         </div>
         <div class="d-flex gap-2 align-items-center flex-wrap">
-          <label class="btn btn-outline-primary btn-sm mb-0" title="Cargar un CSV externo solo para analizar en esta sesión">
-            📂 Cargar CSV externo
+          <label class="btn btn-outline-primary btn-sm mb-0" title="Cargar un CSV externo para analizar">
+            📂 Cargar CSV
             <input type="file" id="input-csv-externo" accept=".csv" hidden onchange="cargarCsvExterno(event)">
           </label>
           <span id="badge-fuente-datos" class="badge bg-light text-dark border py-2 px-2">Fuente: Base Local (0 reg.)</span>
           <a href="anillamiento.html" class="btn btn-outline-success btn-sm px-3">🦅 Anillamiento</a>
-          <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Volver al Inicio</a>
+          <a href="index.html" class="btn btn-outline-secondary btn-sm px-3">&larr; Inicio</a>
         </div>
       </div>
 
-      <!-- PESTAÑAS DE MODO DE ANÁLISIS -->
-      <ul class="nav nav-pills mb-4 bg-light p-2 rounded border" id="tabs-analisis" role="tablist">
+      <!-- PESTAÑAS SEPARADAS POR VARIABLE BIOMÉTRICA -->
+      <ul class="nav nav-pills mb-3 bg-light p-2 rounded border gap-1" id="tabs-biometria" role="tablist">
         <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="tab-fenologia-btn" data-bs-toggle="pill" data-bs-target="#pane-fenologia" type="button" role="tab" onclick="actualizarGrafica()">
-            📈 1. Ciclo Fenológico Mensual
+          <button class="nav-link active" data-tab-key="peso" onclick="seleccionarPestana('peso', this)">
+            ⚖️ 1. Masa Corporal (M vs H)
           </button>
         </li>
         <li class="nav-item" role="presentation">
-          <button class="nav-link" id="tab-rstudio-btn" data-bs-toggle="pill" data-bs-target="#pane-rstudio" type="button" role="tab" onclick="actualizarLaboratorioBiometrico()">
-            🔬 2. Laboratorio Biométrico (Estilo RStudio)
+          <button class="nav-link" data-tab-key="ala" onclick="seleccionarPestana('ala', this)">
+            🪶 2. Ala Máx (M vs H)
           </button>
         </li>
         <li class="nav-item" role="presentation">
-          <button class="nav-link" id="tab-evaluador-btn" data-bs-toggle="pill" data-bs-target="#pane-evaluador" type="button" role="tab" onclick="actualizarEvaluadorIndividual()">
-            🦅 3. Evaluador Individual y SMI
+          <button class="nav-link" data-tab-key="r5" onclick="seleccionarPestana('r5', this)">
+            📏 3. R5 (Edad / Sexo)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-tab-key="condicion" onclick="seleccionarPestana('condicion', this)">
+            🦅 4. Condición Física (Ala Máx vs Peso)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-tab-key="tarso" onclick="seleccionarPestana('tarso', this)">
+            🦴 5. Tarso (M vs H)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-tab-key="cola" onclick="seleccionarPestana('cola', this)">
+            📐 6. Cola (M vs H)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-tab-key="p8" onclick="seleccionarPestana('p8', this)">
+            ✒️ 7. P8 (M vs H)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-tab-key="evaluador" onclick="seleccionarPestana('evaluador', this)">
+            📋 8. Evaluador Individual (5 Niveles)
           </button>
         </li>
       </ul>
 
       <!-- PANEL DE FILTRADO GLOBAL COMPARTIDO -->
-      <div class="card bg-light border-0 p-3 mb-4 shadow-sm">
-        <h6 class="fw-bold text-dark mb-2">⚙️ Filtros Globales de Muestra (Aplican a todas las pestañas)</h6>
-        <div class="row g-3 align-items-end">
-          <div class="col-md-2">
-            <label class="form-label fw-bold small">Especie</label>
-            <select id="filtro-especie-global" class="form-select form-select-sm" onchange="refrescarVistaActiva()">
+      <div class="card bg-light border-0 p-3 mb-3 shadow-sm">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label fw-bold small mb-1">Especie</label>
+            <select id="filtro-especie-global" class="form-select form-select-sm" onchange="renderizarPestanaActual()">
               <option value="TODAS" selected>Todas las especies</option>
             </select>
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-bold small">Fecha Inicio</label>
-            <input type="date" id="filtro-desde" class="form-control form-control-sm" onchange="refrescarVistaActiva()">
+            <label class="form-label fw-bold small mb-1">Fecha Inicio</label>
+            <input type="date" id="filtro-desde" class="form-control form-control-sm" onchange="renderizarPestanaActual()">
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-bold small">Fecha Fin</label>
-            <input type="date" id="filtro-hasta" class="form-control form-control-sm" onchange="refrescarVistaActiva()">
+            <label class="form-label fw-bold small mb-1">Fecha Fin</label>
+            <input type="date" id="filtro-hasta" class="form-control form-control-sm" onchange="renderizarPestanaActual()">
           </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold small">Métrica Principal (Ciclo Mensual)</label>
-            <select id="filtro-metrica" class="form-select form-select-sm fw-bold text-success" onchange="actualizarGrafica()">
-              <option value="" disabled selected>-- Elige métrica biométrica --</option>
-              <option value="peso">Masa / Peso (g)</option>
-              <option value="ala">Ala Máx (mm)</option>
-              <option value="cola">Cola (mm)</option>
-              <option value="r5">R5 (mm) [Joven ≤19mm / Adulto ≥19.1mm]</option>
-              <option value="tarso">Tarso (mm)</option>
+          <div class="col-md-3">
+            <label class="form-label fw-bold small mb-1">Agrupación en RStudio (`aes(color)`)</label>
+            <select id="r-agrupar" class="form-select form-select-sm" onchange="renderizarPestanaActual()">
+              <option value="sexo_mh" selected>Macho vs Hembra (Dimorfismo)</option>
+              <option value="sexo_edad">Macho, Hembra, Pollo y Desconocido</option>
+              <option value="r5_criterio">Edad por R5 (Joven ≤19mm vs Adulto ≥19.1mm)</option>
+              <option value="edad_euring">Código Edad EURING</option>
             </select>
           </div>
           <div class="col-md-2 text-end">
@@ -145,321 +171,246 @@
           </div>
         </div>
 
-        <!-- FILTROS DE CATEGORÍA / SEXO / EDAD CON CHECKBOXES -->
-        <div class="row mt-3 pt-2 border-top">
-          <div class="col-12">
-            <label class="form-label fw-bold small text-secondary d-block mb-1">Categorías / Grupos activos:</label>
+        <!-- CHECKBOXES DE CATEGORÍA -->
+        <div class="row mt-2 pt-2 border-top">
+          <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="checkbox-group">
-              <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="refrescarVistaActiva()">
-                <label class="form-check-label small fw-semibold" for="chk-macho">Macho</label>
+              <span class="small fw-bold text-secondary">Grupos incluidos:</span>
+              <div class="form-check mb-0">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Macho" id="chk-macho" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold text-primary" for="chk-macho">Macho</label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" checked onchange="refrescarVistaActiva()">
-                <label class="form-check-label small fw-semibold" for="chk-hembra">Hembra</label>
+              <div class="form-check mb-0">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Hembra" id="chk-hembra" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold text-danger" for="chk-hembra">Hembra</label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" checked onchange="refrescarVistaActiva()">
-                <label class="form-check-label small fw-semibold" for="chk-pollo">Pollo / Pullus (EURING 1)</label>
+              <div class="form-check mb-0">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Pollo" id="chk-pollo" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold" for="chk-pollo">Pollo (EURING 1)</label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Joven" id="chk-joven" checked onchange="refrescarVistaActiva()">
-                <label class="form-check-label small fw-semibold" for="chk-joven">Joven (R5 ≤ 19mm)</label>
+              <div class="form-check mb-0">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Joven" id="chk-joven" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold" for="chk-joven">Joven (R5 ≤ 19)</label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Adulto" id="chk-adulto" checked onchange="refrescarVistaActiva()">
-                <label class="form-check-label small fw-semibold" for="chk-adulto">Adulto (R5 ≥ 19.1mm)</label>
+              <div class="form-check mb-0">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Adulto" id="chk-adulto" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold" for="chk-adulto">Adulto (R5 ≥ 19.1)</label>
               </div>
-              <div class="form-check">
-                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="refrescarVistaActiva()">
-                <label class="form-check-label small fw-semibold" for="chk-desconocido">Desconocido</label>
+              <div class="form-check mb-0">
+                <input class="form-check-input chk-filtro" type="checkbox" value="Desconocido" id="chk-desconocido" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold text-muted" for="chk-desconocido">Desconocido</label>
+              </div>
+            </div>
+
+            <div class="d-flex gap-3 align-items-center" id="controles-lm-box">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="r-mostrar-lm" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold" for="r-mostrar-lm">Recta <code>lm()</code></label>
+              </div>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="r-lm-por-grupo" checked onchange="renderizarPestanaActual()">
+                <label class="form-check-label small fw-semibold" for="r-lm-por-grupo">LM por Sexo</label>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="tab-content">
-        <!-- ============================================================== -->
-        <!-- PESTAÑA 1: GRÁFICA FENOLÓGICA MENSUAL ORIGINAL                 -->
-        <!-- ============================================================== -->
-        <div class="tab-pane fade show active" id="pane-fenologia" role="tabpanel">
-          <div id="sin-datos-aviso" class="text-center py-5 text-muted">
-            <h4>Panel listo para consultar.</h4>
-            <p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>
+      <!-- ===================================================================== -->
+      <!-- VISTA LABORATORIO RSTUDIO (COMPARTIDA POR PESTAÑAS 1 A 7)             -->
+      <!-- ===================================================================== -->
+      <div id="vista-rstudio-variable">
+        
+        <!-- KPIs COMPARATIVOS MACHOS VS HEMBRAS + DIMORFISMO -->
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="border-left: 4px solid #0072B2;">
+              <span class="kpi-title text-primary" id="kpi-lbl-macho">Machos (M)</span>
+              <div class="kpi-num text-dark" id="kpi-val-macho">-</div>
+              <small class="text-muted" style="font-size: 0.72rem;" id="kpi-sub-macho">n = 0 · SD = -</small>
+            </div>
           </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="border-left: 4px solid #D55E00;">
+              <span class="kpi-title" style="color: #D55E00;" id="kpi-lbl-hembra">Hembras (H)</span>
+              <div class="kpi-num text-dark" id="kpi-val-hembra">-</div>
+              <small class="text-muted" style="font-size: 0.72rem;" id="kpi-sub-hembra">n = 0 · SD = -</small>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="border-left: 4px solid #009E73;">
+              <span class="kpi-title text-success">Dimorfismo Sexual (Δ H − M)</span>
+              <div class="kpi-num text-success" id="kpi-val-dimorfismo">-</div>
+              <small class="text-muted" style="font-size: 0.72rem;" id="kpi-sub-dimorfismo">Índice Storer: -</small>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="border-left: 4px solid #64748B;">
+              <span class="kpi-title">Muestra Total Válida</span>
+              <div class="kpi-num text-secondary" id="kpi-val-total">0</div>
+              <small class="text-muted" style="font-size: 0.72rem;" id="kpi-sub-total">Rango global: -</small>
+            </div>
+          </div>
+        </div>
 
-          <div id="contenedor-resultados" style="display: none;">
-            <div class="row g-3 mb-4">
-              <div class="col-md-3">
-                <div class="stat-card shadow-sm text-center">
-                  <span class="text-muted small fw-bold d-block">VALOR MEDIO GLOBAL</span>
-                  <h3 id="stat-media" class="fw-bold text-success mb-0">0</h3>
-                  <div id="desglose-media" class="sub-desglose">Desglose...</div>
-                </div>
+        <!-- FILA PRINCIPAL DE GRÁFICAS RSTUDIO -->
+        <div class="row g-3 mb-3">
+          <!-- GRÁFICA 1: BOXPLOT / IQR + MEDIA + MEDIANA + RANGO POR GRUPO -->
+          <div class="col-lg-6">
+            <div class="rstudio-pane">
+              <div class="rstudio-pane-header">
+                <span id="titulo-plot-box">Plots — Distribución por Grupo (Mediana, Q1–Q3 y Rango)</span>
+                <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="descargarCanvas('chartRDistribucion', 'plot_boxplot_rstudio.png')">📥 PNG</button>
               </div>
-              <div class="col-md-3">
-                <div class="stat-card shadow-sm text-center" style="border-left-color: #007bff; background: #e3f2fd;">
-                  <span class="text-muted small fw-bold d-block">VALOR MÍNIMO</span>
-                  <h3 id="stat-min" class="fw-bold text-primary mb-0">0</h3>
-                  <div id="desglose-min" class="sub-desglose">Mínimos...</div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card shadow-sm text-center" style="border-left-color: #ffc107; background: #fff9c4;">
-                  <span class="text-muted small fw-bold d-block">VALOR MÁXIMO</span>
-                  <h3 id="stat-max" class="fw-bold text-dark mb-0">0</h3>
-                  <div id="desglose-max" class="sub-desglose">Máximos...</div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card shadow-sm text-center" style="border-left-color: #6c757d; background: #f8f9fa;">
-                  <span class="text-muted small fw-bold d-block">TOTAL MUESTRAS (N)</span>
-                  <h3 id="stat-count" class="fw-bold text-secondary mb-0">0</h3>
-                  <div id="desglose-count" class="sub-desglose">Muestras...</div>
+              <div class="p-3">
+                <div style="height: 320px; position: relative;">
+                  <canvas id="chartRDistribucion"></canvas>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="card p-3 shadow-sm border-0 bg-light">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 id="titulo-grafica" class="text-secondary fw-bold mb-0">Ciclo Fenológico Mensual</h6>
-                <button class="btn btn-outline-success btn-sm fw-bold" onclick="descargarGrafica()">📥 Descargar Gráfica PNG</button>
+          <!-- GRÁFICA 2: DISPERSIÓN BIVARIANTE / CONDICIÓN ALOMÉTRICA / FENOLOGÍA -->
+          <div class="col-lg-6">
+            <div class="rstudio-pane">
+              <div class="rstudio-pane-header">
+                <span id="titulo-plot-scatter">Plots — Relación Bivariante y Ajuste Lineal</span>
+                <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="descargarCanvas('chartRScatter', 'plot_dispersion_rstudio.png')">📥 PNG</button>
               </div>
-              <div style="height: 400px; position: relative;">
-                <canvas id="chartDinamica"></canvas>
+              <div class="p-3">
+                <div style="height: 320px; position: relative;">
+                  <canvas id="chartRScatter"></canvas>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ============================================================== -->
-        <!-- PESTAÑA 2: LABORATORIO BIOMÉTRICO ESTILO RSTUDIO               -->
-        <!-- ============================================================== -->
-        <div class="tab-pane fade" id="pane-rstudio" role="tabpanel">
-          <div class="row g-3">
-            
-            <!-- COLUMNA IZQUIERDA: CONTROLES DE PLOT Y CONSOLA R -->
-            <div class="col-lg-4">
-              <div class="rstudio-pane mb-3">
-                <div class="rstudio-pane-header">
-                  <span>🎛️ Plot Controls (ggplot2 Builder)</span>
-                  <span class="badge bg-primary">R-Style</span>
-                </div>
-                <div class="p-3">
-                  <div class="mb-2">
-                    <label class="form-label fw-bold small mb-1">Variable Eje X (Dispersión):</label>
-                    <select id="r-eje-x" class="form-select form-select-sm" onchange="actualizarLaboratorioBiometrico()">
-                      <option value="ala" selected>Ala Máx (mm)</option>
-                      <option value="cola">Cola (mm)</option>
-                      <option value="tarso">Tarso (mm)</option>
-                      <option value="r5">R5 (mm)</option>
-                      <option value="peso">Masa / Peso (g)</option>
-                    </select>
-                  </div>
-
-                  <div class="mb-2">
-                    <label class="form-label fw-bold small mb-1">Variable Eje Y (Dispersión y Boxplot):</label>
-                    <select id="r-eje-y" class="form-select form-select-sm" onchange="actualizarLaboratorioBiometrico()">
-                      <option value="peso" selected>Masa / Peso (g)</option>
-                      <option value="ala">Ala Máx (mm)</option>
-                      <option value="cola">Cola (mm)</option>
-                      <option value="tarso">Tarso (mm)</option>
-                      <option value="r5">R5 (mm)</option>
-                      <option value="smi">SMI — Scaled Mass Index (g, por sexo)</option>
-                      <option value="condicion_corporal">Índice Condición Cúbica (Peso / Ala³ × 10⁵)</option>
-                      <option value="ratio_peso_ala">Ratio Masa / Ala (g / mm)</option>
-                      <option value="residuo_masa_ala">Condición Residual Lineal (Peso − Peso_esp en g)</option>
-                    </select>
-                  </div>
-
-                  <div class="mb-2">
-                    <label class="form-label fw-bold small mb-1">Agrupar / Colorear por (`aes(color = ...)`):</label>
-                    <select id="r-agrupar" class="form-select form-select-sm" onchange="actualizarLaboratorioBiometrico()">
-                      <option value="sexo_edad" selected>Sexo / Edad (Macho, Hembra, Pollo, Desconocido)</option>
-                      <option value="r5_criterio">Criterio R5 (Joven ≤19mm vs Adulto ≥19.1mm)</option>
-                      <option value="edad_euring">Código Edad EURING</option>
-                      <option value="especie">Especie</option>
-                    </select>
-                  </div>
-
-                  <div class="form-check form-switch mt-3">
-                    <input class="form-check-input" type="checkbox" id="r-mostrar-lm" checked onchange="actualizarLaboratorioBiometrico()">
-                    <label class="form-check-label small fw-semibold" for="r-mostrar-lm">
-                      Añadir recta lineal <code>geom_smooth(method="lm")</code>
-                    </label>
-                  </div>
-
-                  <div class="form-check form-switch mt-1">
-                    <input class="form-check-input" type="checkbox" id="r-lm-por-grupo" onchange="actualizarLaboratorioBiometrico()">
-                    <label class="form-check-label small fw-semibold" for="r-lm-por-grupo">
-                      Recta de regresión independiente por grupo
-                    </label>
-                  </div>
-                </div>
+        <!-- FILA INFERIOR: TABLA SUMMARY() R Y CONSOLA R -->
+        <div class="row g-3">
+          <div class="col-lg-8">
+            <div class="rstudio-pane">
+              <div class="rstudio-pane-header">
+                <span id="titulo-tabla-summary">Data Viewer — Estadísticos Descriptivos (summary)</span>
+                <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" onclick="exportarTablaSummaryCSV()">📥 CSV Resumen</button>
               </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover mb-0 table-summary-r">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Grupo</th>
+                      <th class="text-end">N</th>
+                      <th class="text-end">Media</th>
+                      <th class="text-end">SD</th>
+                      <th class="text-end">Mediana</th>
+                      <th class="text-end">Q1 (25%)</th>
+                      <th class="text-end">Q3 (75%)</th>
+                      <th class="text-end">IQR</th>
+                      <th class="text-end">Mín</th>
+                      <th class="text-end">Máx</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody-r-summary">
+                    <tr><td colspan="10" class="text-center text-muted py-3">Sin datos calculados.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-              <!-- CONSOLA R SIMULADA (MODELO LINEAL + OUTLIERS) -->
-              <div class="rstudio-pane">
-                <div class="rstudio-pane-header">
-                  <span>💻 Console / Model Output</span>
-                  <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.72rem;" onclick="copiarResumenConsola()">Copiar</button>
-                </div>
-                <div class="p-2 bg-dark">
-                  <div id="r-console-output" class="rstudio-console">
-                    <span class="cmd">&gt; summary(lm(y ~ x, data = biometria))</span><br>
-                    Esperando datos...
-                  </div>
+          <div class="col-lg-4">
+            <div class="rstudio-pane">
+              <div class="rstudio-pane-header">
+                <span>💻 Console / Model Output</span>
+                <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.72rem;" onclick="copiarResumenConsola()">Copiar</button>
+              </div>
+              <div class="p-2 bg-dark h-100">
+                <div id="r-console-output" class="rstudio-console">
+                  <span class="cmd">&gt; summary(biometria)</span><br>
+                  Esperando datos...
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- COLUMNA DERECHA: PLOTS Y TABLA SUMMARY() -->
-            <div class="col-lg-8">
-              
-              <!-- PLOT 1: DISPERSIÓN BIVARIANTE + LM -->
-              <div class="rstudio-pane mb-3">
-                <div class="rstudio-pane-header">
-                  <span id="titulo-plot-scatter">Plots — Dispersión Bivariante y Ajuste Lineal</span>
-                  <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="descargarCanvas('chartRScatter', 'plot_dispersion_biometria.png')">📥 Exportar PNG</button>
-                </div>
-                <div class="p-3">
-                  <div style="height: 310px; position: relative;">
-                    <canvas id="chartRScatter"></canvas>
-                  </div>
-                </div>
-              </div>
-
-              <!-- PLOT 2: DISTRIBUCIÓN POR GRUPO (MEDIANA + IQR + JITTER) -->
-              <div class="rstudio-pane mb-3">
-                <div class="rstudio-pane-header">
-                  <span id="titulo-plot-box">Plots — Distribución por Grupo (Mediana, Q1–Q3 e Individuos)</span>
-                  <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="descargarCanvas('chartRDistribucion', 'plot_distribucion_iqr.png')">📥 Exportar PNG</button>
-                </div>
-                <div class="p-3">
-                  <div style="height: 260px; position: relative;">
-                    <canvas id="chartRDistribucion"></canvas>
-                  </div>
-                </div>
-              </div>
-
-              <!-- TABLA SUMMARY() POR GRUPO -->
-              <div class="rstudio-pane">
-                <div class="rstudio-pane-header">
-                  <span id="titulo-tabla-summary">Data Viewer — Estadísticos Descriptivos por Grupo (summary)</span>
-                  <button class="btn btn-outline-primary btn-sm py-0 px-2 fw-bold" onclick="exportarTablaSummaryCSV()">📥 CSV Resumen</button>
-                </div>
-                <div class="table-responsive">
-                  <table class="table table-sm table-striped table-hover mb-0 table-summary-r">
-                    <thead class="table-light">
-                      <tr>
-                        <th>Grupo</th>
-                        <th class="text-end">N</th>
-                        <th class="text-end">Media</th>
-                        <th class="text-end">SD</th>
-                        <th class="text-end">Mediana</th>
-                        <th class="text-end">Q1 (25%)</th>
-                        <th class="text-end">Q3 (75%)</th>
-                        <th class="text-end">IQR</th>
-                        <th class="text-end">Mín</th>
-                        <th class="text-end">Máx</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tbody-r-summary">
-                      <tr><td colspan="10" class="text-center text-muted py-3">Sin datos calculados todavía.</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
+      <!-- ===================================================================== -->
+      <!-- VISTA PESTAÑA 8: EVALUADOR INDIVIDUAL DE CONDICIÓN (5 NIVELES)        -->
+      <!-- ===================================================================== -->
+      <div id="vista-evaluador-individual" style="display: none;">
+        <!-- KPIs SUPERIORES DEL EVALUADOR -->
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion">
+              <span class="kpi-title">Individuos Evaluados</span>
+              <div class="kpi-num text-dark" id="eval-kpi-total">0</div>
+              <small class="text-muted" style="font-size: 0.72rem;" id="eval-kpi-smi-params">SMI: L0 = - | b_SMA = -</small>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="background: #f0fdf4; border-color: #bbf7d0;">
+              <span class="kpi-title text-success">Muy buena / Buena / Normal</span>
+              <div class="kpi-num text-success" id="eval-kpi-normal">0</div>
+              <small class="text-muted" style="font-size: 0.72rem;" id="eval-kpi-elevado">Muy buena: 0 · Buena: 0 · Normal: 0</small>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="background: #fffbeb; border-color: #fde68a;">
+              <span class="kpi-title text-warning">Condición Mala</span>
+              <div class="kpi-num text-warning" id="eval-kpi-leve">0</div>
+              <small class="text-muted" style="font-size: 0.72rem;">Por debajo del umbral / SMI</small>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-condicion" style="background: #fef2f2; border-color: #fecaca;">
+              <span class="kpi-title text-danger">Condición Muy mala</span>
+              <div class="kpi-num text-danger" id="eval-kpi-marcada">0</div>
+              <small class="text-muted" style="font-size: 0.72rem;">Peso ≤ Umbral − 14 g / SMI ≤ -15%</small>
             </div>
           </div>
         </div>
 
-        <!-- ============================================================== -->
-        <!-- PESTAÑA 3: EVALUADOR INDIVIDUAL DE CONDICIÓN Y SMI (PEIG & GREEN) -->
-        <!-- ============================================================== -->
-        <div class="tab-pane fade" id="pane-evaluador" role="tabpanel">
-          
-          <!-- KPIs SUPERIORES DEL EVALUADOR -->
-          <div class="row g-3 mb-3">
-            <div class="col-6 col-md-3">
-              <div class="kpi-condicion">
-                <span class="kpi-title">Individuos Evaluados</span>
-                <div class="kpi-num text-dark" id="eval-kpi-total">0</div>
-                <small class="text-muted" style="font-size: 0.72rem;" id="eval-kpi-smi-params">SMI: L0 = - | b_SMA = -</small>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="kpi-condicion" style="background: #f0fdf4; border-color: #bbf7d0;">
-                <span class="kpi-title text-success">Buena / Muy buena / Normal</span>
-                <div class="kpi-num text-success" id="eval-kpi-normal">0</div>
-                <small class="text-muted" style="font-size: 0.72rem;" id="eval-kpi-elevado">Muy buena: 0 · Buena: 0 · Normal: 0</small>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="kpi-condicion" style="background: #fffbeb; border-color: #fde68a;">
-                <span class="kpi-title text-warning">Condición Mala</span>
-                <div class="kpi-num text-warning" id="eval-kpi-leve">0</div>
-                <small class="text-muted" style="font-size: 0.72rem;">Por debajo del umbral / SMI</small>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="kpi-condicion" style="background: #fef2f2; border-color: #fecaca;">
-                <span class="kpi-title text-danger">Condición Muy mala</span>
-                <div class="kpi-num text-danger" id="eval-kpi-marcada">0</div>
-                <small class="text-muted" style="font-size: 0.72rem;">Peso ≤ Umbral − 14 g / SMI ≤ -15%</small>
-              </div>
+        <div class="rstudio-pane">
+          <div class="rstudio-pane-header flex-wrap gap-2">
+            <span>📋 Evaluación Individual de Condición Física (Muy buena, Buena, Normal, Mala, Muy mala)</span>
+            <div class="d-flex gap-2 align-items-center">
+              <input type="text" id="eval-buscador" class="form-control form-control-sm" style="width: 170px;" placeholder="Buscar anilla..." oninput="actualizarEvaluadorIndividual()">
+              <select id="eval-filtro-estado" class="form-select form-select-sm" style="width: 190px;" onchange="actualizarEvaluadorIndividual()">
+                <option value="TODOS" selected>Todos los estados</option>
+                <option value="Muy buena">🔵 Muy buena</option>
+                <option value="Buena">🟢 Buena</option>
+                <option value="Normal">🩵 Normal</option>
+                <option value="Mala">🟡 Mala</option>
+                <option value="Muy mala">🔴 Muy mala</option>
+              </select>
+              <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportarEvaluadorIndividualCSV()">📥 Exportar CSV</button>
             </div>
           </div>
 
-          <!-- BARRA DE FILTRO RÁPIDO POR ESTADO Y EXPORTACIÓN -->
-          <div class="rstudio-pane">
-            <div class="rstudio-pane-header flex-wrap gap-2">
-              <span>📋 Evaluación Individual de Condición Física (Muy buena, Buena, Normal, Mala, Muy mala)</span>
-              <div class="d-flex gap-2 align-items-center">
-                <input type="text" id="eval-buscador" class="form-control form-control-sm" style="width: 170px;" placeholder="Buscar anilla..." oninput="actualizarEvaluadorIndividual()">
-                <select id="eval-filtro-estado" class="form-select form-select-sm" style="width: 210px;" onchange="actualizarEvaluadorIndividual()">
-                  <option value="TODOS" selected>Todos los estados</option>
-                  <option value="Muy buena">🔵 Muy buena</option>
-                  <option value="Buena">🟢 Buena</option>
-                  <option value="Normal">🩵 Normal</option>
-                  <option value="Mala">🟡 Mala</option>
-                  <option value="Muy mala">🔴 Muy mala</option>
-                </select>
-                <button class="btn btn-outline-success btn-sm fw-bold" onclick="exportarEvaluadorIndividualCSV()">📥 Exportar CSV</button>
-              </div>
-            </div>
-
-            <div class="table-responsive" style="max-height: 520px;">
-              <table class="table table-sm table-hover align-middle mb-0 table-evaluador">
-                <thead class="table-light sticky-top">
-                  <tr>
-                    <th>ID / Anilla</th>
-                    <th>Fecha</th>
-                    <th>Especie</th>
-                    <th>Sexo</th>
-                    <th>Edad</th>
-                    <th class="text-end">Ala (mm)</th>
-                    <th class="text-end">Peso Neto (g)</th>
-                    <th class="text-end">Ratio (g/mm)</th>
-                    <th class="text-end">SMI (g)</th>
-                    <th class="text-end">Desv. SMI (%)</th>
-                    <th class="text-end">Umbral Alerta (g)</th>
-                    <th>Estado Condición Física</th>
-                  </tr>
-                </thead>
-                <tbody id="tbody-evaluador-individual">
-                  <tr><td colspan="12" class="text-center text-muted py-4">No hay registros cargados para evaluar.</td></tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="table-responsive" style="max-height: 520px;">
+            <table class="table table-sm table-hover align-middle mb-0 table-evaluador">
+              <thead class="table-light sticky-top">
+                <tr>
+                  <th>ID / Anilla</th>
+                  <th>Fecha</th>
+                  <th>Especie</th>
+                  <th>Sexo</th>
+                  <th>Edad</th>
+                  <th class="text-end">Ala (mm)</th>
+                  <th class="text-end">Peso Neto (g)</th>
+                  <th class="text-end">Ratio (g/mm)</th>
+                  <th class="text-end">SMI (g)</th>
+                  <th class="text-end">Desv. SMI (%)</th>
+                  <th class="text-end">Umbral Alerta (g)</th>
+                  <th>Estado Condición</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-evaluador-individual">
+                <tr><td colspan="12" class="text-center text-muted py-4">No hay registros cargados para evaluar.</td></tr>
+              </tbody>
+            </table>
           </div>
-
-          <div class="mt-2 text-muted" style="font-size: 0.75rem;">
-            <b>Escala de condición:</b> <b>Muy buena</b> (muy por encima del umbral/SMI), <b>Buena</b> (por encima del umbral/SMI), <b>Normal</b> (franja estándar), <b>Mala</b> (por debajo del umbral/SMI) y <b>Muy mala</b> (muy por debajo del umbral/SMI).
-          </div>
-
         </div>
       </div>
 
@@ -469,44 +420,91 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     var anillamientos = JSON.parse(localStorage.getItem("anillamiento_biometria_data")) || [];
-    var chartDinamicaInstance = null;
+    var pestanaActiva = "peso";
     var chartRScatterInstance = null;
     var chartRDistribucionInstance = null;
     var ultimoResumenTabla = [];
     var ultimasFilasEvaluador = [];
 
-    const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-
-    const etiquetasVariablesR = {
-      ala: "Ala Máx (mm)",
-      cola: "Cola (mm)",
-      tarso: "Tarso (mm)",
-      r5: "R5 (mm)",
-      peso: "Masa / Peso (g)",
-      smi: "SMI — Scaled Mass Index (g)",
-      condicion_corporal: "Condición Cúbica (Peso/Ala³×10⁵)",
-      ratio_peso_ala: "Ratio Masa / Ala (g/mm)",
-      residuo_masa_ala: "Condición Residual Lineal (g)"
+    const configPestanas = {
+      peso: {
+        titulo: "Masa Corporal / Peso (g)",
+        unidad: "g",
+        varY: "peso",
+        varX: "ala",
+        scatterTitulo: "Relación Masa Corporal (g) vs. Ala Máx (mm) — Alometría M vs H",
+        boxTitulo: "Distribución de Masa Corporal (g) entre Machos y Hembras (Mediana + IQR)"
+      },
+      ala: {
+        titulo: "Longitud de Ala Máxima (mm)",
+        unidad: "mm",
+        varY: "ala",
+        varX: "p8",
+        scatterTitulo: "Relación Ala Máx (mm) vs. Primaria P8 (mm) — M vs H",
+        boxTitulo: "Distribución de Ala Máx (mm) entre Machos y Hembras (Mediana + IQR)"
+      },
+      r5: {
+        titulo: "Longitud Rectriz R5 (mm)",
+        unidad: "mm",
+        varY: "r5",
+        varX: "cola",
+        scatterTitulo: "Relación R5 (mm) vs. Cola (mm) [Corte Edad: Joven ≤19mm / Adulto ≥19.1mm]",
+        boxTitulo: "Distribución de R5 (mm) por Grupo (Mediana + IQR)"
+      },
+      condicion: {
+        titulo: "Condición Física (SMI / Ala Máx vs Peso)",
+        unidad: "g",
+        varY: "smi",
+        varX: "ala",
+        scatterTitulo: "Condición Física: Peso Neto (g) frente a Ala Máx (mm) con Ajuste Lineal por Sexo",
+        boxTitulo: "Distribución del Scaled Mass Index (SMI, g) por Sexo / Grupo"
+      },
+      tarso: {
+        titulo: "Longitud del Tarso (mm)",
+        unidad: "mm",
+        varY: "tarso",
+        varX: "ala",
+        scatterTitulo: "Relación Tarso (mm) vs. Ala Máx (mm) — M vs H",
+        boxTitulo: "Distribución de Tarso (mm) entre Machos y Hembras (Mediana + IQR)"
+      },
+      cola: {
+        titulo: "Longitud de la Cola (mm)",
+        unidad: "mm",
+        varY: "cola",
+        varX: "ala",
+        scatterTitulo: "Relación Cola (mm) vs. Ala Máx (mm) — M vs H",
+        boxTitulo: "Distribución de Cola (mm) entre Machos y Hembras (Mediana + IQR)"
+      },
+      p8: {
+        titulo: "Longitud de la 8ª Primaria — P8 (mm)",
+        unidad: "mm",
+        varY: "p8",
+        varX: "ala",
+        scatterTitulo: "Relación P8 (mm) vs. Ala Máx (mm) — M vs H",
+        boxTitulo: "Distribución de P8 (mm) entre Machos y Hembras (Mediana + IQR)"
+      }
     };
 
-    const paletaRStudio = [
-      "#0072B2",
-      "#D55E00",
-      "#009E73",
-      "#CC79A7",
-      "#E69F00",
-      "#56B4E9",
-      "#64748B"
-    ];
+    const coloresPorGrupo = {
+      "Macho": "#0072B2",
+      "Hembra": "#D55E00",
+      "Pollo": "#E69F00",
+      "Desconocido": "#64748B",
+      "Joven (R5 ≤ 19)": "#17a2b8",
+      "Adulto (R5 ≥ 19.1)": "#009E73"
+    };
+    const paletaRespaldo = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#64748B"];
+
+    function obtenerColorGrupo(grp, idx) {
+      return coloresPorGrupo[grp] || paletaRespaldo[idx % paletaRespaldo.length];
+    }
 
     function parsearFecha(strFecha) {
       if (!strFecha) return null;
       strFecha = String(strFecha).trim();
       if (strFecha.includes('/')) {
         var p = strFecha.split('/');
-        if (p.length === 3) {
-          return new Date(p[2], p[1] - 1, p[0]);
-        }
+        if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]);
       }
       var d = new Date(strFecha);
       return isNaN(d.getTime()) ? null : d;
@@ -515,10 +513,7 @@
     function formatearFechaClave(strFecha) {
       var d = parsearFecha(strFecha);
       if (!d) return String(strFecha || '').trim();
-      var dd = String(d.getDate()).padStart(2, '0');
-      var mm = String(d.getMonth() + 1).padStart(2, '0');
-      var yyyy = d.getFullYear();
-      return `${dd}/${mm}/${yyyy}`;
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     }
 
     function parsearNumeroBiometria(raw) {
@@ -549,64 +544,39 @@
     function calcularRegresionDesdePares(pares) {
       var n = pares.length;
       if (n < 2) return null;
-
       var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
       pares.forEach(p => {
-        sumX += p.x;
-        sumY += p.y;
+        sumX += p.x; sumY += p.y;
         sumXY += p.x * p.y;
-        sumX2 += p.x * p.x;
-        sumY2 += p.y * p.y;
+        sumX2 += p.x * p.x; sumY2 += p.y * p.y;
       });
-
       var denomX = (n * sumX2 - sumX * sumX);
       var denomY = (n * sumY2 - sumY * sumY);
       if (denomX === 0) return null;
-
       var slope = (n * sumXY - sumX * sumY) / denomX;
       var intercept = (sumY - slope * sumX) / n;
       var r2 = (denomY === 0) ? 0 : Math.pow((n * sumXY - sumX * sumY), 2) / (denomX * denomY);
-
-      return { slope: slope, intercept: intercept, r2: r2 };
-    }
-
-    function construirMapaResiduosMasaAla(registros) {
-      var mapa = new Map();
-      var pares = [];
-      registros.forEach((item, idx) => {
-        var ala = parsearNumeroBiometria(item.ala);
-        var peso = obtenerPesoNeto(item);
-        if (!isNaN(ala) && !isNaN(peso)) {
-          pares.push({ idx: idx, x: ala, y: peso });
-        }
-      });
-
-      var modelo = calcularRegresionDesdePares(pares);
-      if (!modelo) return mapa;
-
-      pares.forEach(p => {
-        var esperado = modelo.slope * p.x + modelo.intercept;
-        var residuo = parseFloat((p.y - esperado).toFixed(2));
-        mapa.set(p.idx, residuo);
-      });
-      return mapa;
+      var xs = pares.map(p => p.x);
+      var minX = Math.min(...xs), maxX = Math.max(...xs);
+      return {
+        slope: slope,
+        intercept: intercept,
+        r2: r2,
+        linea: [
+          { x: minX, y: slope * minX + intercept },
+          { x: maxX, y: slope * maxX + intercept }
+        ]
+      };
     }
 
     function calcularSMIPorSexo(registros) {
       var grupos = { Macho: [], Hembra: [], Indeterminado: [] };
-
       registros.forEach((item, idx) => {
         var ala = parsearNumeroBiometria(item.ala);
         var peso = obtenerPesoNeto(item);
         var sexo = normalizarSexo(item.sexo);
         if (!isNaN(ala) && ala > 0 && !isNaN(peso) && peso > 0) {
-          grupos[sexo].push({
-            idx: idx,
-            ala: ala,
-            peso: peso,
-            lnAla: Math.log(ala),
-            lnPeso: Math.log(peso)
-          });
+          grupos[sexo].push({ idx: idx, ala: ala, peso: peso, lnAla: Math.log(ala), lnPeso: Math.log(peso) });
         }
       });
 
@@ -619,40 +589,27 @@
 
         var L0 = lista.reduce((acc, r) => acc + r.ala, 0) / lista.length;
         var bSMA = 3.0;
-
         if (lista.length >= 2) {
           var meanLnAla = lista.reduce((acc, r) => acc + r.lnAla, 0) / lista.length;
           var meanLnPeso = lista.reduce((acc, r) => acc + r.lnPeso, 0) / lista.length;
           var sdLnAla = Math.sqrt(lista.reduce((acc, r) => acc + Math.pow(r.lnAla - meanLnAla, 2), 0) / (lista.length - 1));
           var sdLnPeso = Math.sqrt(lista.reduce((acc, r) => acc + Math.pow(r.lnPeso - meanLnPeso, 2), 0) / (lista.length - 1));
-          if (sdLnAla > 0 && sdLnPeso > 0) {
-            bSMA = sdLnPeso / sdLnAla;
-          }
+          if (sdLnAla > 0 && sdLnPeso > 0) bSMA = sdLnPeso / sdLnAla;
         }
 
-        lista.forEach(r => {
-          r.smi = r.peso * Math.pow(L0 / r.ala, bSMA);
-        });
-
+        lista.forEach(r => { r.smi = r.peso * Math.pow(L0 / r.ala, bSMA); });
         var mediaSMI = lista.reduce((acc, r) => acc + r.smi, 0) / lista.length;
         resumenParams[sexo] = { n: lista.length, L0: L0, bSMA: bSMA, mediaSMI: mediaSMI };
 
         lista.forEach(r => {
           var desvPct = mediaSMI > 0 ? ((r.smi - mediaSMI) / mediaSMI) * 100 : 0;
-          resultadoPorIdx.set(r.idx, {
-            smi: r.smi,
-            desvPct: desvPct,
-            L0: L0,
-            bSMA: bSMA,
-            mediaSMI: mediaSMI
-          });
+          resultadoPorIdx.set(r.idx, { smi: r.smi, desvPct: desvPct, L0: L0, bSMA: bSMA, mediaSMI: mediaSMI });
         });
       });
 
       return { mapa: resultadoPorIdx, params: resumenParams };
     }
 
-    // Escala de 5 categorías: Muy buena, Buena, Normal, Mala, Muy mala
     function evaluarCondicionIndividuo(item, smiInfo) {
       var sexo = normalizarSexo(item.sexo);
       var ala = parsearNumeroBiometria(item.ala);
@@ -664,52 +621,26 @@
       var umbralLeve = NaN;
 
       if (!isNaN(ala) && ala > 0 && esCernicalo) {
-        if (sexo === "Macho") {
-          umbralLeve = Math.round((148 + (ala - 225) * 0.7333) * 10) / 10;
-        } else if (sexo === "Hembra") {
-          umbralLeve = Math.round((165 + (ala - 235) * 0.8333) * 10) / 10;
-        }
+        if (sexo === "Macho") umbralLeve = Math.round((148 + (ala - 225) * 0.7333) * 10) / 10;
+        else if (sexo === "Hembra") umbralLeve = Math.round((165 + (ala - 235) * 0.8333) * 10) / 10;
       }
 
       var estado = "Normal";
       var badgeClass = "bg-info text-dark";
 
-      if (isNaN(ala) || isNaN(pesoNeto)) {
-        estado = "Normal";
-        badgeClass = "bg-info text-dark";
-      } else if (esCernicalo && sexo !== "Indeterminado" && !isNaN(umbralLeve)) {
-        if (pesoNeto <= (umbralLeve - 14)) {
-          estado = "Muy mala";
-          badgeClass = "bg-danger";
-        } else if (pesoNeto <= umbralLeve) {
-          estado = "Mala";
-          badgeClass = "bg-warning text-dark";
-        } else if (pesoNeto >= (umbralLeve + 45)) {
-          estado = "Muy buena";
-          badgeClass = "bg-primary";
-        } else if (pesoNeto > (umbralLeve + 12)) {
-          estado = "Buena";
-          badgeClass = "bg-success";
-        } else {
-          estado = "Normal";
-          badgeClass = "bg-info text-dark";
-        }
-      } else if (smiInfo && !isNaN(smiInfo.desvPct)) {
-        if (smiInfo.desvPct <= -15) {
-          estado = "Muy mala";
-          badgeClass = "bg-danger";
-        } else if (smiInfo.desvPct <= -5) {
-          estado = "Mala";
-          badgeClass = "bg-warning text-dark";
-        } else if (smiInfo.desvPct >= 15) {
-          estado = "Muy buena";
-          badgeClass = "bg-primary";
-        } else if (smiInfo.desvPct >= 5) {
-          estado = "Buena";
-          badgeClass = "bg-success";
-        } else {
-          estado = "Normal";
-          badgeClass = "bg-info text-dark";
+      if (!isNaN(ala) && !isNaN(pesoNeto)) {
+        if (esCernicalo && sexo !== "Indeterminado" && !isNaN(umbralLeve)) {
+          if (pesoNeto <= (umbralLeve - 14)) { estado = "Muy mala"; badgeClass = "bg-danger"; }
+          else if (pesoNeto <= umbralLeve) { estado = "Mala"; badgeClass = "bg-warning text-dark"; }
+          else if (pesoNeto >= (umbralLeve + 45)) { estado = "Muy buena"; badgeClass = "bg-primary"; }
+          else if (pesoNeto > (umbralLeve + 12)) { estado = "Buena"; badgeClass = "bg-success"; }
+          else { estado = "Normal"; badgeClass = "bg-info text-dark"; }
+        } else if (smiInfo && !isNaN(smiInfo.desvPct)) {
+          if (smiInfo.desvPct <= -15) { estado = "Muy mala"; badgeClass = "bg-danger"; }
+          else if (smiInfo.desvPct <= -5) { estado = "Mala"; badgeClass = "bg-warning text-dark"; }
+          else if (smiInfo.desvPct >= 15) { estado = "Muy buena"; badgeClass = "bg-primary"; }
+          else if (smiInfo.desvPct >= 5) { estado = "Buena"; badgeClass = "bg-success"; }
+          else { estado = "Normal"; badgeClass = "bg-info text-dark"; }
         }
       }
 
@@ -720,215 +651,31 @@
       if (!isNaN(ratio)) detallePartes.push(`Ratio: ${ratio.toFixed(2)} g/mm`);
 
       return {
-        sexo: sexo,
-        ala: ala,
-        pesoNeto: pesoNeto,
-        ratio: ratio,
-        umbralLeve: umbralLeve,
-        estado: estado,
-        badgeClass: badgeClass,
-        detalle: detallePartes.join(" · ") || estado,
-        smi: smiInfo ? smiInfo.smi : NaN,
-        desvPct: smiInfo ? smiInfo.desvPct : NaN
+        sexo: sexo, ala: ala, pesoNeto: pesoNeto, ratio: ratio, umbralLeve: umbralLeve,
+        estado: estado, badgeClass: badgeClass, detalle: detallePartes.join(" · ") || estado,
+        smi: smiInfo ? smiInfo.smi : NaN, desvPct: smiInfo ? smiInfo.desvPct : NaN
       };
     }
 
     function sincronizarCondicionesEnLocalStorage(registros) {
       var smiData = calcularSMIPorSexo(registros);
       var mapaGuardar = {};
-
       registros.forEach((item, idx) => {
         var ev = evaluarCondicionIndividuo(item, smiData.mapa.get(idx));
-        var payload = {
-          estado: ev.estado,
-          badge: ev.badgeClass,
-          detalle: ev.detalle
-        };
+        var payload = { estado: ev.estado, badge: ev.badgeClass, detalle: ev.detalle };
         var metalNorm = String(item.metal || "").trim().toLowerCase();
         var fechaNorm = formatearFechaClave(item.fecha);
-
-        if (item.docId) {
-          mapaGuardar["doc:" + item.docId] = payload;
-        }
-        if (metalNorm && fechaNorm) {
-          mapaGuardar["mf:" + metalNorm + "|" + fechaNorm] = payload;
-        }
-        if (metalNorm) {
-          mapaGuardar["m:" + metalNorm] = payload;
-        }
+        if (item.docId) mapaGuardar["doc:" + item.docId] = payload;
+        if (metalNorm && fechaNorm) mapaGuardar["mf:" + metalNorm + "|" + fechaNorm] = payload;
+        if (metalNorm) mapaGuardar["m:" + metalNorm] = payload;
       });
-
       localStorage.setItem("evaluacion_condicion_por_clave", JSON.stringify(mapaGuardar));
     }
 
-    function obtenerValorVariable(item, varKey, idx, mapaResiduos, mapaSMI) {
-      var peso = obtenerPesoNeto(item);
-      var ala = parsearNumeroBiometria(item.ala);
-
-      if (varKey === "smi") {
-        return (mapaSMI && mapaSMI.has(idx)) ? parseFloat(mapaSMI.get(idx).smi.toFixed(2)) : NaN;
-      }
-
-      if (varKey === "condicion_corporal") {
-        if (!isNaN(peso) && !isNaN(ala) && ala > 0) {
-          return parseFloat(((peso / Math.pow(ala, 3)) * 100000).toFixed(3));
-        }
-        return NaN;
-      }
-
-      if (varKey === "ratio_peso_ala") {
-        if (!isNaN(peso) && !isNaN(ala) && ala > 0) {
-          return parseFloat((peso / ala).toFixed(3));
-        }
-        return NaN;
-      }
-
-      if (varKey === "residuo_masa_ala") {
-        return mapaResiduos && mapaResiduos.has(idx) ? mapaResiduos.get(idx) : NaN;
-      }
-
+    function obtenerValorVariable(item, varKey, idx, mapaSMI) {
+      if (varKey === "peso") return obtenerPesoNeto(item);
+      if (varKey === "smi") return (mapaSMI && mapaSMI.has(idx)) ? parseFloat(mapaSMI.get(idx).smi.toFixed(2)) : NaN;
       return parsearNumeroBiometria(item[varKey]);
-    }
-
-    function actualizarBadgeYSectorEspecies(etiquetaFuente) {
-      var badge = document.getElementById('badge-fuente-datos');
-      if (badge) {
-        badge.innerText = "Fuente: " + (etiquetaFuente || "Base Local") + " (" + anillamientos.length + " reg.)";
-      }
-
-      var selEsp = document.getElementById('filtro-especie-global');
-      if (!selEsp) return;
-      var prev = selEsp.value;
-      var especies = [...new Set(anillamientos.map(a => String(a.especie || "").trim()).filter(Boolean))].sort();
-      selEsp.innerHTML = '<option value="TODAS">Todas las especies (' + anillamientos.length + ')</option>';
-      especies.forEach(esp => {
-        var opt = document.createElement('option');
-        opt.value = esp;
-        opt.innerText = esp;
-        selEsp.appendChild(opt);
-      });
-      if (especies.includes(prev)) selEsp.value = prev;
-    }
-
-    function inicializarRangoFechas() {
-      if (anillamientos.length > 0) {
-        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
-        if (fechasValidas.length > 0) {
-          fechasValidas.sort((a, b) => a - b);
-          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
-          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
-        }
-      }
-    }
-
-    window.onload = function() {
-      actualizarBadgeYSectorEspecies("Base Local");
-      inicializarRangoFechas();
-      if (anillamientos.length > 0) {
-        sincronizarCondicionesEnLocalStorage(anillamientos);
-      }
-    };
-
-    function cargarCsvExterno(event) {
-      var file = event.target.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var texto = e.target.result;
-        var lineas = texto.split(/\r?\n/).filter(l => l.trim().length > 0);
-        if (lineas.length < 2) return alert("El CSV no contiene filas de datos.");
-
-        var sep = lineas[0].includes(';') ? ';' : ',';
-        var cabeceras = lineas[0].split(sep).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
-
-        var idxMap = {
-          fecha: cabeceras.findIndex(h => h.includes('fecha')),
-          especie: cabeceras.findIndex(h => h.includes('especie')),
-          metal: cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla') || h === 'id'),
-          pvc: cabeceras.findIndex(h => h.includes('pvc')),
-          sexo: cabeceras.findIndex(h => h.includes('sexo')),
-          edad: cabeceras.findIndex(h => h.includes('edad') || h.includes('euring')),
-          ala: cabeceras.findIndex(h => h.includes('ala')),
-          cola: cabeceras.findIndex(h => h.includes('cola')),
-          r5: cabeceras.findIndex(h => h === 'r5' || h.includes('r5')),
-          tarso: cabeceras.findIndex(h => h.includes('tarso')),
-          peso: cabeceras.findIndex(h => h.includes('peso') || h.includes('masa')),
-          buche: cabeceras.findIndex(h => h.includes('buche'))
-        };
-
-        var cargados = [];
-        for (var i = 1; i < lineas.length; i++) {
-          var cols = lineas[i].split(sep).map(c => c.replace(/^"|"$/g, '').trim());
-          cargados.push({
-            fecha: idxMap.fecha >= 0 ? cols[idxMap.fecha] : "",
-            especie: idxMap.especie >= 0 ? cols[idxMap.especie] : "",
-            metal: idxMap.metal >= 0 ? cols[idxMap.metal] : ("REG-" + i),
-            pvc: idxMap.pvc >= 0 ? cols[idxMap.pvc] : "",
-            sexo: idxMap.sexo >= 0 ? cols[idxMap.sexo] : "Desconocido",
-            edad: idxMap.edad >= 0 ? cols[idxMap.edad] : "0",
-            ala: idxMap.ala >= 0 ? cols[idxMap.ala] : "",
-            cola: idxMap.cola >= 0 ? cols[idxMap.cola] : "",
-            r5: idxMap.r5 >= 0 ? cols[idxMap.r5] : "",
-            tarso: idxMap.tarso >= 0 ? cols[idxMap.tarso] : "",
-            peso: idxMap.peso >= 0 ? cols[idxMap.peso] : "",
-            buche: idxMap.buche >= 0 ? cols[idxMap.buche] : ""
-          });
-        }
-
-        anillamientos = cargados;
-        sincronizarCondicionesEnLocalStorage(anillamientos);
-        actualizarBadgeYSectorEspecies(file.name);
-        inicializarRangoFechas();
-        refrescarVistaActiva();
-      };
-      reader.readAsText(file, 'UTF-8');
-    }
-
-    function refrescarVistaActiva() {
-      if (document.getElementById('pane-rstudio').classList.contains('show')) {
-        actualizarLaboratorioBiometrico();
-      } else if (document.getElementById('pane-evaluador').classList.contains('show')) {
-        actualizarEvaluadorIndividual();
-      } else {
-        actualizarGrafica();
-      }
-    }
-
-    function limpiarFiltros() {
-      inicializarRangoFechas();
-      if (anillamientos.length === 0) {
-        document.getElementById('filtro-desde').value = "";
-        document.getElementById('filtro-hasta').value = "";
-      }
-      document.getElementById('filtro-especie-global').value = "TODAS";
-      document.getElementById('filtro-metrica').value = "";
-      
-      document.querySelectorAll('.chk-filtro').forEach(chk => chk.checked = true);
-
-      document.getElementById('contenedor-resultados').style.display = 'none';
-      var aviso = document.getElementById('sin-datos-aviso');
-      aviso.style.display = 'block';
-      aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> para generar las medias mensuales globales y ver su ciclo estacional.</p>`;
-
-      actualizarLaboratorioBiometrico();
-      actualizarEvaluadorIndividual();
-    }
-
-    function descargarGrafica() {
-      if (!chartDinamicaInstance) return alert("No hay ninguna gráfica generada para descargar.");
-      var enlace = document.createElement('a');
-      enlace.href = chartDinamicaInstance.toBase64Image();
-      enlace.download = 'grafica_ciclo_mensual_ornitologico.png';
-      enlace.click();
-    }
-
-    function descargarCanvas(canvasId, filename) {
-      var canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-      var enlace = document.createElement('a');
-      enlace.href = canvas.toDataURL('image/png', 1.0);
-      enlace.download = filename;
-      enlace.click();
     }
 
     function clasificarItemBase(item) {
@@ -940,8 +687,29 @@
       return "Desconocido";
     }
 
-    function obtenerChecksActivos() {
-      return {
+    function obtenerGrupoR(item, modoAgrupacion) {
+      if (modoAgrupacion === "sexo_mh") {
+        var s = normalizarSexo(item.sexo);
+        if (s === "Macho") return "Macho";
+        if (s === "Hembra") return "Hembra";
+        return clasificarItemBase(item);
+      }
+      if (modoAgrupacion === "r5_criterio") {
+        var r5 = parsearNumeroBiometria(item.r5);
+        if (isNaN(r5)) return "Sin R5";
+        return r5 <= 19.0 ? "Joven (R5 ≤ 19)" : "Adulto (R5 ≥ 19.1)";
+      }
+      if (modoAgrupacion === "edad_euring") {
+        return "EURING " + (item.edad || "0");
+      }
+      return clasificarItemBase(item);
+    }
+
+    function obtenerRegistrosFiltradosGlobales() {
+      var fechaDesdeVal = document.getElementById('filtro-desde').value;
+      var fechaHastaVal = document.getElementById('filtro-hasta').value;
+      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
+      var checks = {
         Macho: document.getElementById('chk-macho').checked,
         Hembra: document.getElementById('chk-hembra').checked,
         Pollo: document.getElementById('chk-pollo').checked,
@@ -949,13 +717,6 @@
         Adulto: document.getElementById('chk-adulto').checked,
         Desconocido: document.getElementById('chk-desconocido').checked
       };
-    }
-
-    function obtenerRegistrosFiltradosGlobales() {
-      var fechaDesdeVal = document.getElementById('filtro-desde').value;
-      var fechaHastaVal = document.getElementById('filtro-hasta').value;
-      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
-      var checks = obtenerChecksActivos();
 
       var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
       var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
@@ -966,234 +727,30 @@
         if (especieSeleccionada && especieSeleccionada !== "TODAS") {
           if (String(item.especie || "").trim() !== especieSeleccionada) return false;
         }
-
         var dItem = parsearFecha(item.fecha);
         if (dDesde || dHasta) {
           if (!dItem) return false;
           if (dDesde && dItem < dDesde) return false;
           if (dHasta && dItem > dHasta) return false;
         }
-
         var catBase = clasificarItemBase(item);
         var r5Num = parsearNumeroBiometria(item.r5);
-
         if (!isNaN(r5Num)) {
           if (r5Num <= 19.0 && !checks.Joven) return false;
           if (r5Num >= 19.1 && !checks.Adulto) return false;
         }
-
         if (catBase === "Macho" && !checks.Macho) return false;
         if (catBase === "Hembra" && !checks.Hembra) return false;
         if (catBase === "Pollo" && !checks.Pollo) return false;
         if (catBase === "Desconocido" && !checks.Desconocido) return false;
-
         return true;
       });
     }
 
-    // =========================================================================
-    // PESTAÑA 1: GRÁFICA FENOLÓGICA MENSUAL ORIGINAL
-    // =========================================================================
-    function actualizarGrafica() {
-      var fechaDesdeVal = document.getElementById('filtro-desde').value;
-      var fechaHastaVal = document.getElementById('filtro-hasta').value;
-      var especieSeleccionada = document.getElementById('filtro-especie-global').value;
-      var metrica = document.getElementById('filtro-metrica').value;
-      var checks = obtenerChecksActivos();
-
-      var aviso = document.getElementById('sin-datos-aviso');
-      var contenedor = document.getElementById('contenedor-resultados');
-
-      if (!metrica) {
-        contenedor.style.display = 'none';
-        aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>Panel listo para consultar.</h4><p class="small">Elige una <b>métrica biométrica</b> en el desplegable superior para generar las medias mensuales globales y ver su ciclo estacional.</p>`;
-        return;
-      }
-
-      var dDesde = fechaDesdeVal ? new Date(fechaDesdeVal) : null;
-      var dHasta = fechaHastaVal ? new Date(fechaHastaVal) : null;
-      if (dDesde) dDesde.setHours(0,0,0,0);
-      if (dHasta) dHasta.setHours(23,59,59,999);
-
-      var datosProcesados = [];
-
-      anillamientos.forEach(item => {
-        if (especieSeleccionada && especieSeleccionada !== "TODAS") {
-          if (String(item.especie || "").trim() !== especieSeleccionada) return;
-        }
-
-        var dItem = parsearFecha(item.fecha);
-        if (!dItem) return;
-
-        if (dDesde && dItem < dDesde) return;
-        if (dHasta && dItem > dHasta) return;
-
-        var valorLimpio = String(item[metrica] || "").replace(/[^\d.,]/g, '').replace(',', '.');
-        var val = parseFloat(valorLimpio);
-        if (isNaN(val) || val <= 0) return;
-
-        var categoria = "Desconocido";
-        var esPollo = (String(item.edad) === "1");
-        var sexoItem = item.sexo ? String(item.sexo).trim().toLowerCase() : "";
-
-        if (metrica === "r5") {
-          if (val <= 19.0) categoria = "Joven";
-          else if (val >= 19.1) categoria = "Adulto";
-        } else {
-          if (esPollo) categoria = "Pollo";
-          else if (sexoItem === "m" || sexoItem === "macho") categoria = "Macho";
-          else if (sexoItem === "f" || sexoItem === "hembra") categoria = "Hembra";
-        }
-
-        if (categoria === "Macho" && !checks.Macho) return;
-        if (categoria === "Hembra" && !checks.Hembra) return;
-        if (categoria === "Pollo" && !checks.Pollo) return;
-        if (categoria === "Joven" && !checks.Joven) return;
-        if (categoria === "Adulto" && !checks.Adulto) return;
-        if (categoria === "Desconocido" && !checks.Desconocido) return;
-
-        var mesIndex = dItem.getMonth();
-
-        datosProcesados.push({
-          mesIndex: mesIndex,
-          mesNombre: nombresMeses[mesIndex],
-          valor: val,
-          categoria: categoria
-        });
-      });
-
-      if (datosProcesados.length === 0) {
-        contenedor.style.display = 'none';
-        aviso.style.display = 'block';
-        aviso.innerHTML = `<h4>No hay registros válidos para <b>${metrica.toUpperCase()}</b> con las categorías seleccionadas.</h4><p class="small">Prueba a marcar más casillas de grupo o ampliar el rango de fechas.</p>`;
-        return;
-      }
-
-      contenedor.style.display = 'block';
-      aviso.style.display = 'none';
-
-      var todosValores = datosProcesados.map(d => d.valor);
-      var mediaGlobal = (todosValores.reduce((a, b) => a + b, 0) / todosValores.length).toFixed(1);
-      var minGlobal = Math.min(...todosValores);
-      var maxGlobal = Math.max(...todosValores);
-
-      document.getElementById('stat-media').innerText = mediaGlobal;
-      document.getElementById('stat-min').innerText = minGlobal;
-      document.getElementById('stat-max').innerText = maxGlobal;
-      document.getElementById('stat-count').innerText = datosProcesados.length;
-
-      var categoriasActivas = ["Macho", "Hembra", "Pollo", "Joven", "Adulto", "Desconocido"];
-      var desgloseMediaHtml = "";
-      var desgloseMinHtml = "";
-      var desgloseMaxHtml = "";
-      var desgloseCountHtml = "";
-
-      categoriasActivas.forEach(cat => {
-        var itemsCat = datosProcesados.filter(d => d.categoria === cat);
-        if (itemsCat.length > 0) {
-          var valsCat = itemsCat.map(d => d.valor);
-          var mediaCat = (valsCat.reduce((a, b) => a + b, 0) / valsCat.length).toFixed(1);
-          var minCat = Math.min(...valsCat);
-          var maxCat = Math.max(...valsCat);
-
-          desgloseMediaHtml += `<b>${cat}:</b> ${mediaCat} <br>`;
-          desgloseMinHtml += `<b>${cat}:</b> ${minCat} <br>`;
-          desgloseMaxHtml += `<b>${cat}:</b> ${maxCat} <br>`;
-          desgloseCountHtml += `<b>${cat}:</b> N = ${itemsCat.length} <br>`;
-        }
-      });
-
-      document.getElementById('desglose-media').innerHTML = desgloseMediaHtml || "Sin datos";
-      document.getElementById('desglose-min').innerHTML = desgloseMinHtml || "Sin datos";
-      document.getElementById('desglose-max').innerHTML = desgloseMaxHtml || "Sin datos";
-      document.getElementById('desglose-count').innerHTML = desgloseCountHtml || "Sin datos";
-
-      var mesesConDatosIndices = [...new Set(datosProcesados.map(d => d.mesIndex))].sort((a, b) => a - b);
-      var etiquetasMeses = mesesConDatosIndices.map(idx => nombresMeses[idx]);
-
-      var configuracionCat = {
-        "Macho": { color: "#007bff", bg: "rgba(0, 123, 255, 0.1)" },
-        "Hembra": { color: "#e83e8c", bg: "rgba(232, 62, 140, 0.1)" },
-        "Pollo": { color: "#ffc107", bg: "rgba(255, 193, 7, 0.1)" },
-        "Joven": { color: "#17a2b8", bg: "rgba(23, 162, 184, 0.1)" },
-        "Adulto": { color: "#28a745", bg: "rgba(40, 167, 69, 0.1)" },
-        "Desconocido": { color: "#6c757d", bg: "rgba(108, 117, 125, 0.1)" }
-      };
-
-      var datasets = [];
-      categoriasActivas.forEach(cat => {
-        var itemsCat = datosProcesados.filter(d => d.categoria === cat);
-        if (itemsCat.length > 0) {
-          var dataMediasMensuales = mesesConDatosIndices.map(mIdx => {
-            var itemsMes = itemsCat.filter(d => d.mesIndex === mIdx);
-            if (itemsMes.length === 0) return null;
-            var sum = itemsMes.reduce((acc, curr) => acc + curr.valor, 0);
-            return parseFloat((sum / itemsMes.length).toFixed(1));
-          });
-
-          datasets.push({
-            label: `${cat} (Media Gen: ${(itemsCat.reduce((a,b)=>a+b.valor,0)/itemsCat.length).toFixed(1)})`,
-            data: dataMediasMensuales,
-            borderColor: configuracionCat[cat].color,
-            backgroundColor: configuracionCat[cat].bg,
-            borderWidth: 2.5,
-            pointRadius: 6,
-            pointBackgroundColor: configuracionCat[cat].color,
-            fill: false,
-            tension: 0.2,
-            spanGaps: true
-          });
-        }
-      });
-
-      var nombresMetricas = {
-        peso: "Masa / Peso Medio (g)",
-        ala: "Ala Máx Media (mm)",
-        cola: "Cola Media (mm)",
-        r5: "R5 Media (mm) [Joven ≤19 / Adulto ≥19.1]",
-        tarso: "Tarso Medio (mm)"
-      };
-
-      document.getElementById('titulo-grafica').innerText = `Ciclo Fenológico Mensual de ${nombresMetricas[metrica]}`;
-
-      if (chartDinamicaInstance) {
-        chartDinamicaInstance.destroy();
-      }
-
-      var ctx = document.getElementById('chartDinamica').getContext('2d');
-      chartDinamicaInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: etiquetasMeses,
-          datasets: datasets
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: true, position: 'top' }
-          },
-          scales: {
-            y: {
-              title: { display: true, text: nombresMetricas[metrica] }
-            },
-            x: {
-              title: { display: true, text: 'Meses del Año' }
-            }
-          }
-        }
-      });
-    }
-
-    // =========================================================================
-    // PESTAÑA 2: LABORATORIO BIOMÉTRICO ESTILO RSTUDIO
-    // =========================================================================
     function calcularEstadisticosArray(valores) {
       var sorted = [...valores].sort((a, b) => a - b);
       var n = sorted.length;
       if (n === 0) return null;
-
       var sum = sorted.reduce((acc, v) => acc + v, 0);
       var mean = sum / n;
       var sd = n > 1 ? Math.sqrt(sorted.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / (n - 1)) : 0;
@@ -1202,115 +759,215 @@
         var pos = (arr.length - 1) * q;
         var base = Math.floor(pos);
         var rest = pos - base;
-        if (arr[base + 1] !== undefined) {
-          return arr[base] + rest * (arr[base + 1] - arr[base]);
-        }
-        return arr[base];
+        return (arr[base + 1] !== undefined) ? arr[base] + rest * (arr[base + 1] - arr[base]) : arr[base];
       }
 
       var q1 = cuantil(sorted, 0.25);
       var median = cuantil(sorted, 0.50);
       var q3 = cuantil(sorted, 0.75);
-      var iqr = q3 - q1;
-
-      return { n, mean, sd, median, q1, q3, iqr, min: sorted[0], max: sorted[n - 1] };
+      return { n, mean, sd, median, q1, q3, iqr: q3 - q1, min: sorted[0], max: sorted[n - 1] };
     }
 
-    function calcularRegresionLineal(puntosXY) {
-      var n = puntosXY.length;
-      if (n < 2) return null;
+    window.seleccionarPestana = function(key, btnEl) {
+      pestanaActiva = key;
+      document.querySelectorAll('#tabs-biometria .nav-link').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
 
-      var modelo = calcularRegresionDesdePares(puntosXY);
-      if (!modelo) return null;
-
-      var xs = puntosXY.map(p => p.x);
-      var minX = Math.min(...xs);
-      var maxX = Math.max(...xs);
-
-      return {
-        slope: modelo.slope,
-        intercept: modelo.intercept,
-        r2: modelo.r2,
-        minX: minX,
-        maxX: maxX,
-        linea: [
-          { x: minX, y: modelo.slope * minX + modelo.intercept },
-          { x: maxX, y: modelo.slope * maxX + modelo.intercept }
-        ]
-      };
-    }
-
-    function obtenerGrupoR(item, modoAgrupacion) {
-      if (modoAgrupacion === "r5_criterio") {
-        var r5 = parsearNumeroBiometria(item.r5);
-        if (isNaN(r5)) return "Sin R5";
-        return r5 <= 19.0 ? "Joven (R5 ≤ 19)" : "Adulto (R5 ≥ 19.1)";
+      if (key === "evaluador") {
+        document.getElementById('vista-rstudio-variable').style.display = 'none';
+        document.getElementById('vista-evaluador-individual').style.display = 'block';
+        document.getElementById('controles-lm-box').style.display = 'none';
+        actualizarEvaluadorIndividual();
+      } else {
+        document.getElementById('vista-rstudio-variable').style.display = 'block';
+        document.getElementById('vista-evaluador-individual').style.display = 'none';
+        document.getElementById('controles-lm-box').style.display = 'flex';
+        actualizarLaboratorioBiometrico();
       }
-      if (modoAgrupacion === "edad_euring") {
-        return "EURING " + (item.edad || "0");
-      }
-      if (modoAgrupacion === "especie") {
-        return String(item.especie || "Sin especie").trim();
-      }
-      return clasificarItemBase(item);
-    }
+    };
+
+    window.renderizarPestanaActual = function() {
+      if (pestanaActiva === "evaluador") actualizarEvaluadorIndividual();
+      else actualizarLaboratorioBiometrico();
+    };
 
     function actualizarLaboratorioBiometrico() {
-      var varX = document.getElementById('r-eje-x').value;
-      var varY = document.getElementById('r-eje-y').value;
+      var cfg = configPestanas[pestanaActiva] || configPestanas.peso;
       var modoAgrupar = document.getElementById('r-agrupar').value;
       var mostrarLm = document.getElementById('r-mostrar-lm').checked;
       var lmPorGrupo = document.getElementById('r-lm-por-grupo').checked;
 
       var registrosFiltrados = obtenerRegistrosFiltradosGlobales();
-      var mapaResiduos = construirMapaResiduosMasaAla(registrosFiltrados);
       var smiData = calcularSMIPorSexo(registrosFiltrados);
+
+      // En pestaña "condicion", el eje Y del scatter es Peso Neto (g) frente a Ala Máx (mm)
+      // mientras que el boxplot muestra el SMI (g) por grupo
+      var varBox = cfg.varY;
+      var varScatterY = (pestanaActiva === "condicion") ? "peso" : cfg.varY;
+      var varScatterX = cfg.varX;
+
+      var registrosBox = [];
+      registrosFiltrados.forEach((item, idx) => {
+        var vy = obtenerValorVariable(item, varBox, idx, smiData.mapa);
+        if (!isNaN(vy)) {
+          registrosBox.push({
+            y: vy,
+            grupo: obtenerGrupoR(item, modoAgrupar),
+            anilla: item.metal || item.pvc || "S/A",
+            sexo: normalizarSexo(item.sexo)
+          });
+        }
+      });
 
       var puntosScatter = [];
       registrosFiltrados.forEach((item, idx) => {
-        var vx = obtenerValorVariable(item, varX, idx, mapaResiduos, smiData.mapa);
-        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos, smiData.mapa);
+        var vx = obtenerValorVariable(item, varScatterX, idx, smiData.mapa);
+        var vy = obtenerValorVariable(item, varScatterY, idx, smiData.mapa);
         if (!isNaN(vx) && !isNaN(vy)) {
           puntosScatter.push({
             x: vx,
             y: vy,
-            grupo: obtenerGrupoR(item, modoAgrupacion),
-            anilla: item.metal || item.pvc || "S/A",
-            especie: item.especie || "-",
-            fecha: item.fecha || "-"
-          });
-        }
-      });
-
-      var registrosY = [];
-      registrosFiltrados.forEach((item, idx) => {
-        var vy = obtenerValorVariable(item, varY, idx, mapaResiduos, smiData.mapa);
-        if (!isNaN(vy)) {
-          registrosY.push({
-            y: vy,
-            grupo: obtenerGrupoR(item, modoAgrupacion),
+            grupo: obtenerGrupoR(item, modoAgrupar),
             anilla: item.metal || item.pvc || "S/A",
             fecha: item.fecha || "-"
           });
         }
       });
 
-      renderizarPlotScatterR(puntosScatter, varX, varY, mostrarLm, lmPorGrupo);
-      renderizarPlotDistribucionR(registrosY, varY);
-      renderizarSummaryYConsolaR(puntosScatter, registrosY, varX, varY);
+      // Actualizar KPIs comparativos Machos vs Hembras
+      var valsMachos = registrosBox.filter(r => r.sexo === "Macho").map(r => r.y);
+      var valsHembras = registrosBox.filter(r => r.sexo === "Hembra").map(r => r.y);
+      var valsTodos = registrosBox.map(r => r.y);
+
+      var stM = calcularEstadisticosArray(valsMachos);
+      var stH = calcularEstadisticosArray(valsHembras);
+      var stAll = calcularEstadisticosArray(valsTodos);
+
+      document.getElementById('kpi-lbl-macho').innerText = `Machos — ${cfg.titulo}`;
+      document.getElementById('kpi-val-macho').innerText = stM ? `${stM.mean.toFixed(1)} ${cfg.unidad}` : "-";
+      document.getElementById('kpi-sub-macho').innerText = stM ? `n = ${stM.n} · Mediana: ${stM.median.toFixed(1)} · SD: ${stM.sd.toFixed(2)}` : "n = 0";
+
+      document.getElementById('kpi-lbl-hembra').innerText = `Hembras — ${cfg.titulo}`;
+      document.getElementById('kpi-val-hembra').innerText = stH ? `${stH.mean.toFixed(1)} ${cfg.unidad}` : "-";
+      document.getElementById('kpi-sub-hembra').innerText = stH ? `n = ${stH.n} · Mediana: ${stH.median.toFixed(1)} · SD: ${stH.sd.toFixed(2)}` : "n = 0";
+
+      if (stM && stH && stM.mean > 0) {
+        var diff = stH.mean - stM.mean;
+        var pct = (diff / stM.mean) * 100;
+        var storer = ((stH.mean - stM.mean) / (0.5 * (stH.mean + stM.mean))) * 100;
+        document.getElementById('kpi-val-dimorfismo').innerText = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} ${cfg.unidad} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)`;
+        document.getElementById('kpi-sub-dimorfismo').innerText = `Índice Storer (SDI): ${storer.toFixed(2)}%`;
+      } else {
+        document.getElementById('kpi-val-dimorfismo').innerText = "-";
+        document.getElementById('kpi-sub-dimorfismo').innerText = "Requiere Machos y Hembras";
+      }
+
+      document.getElementById('kpi-val-total').innerText = stAll ? `N = ${stAll.n}` : "N = 0";
+      document.getElementById('kpi-sub-total').innerText = stAll ? `Mín: ${stAll.min.toFixed(1)} · Máx: ${stAll.max.toFixed(1)} ${cfg.unidad}` : "Sin datos";
+
+      renderizarPlotDistribucionR(registrosBox, cfg);
+      renderizarPlotScatterR(puntosScatter, cfg, varScatterX, varScatterY, mostrarLm, lmPorGrupo);
+      renderizarSummaryYConsolaR(puntosScatter, registrosBox, cfg, varScatterX, varScatterY);
     }
 
-    function renderizarPlotScatterR(puntos, varX, varY, mostrarLm, lmPorGrupo) {
-      document.getElementById('titulo-plot-scatter').innerText =
-        `Plots — ${etiquetasVariablesR[varY]} vs. ${etiquetasVariablesR[varX]} (n = ${puntos.length})`;
+    function renderizarPlotDistribucionR(registrosY, cfg) {
+      document.getElementById('titulo-plot-box').innerText = `Plots — ${cfg.boxTitulo}`;
+      if (chartRDistribucionInstance) chartRDistribucionInstance.destroy();
 
+      var ordenPreferido = ["Macho", "Hembra", "Pollo", "Joven (R5 ≤ 19)", "Adulto (R5 ≥ 19.1)", "Desconocido"];
+      var gruposPresentes = [...new Set(registrosY.map(r => r.grupo))];
+      var grupos = gruposPresentes.sort((a, b) => {
+        var ia = ordenPreferido.indexOf(a), ib = ordenPreferido.indexOf(b);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+
+      var statsPorGrupo = grupos.map((grp, idx) => {
+        var vals = registrosY.filter(r => r.grupo === grp).map(r => r.y);
+        return { grp: grp, stats: calcularEstadisticosArray(vals), color: obtenerColorGrupo(grp, idx) };
+      }).filter(x => x.stats !== null);
+
+      var labels = statsPorGrupo.map(x => `${x.grp} (n=${x.stats.n})`);
+
+      var ctx = document.getElementById('chartRDistribucion').getContext('2d');
+      chartRDistribucionInstance = new Chart(ctx, {
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Caja IQR (Q1 25% – Q3 75%)',
+              data: statsPorGrupo.map(x => [x.stats.q1, x.stats.q3]),
+              backgroundColor: statsPorGrupo.map(x => x.color + "44"),
+              borderColor: statsPorGrupo.map(x => x.color),
+              borderWidth: 2,
+              barPercentage: 0.45
+            },
+            {
+              type: 'line',
+              label: 'Mediana (Q2)',
+              data: statsPorGrupo.map(x => x.stats.median),
+              borderColor: '#1e293b',
+              backgroundColor: '#1e293b',
+              pointStyle: 'rectRot',
+              pointRadius: 7,
+              showLine: false
+            },
+            {
+              type: 'line',
+              label: 'Media',
+              data: statsPorGrupo.map(x => parseFloat(x.stats.mean.toFixed(2))),
+              borderColor: '#16a34a',
+              backgroundColor: '#16a34a',
+              pointRadius: 6,
+              showLine: false
+            },
+            {
+              type: 'line',
+              label: 'Máximo',
+              data: statsPorGrupo.map(x => x.stats.max),
+              borderColor: '#64748b',
+              backgroundColor: '#64748b',
+              pointStyle: 'triangle',
+              pointRadius: 5,
+              showLine: false
+            },
+            {
+              type: 'line',
+              label: 'Mínimo',
+              data: statsPorGrupo.map(x => x.stats.min),
+              borderColor: '#64748b',
+              backgroundColor: '#64748b',
+              pointStyle: 'triangle',
+              rotation: 180,
+              pointRadius: 5,
+              showLine: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            y: {
+              title: { display: true, text: `${cfg.titulo}`, font: { weight: 'bold' } },
+              grid: { color: '#e2e8f0' }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderizarPlotScatterR(puntos, cfg, varX, varY, mostrarLm, lmPorGrupo) {
+      document.getElementById('titulo-plot-scatter').innerText = `Plots — ${cfg.scatterTitulo} (n = ${puntos.length})`;
       if (chartRScatterInstance) chartRScatterInstance.destroy();
 
       var grupos = [...new Set(puntos.map(p => p.grupo))];
       var datasets = [];
 
       grupos.forEach((grp, idx) => {
-        var color = paletaRStudio[idx % paletaRStudio.length];
+        var color = obtenerColorGrupo(grp, idx);
         var ptsGrupo = puntos.filter(p => p.grupo === grp);
 
         datasets.push({
@@ -1324,7 +981,7 @@
         });
 
         if (mostrarLm && lmPorGrupo && ptsGrupo.length >= 2) {
-          var regGrp = calcularRegresionLineal(ptsGrupo);
+          var regGrp = calcularRegresionDesdePares(ptsGrupo);
           if (regGrp) {
             datasets.push({
               type: 'line',
@@ -1341,11 +998,11 @@
       });
 
       if (mostrarLm && !lmPorGrupo && puntos.length >= 2) {
-        var regGlobal = calcularRegresionLineal(puntos);
+        var regGlobal = calcularRegresionDesdePares(puntos);
         if (regGlobal) {
           datasets.push({
             type: 'line',
-            label: `Ajuste LM Global (R²=${regGlobal.r2.toFixed(3)})`,
+            label: `LM Global (R²=${regGlobal.r2.toFixed(3)})`,
             data: regGlobal.linea,
             borderColor: "#1e293b",
             borderWidth: 2,
@@ -1355,6 +1012,11 @@
           });
         }
       }
+
+      var nombresEjes = {
+        peso: "Masa / Peso (g)", ala: "Ala Máx (mm)", r5: "R5 (mm)",
+        tarso: "Tarso (mm)", cola: "Cola (mm)", p8: "P8 (mm)", smi: "SMI (g)"
+      };
 
       var ctx = document.getElementById('chartRScatter').getContext('2d');
       chartRScatterInstance = new Chart(ctx, {
@@ -1369,9 +1031,9 @@
                 label: function(context) {
                   var raw = context.raw;
                   if (raw && raw.anilla) {
-                    return `${raw.anilla} [${raw.grupo}] — X: ${raw.x}, Y: ${raw.y} (${raw.fecha})`;
+                    return `${raw.anilla} [${raw.grupo}] — ${varX}: ${raw.x}, ${varY}: ${raw.y} (${raw.fecha})`;
                   }
-                  return `${context.dataset.label}: (${raw.x.toFixed(1)}, ${raw.y.toFixed(2)})`;
+                  return `${context.dataset.label}: (${raw.x.toFixed(1)}, ${raw.y.toFixed(1)})`;
                 }
               }
             }
@@ -1379,11 +1041,11 @@
           scales: {
             x: {
               type: 'linear',
-              title: { display: true, text: etiquetasVariablesR[varX], font: { weight: 'bold' } },
+              title: { display: true, text: nombresEjes[varX] || varX, font: { weight: 'bold' } },
               grid: { color: '#e2e8f0' }
             },
             y: {
-              title: { display: true, text: etiquetasVariablesR[varY], font: { weight: 'bold' } },
+              title: { display: true, text: nombresEjes[varY] || varY, font: { weight: 'bold' } },
               grid: { color: '#e2e8f0' }
             }
           }
@@ -1391,102 +1053,7 @@
       });
     }
 
-    function renderizarPlotDistribucionR(registrosY, varY) {
-      document.getElementById('titulo-plot-box').innerText =
-        `Plots — Distribución de ${etiquetasVariablesR[varY]} por Grupo (Mediana + Banda IQR Q1–Q3)`;
-
-      if (chartRDistribucionInstance) chartRDistribucionInstance.destroy();
-
-      var grupos = [...new Set(registrosY.map(r => r.grupo))];
-      var statsPorGrupo = grupos.map(grp => {
-        var vals = registrosY.filter(r => r.grupo === grp).map(r => r.y);
-        return { grp: grp, stats: calcularEstadisticosArray(vals) };
-      }).filter(x => x.stats !== null);
-
-      var labels = statsPorGrupo.map(x => `${x.grp} (n=${x.stats.n})`);
-
-      var datosIQR = statsPorGrupo.map(x => [x.stats.q1, x.stats.q3]);
-      var datosMediana = statsPorGrupo.map(x => x.stats.median);
-      var datosMedia = statsPorGrupo.map(x => parseFloat(x.stats.mean.toFixed(2)));
-      var datosMin = statsPorGrupo.map(x => x.stats.min);
-      var datosMax = statsPorGrupo.map(x => x.stats.max);
-
-      var ctx = document.getElementById('chartRDistribucion').getContext('2d');
-      chartRDistribucionInstance = new Chart(ctx, {
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              type: 'bar',
-              label: 'Rango Intercuartílico (Q1–Q3)',
-              data: datosIQR,
-              backgroundColor: 'rgba(0, 114, 178, 0.28)',
-              borderColor: '#0072B2',
-              borderWidth: 2,
-              barPercentage: 0.45
-            },
-            {
-              type: 'line',
-              label: 'Mediana (Q2)',
-              data: datosMediana,
-              borderColor: '#D55E00',
-              backgroundColor: '#D55E00',
-              pointStyle: 'rectRot',
-              pointRadius: 7,
-              showLine: false
-            },
-            {
-              type: 'line',
-              label: 'Media',
-              data: datosMedia,
-              borderColor: '#009E73',
-              backgroundColor: '#009E73',
-              pointRadius: 5,
-              showLine: false
-            },
-            {
-              type: 'line',
-              label: 'Máximo',
-              data: datosMax,
-              borderColor: '#475569',
-              backgroundColor: '#475569',
-              pointStyle: 'triangle',
-              pointRadius: 5,
-              showLine: false
-            },
-            {
-              type: 'line',
-              label: 'Mínimo',
-              data: datosMin,
-              borderColor: '#475569',
-              backgroundColor: '#475569',
-              pointStyle: 'triangle',
-              rotation: 180,
-              pointRadius: 5,
-              showLine: false
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'top' }
-          },
-          scales: {
-            y: {
-              title: { display: true, text: etiquetasVariablesR[varY], font: { weight: 'bold' } },
-              grid: { color: '#e2e8f0' }
-            },
-            x: {
-              grid: { display: false }
-            }
-          }
-        }
-      });
-    }
-
-    function renderizarSummaryYConsolaR(puntosScatter, registrosY, varX, varY) {
+    function renderizarSummaryYConsolaR(puntosScatter, registrosY, cfg, varX, varY) {
       var tbody = document.getElementById('tbody-r-summary');
       var consola = document.getElementById('r-console-output');
       tbody.innerHTML = "";
@@ -1496,7 +1063,7 @@
       var outliersDetectados = [];
 
       if (grupos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay datos numéricos válidos para la variable seleccionada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">No hay datos numéricos válidos.</td></tr>';
       } else {
         grupos.forEach(grp => {
           var itemsGrp = registrosY.filter(r => r.grupo === grp);
@@ -1507,26 +1074,14 @@
           var limSup = st.q3 + 1.5 * st.iqr;
           itemsGrp.forEach(it => {
             if (st.iqr > 0 && (it.y < limInf || it.y > limSup)) {
-              outliersDetectados.push({
-                anilla: it.anilla,
-                grupo: grp,
-                valor: it.y,
-                rango: `[${limInf.toFixed(1)}, ${limSup.toFixed(1)}]`
-              });
+              outliersDetectados.push({ anilla: it.anilla, grupo: grp, valor: it.y, rango: `[${limInf.toFixed(1)}, ${limSup.toFixed(1)}]` });
             }
           });
 
           var filaObj = {
-            grupo: grp,
-            n: st.n,
-            mean: st.mean.toFixed(2),
-            sd: st.sd.toFixed(2),
-            median: st.median.toFixed(2),
-            q1: st.q1.toFixed(2),
-            q3: st.q3.toFixed(2),
-            iqr: st.iqr.toFixed(2),
-            min: st.min.toFixed(2),
-            max: st.max.toFixed(2)
+            grupo: grp, n: st.n, mean: st.mean.toFixed(2), sd: st.sd.toFixed(2),
+            median: st.median.toFixed(2), q1: st.q1.toFixed(2), q3: st.q3.toFixed(2),
+            iqr: st.iqr.toFixed(2), min: st.min.toFixed(2), max: st.max.toFixed(2)
           };
           ultimoResumenTabla.push(filaObj);
 
@@ -1547,55 +1102,28 @@
         });
       }
 
-      var reg = calcularRegresionLineal(puntosScatter);
+      var reg = calcularRegresionDesdePares(puntosScatter);
       var htmlConsola = `<span class="cmd">&gt; lm(${varY} ~ ${varX}, n = ${puntosScatter.length})</span><br>`;
-
       if (reg) {
         var rCorr = Math.sqrt(Math.max(0, reg.r2)) * (reg.slope >= 0 ? 1 : -1);
-        htmlConsola += `Intercepto (a): <b>${reg.intercept.toFixed(4)}</b> | Pendiente (b): <b>${reg.slope.toFixed(4)}</b><br>`;
-        htmlConsola += `R² = <b>${reg.r2.toFixed(4)}</b> | Correlación r = <b>${rCorr.toFixed(3)}</b><br>`;
+        htmlConsola += `Intercepto (a): <b>${reg.intercept.toFixed(3)}</b> | Pendiente (b): <b>${reg.slope.toFixed(4)}</b><br>`;
+        htmlConsola += `R² = <b>${reg.r2.toFixed(4)}</b> | r = <b>${rCorr.toFixed(3)}</b><br>`;
       } else {
-        htmlConsola += `<span class="warn">Se necesitan al menos 2 pares válidos (X, Y) para ajustar regresión.</span><br>`;
+        htmlConsola += `<span class="warn">Muestra insuficiente para regresión.</span><br>`;
       }
 
-      htmlConsola += `<br><span class="cmd">&gt; boxplot.stats(df$${varY})$out</span><br>`;
+      htmlConsola += `<br><span class="cmd">&gt; boxplot.stats(df$${cfg.varY})$out</span><br>`;
       if (outliersDetectados.length === 0) {
-        htmlConsola += `<span class="ok">0 valores atípicos (&gt; 1.5 × IQR) detectados en ${varY}.</span>`;
+        htmlConsola += `<span class="ok">0 valores atípicos (&gt; 1.5 × IQR) en ${cfg.varY}.</span>`;
       } else {
-        htmlConsola += `<span class="warn">⚠️ ${outliersDetectados.length} posible(s) atípico(s) en ${varY}:</span><br>`;
+        htmlConsola += `<span class="warn">⚠️ ${outliersDetectados.length} atípico(s):</span><br>`;
         outliersDetectados.forEach(o => {
-          htmlConsola += `• Anilla <b>${o.anilla}</b> (${o.grupo}): <b>${o.valor}</b> fuera de ${o.rango}<br>`;
+          htmlConsola += `• <b>${o.anilla}</b> (${o.grupo}): <b>${o.valor}</b> fuera de ${o.rango}<br>`;
         });
       }
-
       consola.innerHTML = htmlConsola;
     }
 
-    function copiarResumenConsola() {
-      var el = document.getElementById('r-console-output');
-      if (!el) return;
-      navigator.clipboard.writeText(el.innerText);
-      alert("Salida de consola copiada al portapapeles.");
-    }
-
-    function exportarTablaSummaryCSV() {
-      if (ultimoResumenTabla.length === 0) return alert("No hay resumen estadístico para exportar.");
-      var cab = "Grupo,N,Media,SD,Mediana,Q1,Q3,IQR,Min,Max\n";
-      var filas = ultimoResumenTabla.map(r =>
-        `"${r.grupo}",${r.n},${r.mean},${r.sd},${r.median},${r.q1},${r.q3},${r.iqr},${r.min},${r.max}`
-      ).join("\n");
-      var blob = new Blob(["\uFEFF" + cab + filas], { type: "text/csv;charset=utf-8;" });
-      var link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "resumen_biometrico_rstudio.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    // =========================================================================
-    // PESTAÑA 3: EVALUADOR INDIVIDUAL DE CONDICIÓN Y SMI
-    // =========================================================================
     function escHtml(s) {
       return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
@@ -1608,13 +1136,7 @@
       var filtroEstado = document.getElementById('eval-filtro-estado').value;
       var queryAnilla = document.getElementById('eval-buscador').value.trim().toUpperCase();
 
-      var cntEvaluados = 0;
-      var cntMuyBuena = 0;
-      var cntBuena = 0;
-      var cntNormal = 0;
-      var cntMala = 0;
-      var cntMuyMala = 0;
-
+      var cntEvaluados = 0, cntMuyBuena = 0, cntBuena = 0, cntNormal = 0, cntMala = 0, cntMuyMala = 0;
       var filasProcesadas = [];
 
       registros.forEach((item, idx) => {
@@ -1622,9 +1144,7 @@
         var ev = evaluarCondicionIndividuo(item, smiInfo);
         var anillaId = item.metal || item.pvc || ("REG-" + (idx + 1));
 
-        if (!isNaN(ev.ala) && !isNaN(ev.pesoNeto)) {
-          cntEvaluados++;
-        }
+        if (!isNaN(ev.ala) && !isNaN(ev.pesoNeto)) cntEvaluados++;
         if (ev.estado === "Muy buena") cntMuyBuena++;
         else if (ev.estado === "Buena") cntBuena++;
         else if (ev.estado === "Mala") cntMala++;
@@ -1632,20 +1152,11 @@
         else cntNormal++;
 
         filasProcesadas.push({
-          anilla: anillaId,
-          pvc: item.pvc || "",
-          fecha: item.fecha || "-",
-          especie: item.especie || "-",
-          sexo: ev.sexo,
-          edad: item.edad || "-",
-          ala: ev.ala,
-          pesoNeto: ev.pesoNeto,
-          ratio: ev.ratio,
-          smi: ev.smi,
-          desvPct: ev.desvPct,
-          umbralLeve: ev.umbralLeve,
-          estado: ev.estado,
-          badgeClass: ev.badgeClass
+          anilla: anillaId, pvc: item.pvc || "", fecha: item.fecha || "-",
+          especie: item.especie || "-", sexo: ev.sexo, edad: item.edad || "-",
+          ala: ev.ala, pesoNeto: ev.pesoNeto, ratio: ev.ratio,
+          smi: ev.smi, desvPct: ev.desvPct, umbralLeve: ev.umbralLeve,
+          estado: ev.estado, badgeClass: ev.badgeClass
         });
       });
 
@@ -1656,12 +1167,8 @@
       document.getElementById('eval-kpi-marcada').innerText = cntMuyMala;
 
       var txtParams = [];
-      if (smiData.params.Macho) {
-        txtParams.push(`M: L0=${smiData.params.Macho.L0.toFixed(1)}, b=${smiData.params.Macho.bSMA.toFixed(2)}`);
-      }
-      if (smiData.params.Hembra) {
-        txtParams.push(`H: L0=${smiData.params.Hembra.L0.toFixed(1)}, b=${smiData.params.Hembra.bSMA.toFixed(2)}`);
-      }
+      if (smiData.params.Macho) txtParams.push(`M: L0=${smiData.params.Macho.L0.toFixed(1)}, b=${smiData.params.Macho.bSMA.toFixed(2)}`);
+      if (smiData.params.Hembra) txtParams.push(`H: L0=${smiData.params.Hembra.L0.toFixed(1)}, b=${smiData.params.Hembra.bSMA.toFixed(2)}`);
       document.getElementById('eval-kpi-smi-params').innerText = txtParams.length ? txtParams.join(" | ") : "SMI: Sin muestra por sexo";
 
       var filtradasTabla = filasProcesadas.filter(f => {
@@ -1677,9 +1184,8 @@
 
       var tbody = document.getElementById('tbody-evaluador-individual');
       tbody.innerHTML = "";
-
       if (filtradasTabla.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No hay individuos que coincidan con los filtros actuales.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">No hay individuos con esos filtros.</td></tr>';
         return;
       }
 
@@ -1691,7 +1197,6 @@
           if (f.desvPct <= -10) desvClass = "text-danger fw-bold";
           else if (f.desvPct >= 10) desvClass = "text-primary fw-bold";
         }
-
         var tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="fw-bold">${escHtml(f.anilla)}${f.pvc && f.pvc !== f.anilla ? ` <small class="text-muted">(${escHtml(f.pvc)})</small>` : ''}</td>
@@ -1711,21 +1216,140 @@
       });
     }
 
-    function exportarEvaluadorIndividualCSV() {
+    function actualizarBadgeYSectorEspecies(etiquetaFuente) {
+      var badge = document.getElementById('badge-fuente-datos');
+      if (badge) badge.innerText = "Fuente: " + (etiquetaFuente || "Base Local") + " (" + anillamientos.length + " reg.)";
+      var selEsp = document.getElementById('filtro-especie-global');
+      if (!selEsp) return;
+      var prev = selEsp.value;
+      var especies = [...new Set(anillamientos.map(a => String(a.especie || "").trim()).filter(Boolean))].sort();
+      selEsp.innerHTML = '<option value="TODAS">Todas las especies (' + anillamientos.length + ')</option>';
+      especies.forEach(esp => {
+        var opt = document.createElement('option');
+        opt.value = esp; opt.innerText = esp;
+        selEsp.appendChild(opt);
+      });
+      if (especies.includes(prev)) selEsp.value = prev;
+    }
+
+    function inicializarRangoFechas() {
+      if (anillamientos.length > 0) {
+        var fechasValidas = anillamientos.map(a => parsearFecha(a.fecha)).filter(d => d !== null);
+        if (fechasValidas.length > 0) {
+          fechasValidas.sort((a, b) => a - b);
+          document.getElementById('filtro-desde').value = fechasValidas[0].toISOString().slice(0,10);
+          document.getElementById('filtro-hasta').value = fechasValidas[fechasValidas.length - 1].toISOString().slice(0,10);
+        }
+      }
+    }
+
+    window.limpiarFiltros = function() {
+      inicializarRangoFechas();
+      document.getElementById('filtro-especie-global').value = "TODAS";
+      document.getElementById('r-agrupar').value = "sexo_mh";
+      document.querySelectorAll('.chk-filtro').forEach(chk => chk.checked = true);
+      renderizarPestanaActual();
+    };
+
+    window.descargarCanvas = function(canvasId, filename) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      var enlace = document.createElement('a');
+      enlace.href = canvas.toDataURL('image/png', 1.0);
+      enlace.download = filename;
+      enlace.click();
+    };
+
+    window.copiarResumenConsola = function() {
+      var el = document.getElementById('r-console-output');
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText);
+      alert("Salida de consola copiada al portapapeles.");
+    };
+
+    window.exportarTablaSummaryCSV = function() {
+      if (ultimoResumenTabla.length === 0) return alert("No hay resumen estadístico para exportar.");
+      var cab = "Grupo,N,Media,SD,Mediana,Q1,Q3,IQR,Min,Max\n";
+      var filas = ultimoResumenTabla.map(r => `"${r.grupo}",${r.n},${r.mean},${r.sd},${r.median},${r.q1},${r.q3},${r.iqr},${r.min},${r.max}`).join("\n");
+      var blob = new Blob(["\uFEFF" + cab + filas], { type: "text/csv;charset=utf-8;" });
+      var link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `resumen_${pestanaActiva}_rstudio.csv`;
+      link.click();
+    };
+
+    window.exportarEvaluadorIndividualCSV = function() {
       if (ultimasFilasEvaluador.length === 0) return alert("No hay datos evaluados para exportar.");
       var cab = "Anilla,PVC,Fecha,Especie,Sexo,Edad,Ala_mm,PesoNeto_g,Ratio_g_mm,SMI_g,Desv_SMI_pct,Umbral_Alerta_g,Estado_Condicion\n";
       var filas = ultimasFilasEvaluador.map(f =>
         `"${f.anilla}","${f.pvc}","${f.fecha}","${f.especie}","${f.sexo}","${f.edad}",${!isNaN(f.ala)?f.ala:''},${!isNaN(f.pesoNeto)?f.pesoNeto:''},${!isNaN(f.ratio)?f.ratio.toFixed(3):''},${!isNaN(f.smi)?f.smi.toFixed(1):''},${!isNaN(f.desvPct)?f.desvPct.toFixed(1):''},${!isNaN(f.umbralLeve)?f.umbralLeve.toFixed(1):''},"${f.estado}"`
       ).join("\n");
-
       var blob = new Blob(["\uFEFF" + cab + filas], { type: "text/csv;charset=utf-8;" });
       var link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
       link.download = "evaluacion_condicion_individual.csv";
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-    }
+    };
+
+    window.cargarCsvExterno = function(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var texto = e.target.result;
+        var lineas = texto.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lineas.length < 2) return alert("El CSV no contiene filas de datos.");
+        var sep = lineas[0].includes(';') ? ';' : ',';
+        var cabeceras = lineas[0].split(sep).map(h => h.replace(/^"|"$/g, '').trim().toLowerCase());
+        var idxMap = {
+          fecha: cabeceras.findIndex(h => h.includes('fecha')),
+          especie: cabeceras.findIndex(h => h.includes('especie')),
+          metal: cabeceras.findIndex(h => h.includes('metal') || h.includes('anilla') || h === 'id'),
+          pvc: cabeceras.findIndex(h => h.includes('pvc')),
+          sexo: cabeceras.findIndex(h => h.includes('sexo')),
+          edad: cabeceras.findIndex(h => h.includes('edad') || h.includes('euring')),
+          ala: cabeceras.findIndex(h => h.includes('ala')),
+          p8: cabeceras.findIndex(h => h === 'p8' || h.includes('p8')),
+          cola: cabeceras.findIndex(h => h.includes('cola')),
+          r5: cabeceras.findIndex(h => h === 'r5' || h.includes('r5')),
+          tarso: cabeceras.findIndex(h => h.includes('tarso')),
+          peso: cabeceras.findIndex(h => h.includes('peso') || h.includes('masa')),
+          buche: cabeceras.findIndex(h => h.includes('buche'))
+        };
+        var cargados = [];
+        for (var i = 1; i < lineas.length; i++) {
+          var cols = lineas[i].split(sep).map(c => c.replace(/^"|"$/g, '').trim());
+          cargados.push({
+            fecha: idxMap.fecha >= 0 ? cols[idxMap.fecha] : "",
+            especie: idxMap.especie >= 0 ? cols[idxMap.especie] : "",
+            metal: idxMap.metal >= 0 ? cols[idxMap.metal] : ("REG-" + i),
+            pvc: idxMap.pvc >= 0 ? cols[idxMap.pvc] : "",
+            sexo: idxMap.sexo >= 0 ? cols[idxMap.sexo] : "Desconocido",
+            edad: idxMap.edad >= 0 ? cols[idxMap.edad] : "0",
+            ala: idxMap.ala >= 0 ? cols[idxMap.ala] : "",
+            p8: idxMap.p8 >= 0 ? cols[idxMap.p8] : "",
+            cola: idxMap.cola >= 0 ? cols[idxMap.cola] : "",
+            r5: idxMap.r5 >= 0 ? cols[idxMap.r5] : "",
+            tarso: idxMap.tarso >= 0 ? cols[idxMap.tarso] : "",
+            peso: idxMap.peso >= 0 ? cols[idxMap.peso] : "",
+            buche: idxMap.buche >= 0 ? cols[idxMap.buche] : ""
+          });
+        }
+        anillamientos = cargados;
+        sincronizarCondicionesEnLocalStorage(anillamientos);
+        actualizarBadgeYSectorEspecies(file.name);
+        inicializarRangoFechas();
+        renderizarPestanaActual();
+      };
+      reader.readAsText(file, 'UTF-8');
+    };
+
+    window.onload = function() {
+      actualizarBadgeYSectorEspecies("Base Local");
+      inicializarRangoFechas();
+      if (anillamientos.length > 0) sincronizarCondicionesEnLocalStorage(anillamientos);
+      actualizarLaboratorioBiometrico();
+    };
   </script>
 </body>
 </html>
