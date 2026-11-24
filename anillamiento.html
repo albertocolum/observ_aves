@@ -1125,7 +1125,7 @@
 
       tbody.innerHTML = '';
       registrosPagina.forEach((r, idx) => {
-        var numReal = inicio + idx + 1;
+        var numReal = datosOrdenados.length - (inicio + idx);
         var edadCorta = r.edad || "-";
         var edadTitle = r.edad === "1" ? "1 (Pullus)" : (r.edad === "3" ? "3 (1er año)" : (r.edad === "6" ? "6 (Adulto)" : `Edad ${r.edad}`));
         var nidoBadge = r.codigoNido && r.codigoNido !== "-" ? `<span class="badge bg-success" style="font-size:0.69rem; padding:3px 5px;">${esc(r.codigoNido)}</span>` : '<span class="text-muted">-</span>';
