@@ -141,7 +141,7 @@
                 <input type="number" id="input-volados-nido" class="form-control form-control-sm" value="0">
               </div>
               <div class="col-md-3">
-                <label class="form-label text-success fw-bold" title="Calculado automáticamente desde Anillamiento">Anillados 🐣</label>
+                <label class="form-label text-success fw-bold" title="Solo pollos (edad 1 / pullus) vinculados a este nido en Anillamiento">Pollos Anillados 🐣</label>
                 <input type="number" id="input-anillados-nido" class="form-control form-control-sm fw-bold text-success bg-light" value="0" readonly>
               </div>
             </div>
@@ -228,6 +228,25 @@
     var modoNuevoActivoEnTablaBlanca = false;
 
     document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
+
+    function esPolloAnillado(a) {
+      if (!a) return false;
+      var edadStr = String(a.edad || "").trim().toLowerCase();
+      if (edadStr === "1" || edadStr.startsWith("1 ") || edadStr.includes("pullus") || edadStr.includes("pollo")) {
+        return true;
+      }
+      var tc = String(a.tipoCaptura || "").trim().toLowerCase();
+      if (tc.includes("pollo") || tc.includes("pullus")) return true;
+      return false;
+    }
+
+    function contarPollosAnilladosEnNido(codigoNido) {
+      var cod = String(codigoNido || "").trim().toLowerCase();
+      if (!cod) return 0;
+      return window.anillamientosGlobal.filter(function(a) {
+        return String(a.codigoNido || "").trim().toLowerCase() === cod && esPolloAnillado(a);
+      }).length;
+    }
 
     function formatearFecha(fechaStr) {
       if (!fechaStr) return '-';
@@ -405,7 +424,7 @@
       nidoSeleccionadoFiltro = codigo;
       
       var visitasNido = window.nidos.filter(n => n.id === codigo);
-      let totalAnilladosAutomaticos = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === codigo.toLowerCase()).length;
+      let totalAnilladosAutomaticos = contarPollosAnilladosEnNido(codigo);
 
       if (visitasNido.length > 0) {
         var ultimo = visitasNido[0];
@@ -452,7 +471,7 @@
       document.getElementById('input-nacidos-nido').value = nidoVisita.nacidos || 0;
       document.getElementById('input-volados-nido').value = nidoVisita.volados || 0;
       
-      let anilladosReales = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === String(nidoVisita.id || '').trim().toLowerCase()).length;
+      let anilladosReales = contarPollosAnilladosEnNido(nidoVisita.id);
       document.getElementById('input-anillados-nido').value = anilladosReales;
       document.getElementById('input-obs-nido').value = nidoVisita.obs || '';
 
@@ -688,9 +707,9 @@
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
-        let anilladosReales = window.anillamientosGlobal.filter(a => String(a.codigoNido || '').trim().toLowerCase() === String(n.id || '').trim().toLowerCase()).length;
+        let anilladosReales = contarPollosAnilladosEnNido(n.id);
         
-        var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Anillados (${anilladosReales})</span>` : '';
+        var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos anillados (${anilladosReales})</span>` : '';
         
         let btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-1 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar pollos o adultos">🐣 Anillar</button>`;
         let btnEditarHtml = `<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editarVisitaNido('${n.docId}')" title="Editar esta visita">✏️</button>`;
