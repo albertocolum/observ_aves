@@ -7,7 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.45)),
+      background: linear-gradient(rgba(15, 23, 42, 0.24), rgba(15, 23, 42, 0.34)),
                   url('https://raw.githubusercontent.com/albertocolum/observ_aves/main/fondo.jpg') no-repeat center center fixed;
       background-size: cover;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -15,103 +15,99 @@
     }
 
     .hero-section {
-      background: rgba(15, 23, 42, 0.72);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, 0.56);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       color: #f8fafc;
-      padding: 32px 24px;
-      border-radius: 16px;
+      padding: 34px 24px;
+      border-radius: 18px;
       margin-bottom: 24px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.22);
     }
 
     .kpi-card {
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.54);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 14px;
-      padding: 14px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      border-radius: 16px;
+      padding: 15px 17px;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
       height: 100%;
+      transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
     }
     .kpi-value {
-      font-size: 1.55rem;
+      font-size: 1.65rem;
       font-weight: 800;
       line-height: 1.15;
       color: #0f172a;
       font-variant-numeric: tabular-nums;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
     }
     .kpi-label {
-      font-size: 0.75rem;
-      font-weight: 700;
+      font-size: 0.74rem;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: #475569;
+      letter-spacing: 0.5px;
+      color: #1e293b;
+    }
+    .kpi-sub {
+      color: #1e293b;
+      font-weight: 500;
     }
 
-    .section-label {
-      display: inline-block;
-      background: rgba(15, 23, 42, 0.68);
+    .section-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.48);
       color: #f8fafc;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      padding: 5px 12px;
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      padding: 7px 15px;
       border-radius: 999px;
-      font-size: 0.76rem;
+      font-size: 0.78rem;
       font-weight: 700;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      margin-bottom: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      margin-bottom: 14px;
+      width: fit-content;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
     }
 
     .card-custom {
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      border-radius: 18px;
       transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      background: rgba(255, 255, 255, 0.86);
+      background: rgba(255, 255, 255, 0.62);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
     }
 
     .card-custom:hover {
       transform: translateY(-5px);
       box-shadow: 0 16px 28px rgba(0, 0, 0, 0.22);
-      background: rgba(255, 255, 255, 0.96);
-    }
-
-    .activity-box {
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      border-radius: 16px;
-      padding: 18px 20px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
-    }
-
-    .activity-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      border-radius: 10px;
-      background: rgba(248, 250, 252, 0.85);
-      border: 1px solid #e2e8f0;
-      font-size: 0.84rem;
+      background: rgba(255, 255, 255, 0.84);
     }
 
     .footer-glass {
-      background: rgba(15, 23, 42, 0.68);
+      background: rgba(15, 23, 42, 0.52);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      color: #e2e8f0;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 14px;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
       padding: 12px 18px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
     }
   </style>
 </head>
@@ -122,102 +118,103 @@
     <!-- CABECERA HERO -->
     <div class="hero-section text-center">
       <h1 class="fw-bold mb-2">🦅 Plataforma de Seguimiento y Anillamiento Científico</h1>
-      <p class="lead mb-0 text-light opacity-90">Gestión integral de biometrías, recapturas, cartografía y control reproductor de rapaces.</p>
+      <p class="lead mb-0 text-light">Gestión integral de biometrías, recapturas, cartografía y control reproductor de rapaces.</p>
     </div>
 
     <!-- KPIS VIVOS DESDE FIREBASE -->
     <div class="row g-3 mb-4">
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-label">Capturas registradas</div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="kpi-label">Capturas</span>
+            <span>🏷️</span>
+          </div>
           <div class="kpi-value text-primary mt-1" id="kpi-total-capturas">—</div>
-          <small class="text-muted" id="kpi-sub-capturas">Sincronizando...</small>
+          <small class="kpi-sub" id="kpi-sub-capturas">Sincronizando...</small>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-label">Recapturas / Controles</div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="kpi-label">Recapturas</span>
+            <span>🔄</span>
+          </div>
           <div class="kpi-value text-warning mt-1" id="kpi-recapturas">—</div>
-          <small class="text-muted">Controles sobre anillas previas</small>
+          <small class="kpi-sub">Controles previos</small>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-label">Cajas nido / Nidos</div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="kpi-label">Cajas nido</span>
+            <span>🪹</span>
+          </div>
           <div class="kpi-value text-success mt-1" id="kpi-nidos">—</div>
-          <small class="text-muted">Seguimiento reproductor</small>
+          <small class="kpi-sub">Nidos en seguimiento</small>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-label">Especies distintas</div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="kpi-label">Especies</span>
+            <span>🪶</span>
+          </div>
           <div class="kpi-value text-info mt-1" id="kpi-especies">—</div>
-          <small class="text-muted" id="kpi-ultima-fecha">Última: —</small>
+          <small class="kpi-sub" id="kpi-ultima-fecha">Última: —</small>
         </div>
       </div>
     </div>
 
     <!-- BLOQUE 1: REGISTRO Y SEGUIMIENTO -->
-    <div class="section-label">Registro y trabajo de seguimiento</div>
+    <div class="section-bar"><span>📂</span><span>Registro y seguimiento</span></div>
     <div class="row g-4 mb-4">
       <div class="col-md-4">
-        <div class="card card-custom text-center p-3 shadow-sm h-100">
+        <div class="card card-custom text-center p-3 h-100">
           <div class="fs-1 mb-2">📋</div>
           <h5 class="fw-bold text-dark">Anillamiento y Biometría</h5>
-          <p class="text-secondary small">Registro de capturas, recapturas, datos biométricos y condición física.</p>
+          <p class="text-dark text-opacity-75 small">Registro de capturas, recapturas, datos biométricos y condición física.</p>
           <a href="anillamiento.html" class="btn btn-primary btn-sm w-100 fw-bold mt-auto shadow-sm">Abrir Módulo</a>
         </div>
       </div>
 
       <div class="col-md-4">
-        <div class="card card-custom text-center p-3 shadow-sm h-100">
+        <div class="card card-custom text-center p-3 h-100">
           <div class="fs-1 mb-2">🪹</div>
           <h5 class="fw-bold text-dark">Cajas Nido y Cría</h5>
-          <p class="text-secondary small">Control de ocupación, puestas, fenología y éxito en nidada de rapaces.</p>
+          <p class="text-dark text-opacity-75 small">Control de ocupación, puestas, fenología y éxito en nidada de rapaces.</p>
           <a href="nidos.html" class="btn btn-success btn-sm w-100 fw-bold mt-auto shadow-sm">Gestionar Nidos</a>
         </div>
       </div>
 
       <div class="col-md-4">
-        <div class="card card-custom text-center p-3 shadow-sm h-100">
+        <div class="card card-custom text-center p-3 h-100">
           <div class="fs-1 mb-2">🔄</div>
           <h5 class="fw-bold text-dark">Reavistamientos y Lecturas</h5>
-          <p class="text-secondary small">Seguimiento de anillas de lectura a distancia (PVC) en campo.</p>
-          <a href="reavistamientos.html" class="btn btn-outline-secondary btn-sm w-100 fw-bold mt-auto">Ver Registros</a>
+          <p class="text-dark text-opacity-75 small">Seguimiento de anillas de lectura a distancia (PVC) en campo.</p>
+          <a href="reavistamientos.html" class="btn btn-outline-dark btn-sm w-100 fw-bold mt-auto">Ver Registros</a>
         </div>
       </div>
     </div>
 
     <!-- BLOQUE 2: ANÁLISIS Y CARTOGRAFÍA -->
-    <div class="section-label">Análisis y visualización</div>
+    <div class="section-bar"><span>📈</span><span>Análisis y visualización</span></div>
     <div class="row g-4 justify-content-center mb-4">
       <div class="col-md-6">
-        <div class="card card-custom text-center p-3 shadow-sm h-100">
+        <div class="card card-custom text-center p-3 h-100">
           <div class="fs-1 mb-2">📊</div>
           <h5 class="fw-bold text-dark">Gráficas y Biometría</h5>
-          <p class="text-secondary small">Análisis estadístico de pesos, alas, condición corporal (SMI) y morfometría.</p>
+          <p class="text-dark text-opacity-75 small">Análisis estadístico de pesos, alas, condición corporal (SMI) y morfometría.</p>
           <a href="graficas.html" class="btn btn-outline-info btn-sm w-100 fw-bold mt-auto">Ver Análisis</a>
         </div>
       </div>
 
       <div class="col-md-6">
-        <div class="card card-custom text-center p-3 shadow-sm h-100">
+        <div class="card card-custom text-center p-3 h-100">
           <div class="fs-1 mb-2">🌍</div>
           <h5 class="fw-bold text-dark">Mapa General</h5>
-          <p class="text-secondary small">Visualización cartográfica y filtrado por años de todas las capturas.</p>
+          <p class="text-dark text-opacity-75 small">Visualización cartográfica y filtrado por años de todas las capturas.</p>
           <a href="mapa.html" class="btn btn-outline-danger btn-sm w-100 fw-bold mt-auto">Ver Mapa</a>
         </div>
-      </div>
-    </div>
-
-    <!-- ACTIVIDAD RECIENTE -->
-    <div class="activity-box mb-4">
-      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-        <h6 class="fw-bold text-dark mb-0">🕒 Últimas capturas registradas</h6>
-        <a href="anillamiento.html" class="small fw-semibold text-decoration-none">Ver historial completo &rarr;</a>
-      </div>
-      <div id="lista-actividad-reciente" class="d-flex flex-column gap-2">
-        <div class="text-muted small py-1">Cargando actividad reciente desde Firebase...</div>
       </div>
     </div>
 
@@ -246,17 +243,17 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
-        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-      });
+    function obtenerEspecie(r) {
+      var cand = r.especie || r.nombreComun || r.especieComun || r.ave || r.taxon || "";
+      var txt = String(cand).trim();
+      return txt || "Sin especie";
     }
 
     function formatearFecha(f) {
-      if (!f) return '—';
+      if (!f) return "—";
       var s = String(f).trim();
       if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-        var p = s.slice(0, 10).split('-');
+        var p = s.slice(0, 10).split("-");
         return `${p[2]}/${p[1]}/${p[0]}`;
       }
       return s;
@@ -265,7 +262,7 @@
     function fechaStamp(f) {
       if (!f) return 0;
       var s = String(f).trim();
-      var iso = s.includes('/') ? s.split('/').reverse().join('-') : s;
+      var iso = s.includes("/") ? s.split("/").reverse().join("-") : s;
       var t = Date.parse(iso);
       return isNaN(t) ? 0 : t;
     }
@@ -291,8 +288,8 @@
 
         var especiesSet = new Set(
           capturas
-            .map(r => String(r.especie || "").trim())
-            .filter(Boolean)
+            .map(r => obtenerEspecie(r))
+            .filter(sp => sp && sp !== "Sin especie")
         );
 
         var ordenadas = [...capturas].sort((a, b) => {
@@ -311,33 +308,6 @@
         var ultimaFecha = ordenadas.length > 0 ? formatearFecha(ordenadas[0].fecha) : "—";
         document.getElementById("kpi-ultima-fecha").innerText = `Última: ${ultimaFecha}`;
 
-        var contAct = document.getElementById("lista-actividad-reciente");
-        if (ordenadas.length === 0) {
-          contAct.innerHTML = '<div class="text-muted small py-1">Aún no hay capturas registradas en la base de datos.</div>';
-        } else {
-          contAct.innerHTML = ordenadas.slice(0, 4).map(r => {
-            var tc = String(r.tipoCaptura || "").toLowerCase();
-            var esRec = tc.includes("recaptura") || tc.includes("control") || tc === "r" || tc === "c";
-            var badgeTipo = esRec
-              ? '<span class="badge bg-warning text-dark">Recaptura</span>'
-              : '<span class="badge bg-primary">Anillamiento</span>';
-            var lugar = r.localidad ? ` · ${esc(r.localidad)}` : "";
-            return `
-              <div class="activity-item">
-                <div>
-                  <span class="badge bg-secondary me-1">${esc(r.metal || "—")}</span>
-                  <strong class="text-dark">${esc(r.especie || "Especie")}</strong>
-                  <span class="text-muted small">${lugar}</span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  ${badgeTipo}
-                  <span class="text-muted small">${formatearFecha(r.fecha)}</span>
-                </div>
-              </div>
-            `;
-          }).join("");
-        }
-
         if (badgeConn) {
           badgeConn.className = "badge bg-success";
           badgeConn.innerText = "Firebase conectado";
@@ -348,8 +318,6 @@
           badgeConn.className = "badge bg-danger";
           badgeConn.innerText = "Error de conexión";
         }
-        document.getElementById("lista-actividad-reciente").innerHTML =
-          '<div class="text-muted small py-1">No se pudo cargar el resumen en tiempo real.</div>';
       }
     }
 
