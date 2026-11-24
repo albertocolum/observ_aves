@@ -81,6 +81,51 @@
       border: 1px solid #cbd5e1;
       background: #f8fafc;
     }
+    .toast-aviso-flotante {
+      position: fixed;
+      top: 16px;
+      right: 18px;
+      z-index: 1080;
+      min-width: 280px;
+      max-width: 420px;
+      background: #1e293b;
+      color: #f8fafc;
+      border-left: 4px solid #16a34a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+      font-size: 0.8rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .toast-aviso-flotante.is-error {
+      border-left-color: #dc2626;
+    }
+    .toast-aviso-flotante.is-info {
+      border-left-color: #2563eb;
+    }
+    .barra-filtros-tabla {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+    }
+    .num-col {
+      font-variant-numeric: tabular-nums;
+      text-align: center !important;
+      color: #334155;
+    }
+    .bloque-sesion-fija {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+    }
+
     .nota-campo-box {
       background: #f8fafc;
       border: 1px dashed #cbd5e1;
@@ -92,6 +137,10 @@
   </style>
 </head>
 <body>
+  <div id="toast-aviso" class="toast-aviso-flotante" role="status" aria-live="polite">
+    <span id="toast-aviso-texto"></span>
+    <button type="button" class="btn-close btn-close-white btn-sm" style="font-size:0.65rem;" onclick="ocultarToast()" aria-label="Cerrar"></button>
+  </div>
 
   <div class="container-fluid px-3 main-container">
     <div class="row g-3 align-items-stretch">
@@ -108,39 +157,40 @@
 
             <form id="form-anillamiento">
               <input type="hidden" id="input-edit-docid" value="">
-              <div class="section-subtitle">1. Estación, Origen y Ubicación</div>
-              
-              <div class="row g-2 mb-2">
-                <div class="col-md-6">
-                  <label class="form-label">Tipo de Captura <span class="required-asterisk">*</span></label>
-                  <select id="input-tipo-captura" class="form-select form-select-sm fw-bold text-success" required>
-                    <option value="Anillamiento" selected>Anillamiento (Ave sin anillar)</option>
-                    <option value="Recaptura">Recaptura (Control / Ave ya anillada)</option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label text-success">🪹 Código Nido / Origen</label>
-                  <input type="text" id="input-codigo-nido-anil" class="form-control form-control-sm fw-bold text-success" placeholder="Ej: CN-FALTIN-01">
-                </div>
-              </div>
-
-              <div class="row g-2 mb-2">
-                <div class="col-md-7">
-                  <label class="form-label">Coordenadas (Lat, Long) <span class="required-asterisk">*</span></label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" id="input-coords-anil" class="form-control" value="39.7709, -0.1840">
-                    <button class="btn btn-outline-secondary" type="button" onclick="actualizarLocalidadDesdeCoords()">Buscar</button>
+              <div class="section-subtitle">1. Sesión, Estación y Origen</div>
+              <div class="bloque-sesion-fija">
+                <div class="row g-2 mb-2">
+                  <div class="col-md-6">
+                    <label class="form-label">Tipo de Captura <span class="required-asterisk">*</span></label>
+                    <select id="input-tipo-captura" class="form-select form-select-sm fw-bold text-success" required>
+                      <option value="Anillamiento" selected>Anillamiento (Ave sin anillar)</option>
+                      <option value="Recaptura">Recaptura (Control / Ave ya anillada)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-success">🪹 Código Nido / Origen</label>
+                    <input type="text" id="input-codigo-nido-anil" class="form-control form-control-sm fw-bold text-success" placeholder="Ej: CN-FALTIN-01">
                   </div>
                 </div>
-                <div class="col-md-5">
-                  <label class="form-label">Fecha <span class="required-asterisk">*</span></label>
-                  <input type="date" id="input-fecha-anil" class="form-control form-control-sm" required>
-                </div>
-              </div>
 
-              <div class="mb-2">
-                <label class="form-label">Lugar / Estación de Anillamiento <span class="required-asterisk">*</span></label>
-                <input type="text" id="input-localidad-anil" class="form-control form-control-sm" placeholder="Se autocompletará..." required>
+                <div class="row g-2 mb-2">
+                  <div class="col-md-7">
+                    <label class="form-label">Coordenadas (Lat, Long) <span class="required-asterisk">*</span></label>
+                    <div class="input-group input-group-sm">
+                      <input type="text" id="input-coords-anil" class="form-control" value="39.7709, -0.1840">
+                      <button class="btn btn-outline-secondary" type="button" onclick="actualizarLocalidadDesdeCoords()">Buscar</button>
+                    </div>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label">Fecha <span class="required-asterisk">*</span></label>
+                    <input type="date" id="input-fecha-anil" class="form-control form-control-sm" required>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="form-label">Lugar / Estación de Anillamiento <span class="required-asterisk">*</span></label>
+                  <input type="text" id="input-localidad-anil" class="form-control form-control-sm" placeholder="Se autocompletará..." required>
+                </div>
               </div>
 
               <div class="section-subtitle">2. Marcaje e Identificación</div>
@@ -251,6 +301,9 @@
             </div>
 
             <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary fw-bold btn-sm py-2" id="btn-limpiar-ave" onclick="limpiarCamposAve()" title="Limpia los datos del ave conservando fecha, estación y coordenadas">
+                🧹 Limpiar ave
+              </button>
               <button type="button" class="btn btn-success flex-grow-1 fw-bold btn-sm py-2" id="btn-guardar-anil" onclick="guardarAnillamiento()">
                 ☁️ Guardar Captura
               </button>
@@ -285,6 +338,35 @@
                 <input type="file" id="input-migrar-csv" accept=".csv" style="display:none;" onchange="migrarCSVAFirebase(event)">
                 <button class="btn btn-outline-danger btn-sm" onclick="vaciarTodoAnilFirebase()" title="Vaciar toda la nube de golpe">⚠️ Vaciar</button>
                 <button class="btn btn-outline-success btn-sm" onclick="exportarExcelAnil()">📊 Excel</button>
+              </div>
+            </div>
+
+            <div class="barra-filtros-tabla">
+              <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                  <input type="search" id="filtro-busqueda-anil" class="form-control form-control-sm" placeholder="🔍 Buscar por metálica, PVC o código de nido..." oninput="aplicarFiltrosYRenderizar()">
+                </div>
+                <div class="col-md-3">
+                  <select id="filtro-tipo-captura" class="form-select form-select-sm" onchange="aplicarFiltrosYRenderizar()">
+                    <option value="todas" selected>Tipo: Todas las capturas</option>
+                    <option value="anillamiento">Solo anillamientos</option>
+                    <option value="recaptura">Solo recapturas / controles</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <select id="filtro-especie-anil" class="form-select form-select-sm" onchange="aplicarFiltrosYRenderizar()">
+                    <option value="todas" selected>Especie: Todas</option>
+                    <option value="Tyto alba">Lechuza común (Tyto alba)</option>
+                    <option value="Falco tinnunculus">Cernícalo vulgar (Falco tinnunculus)</option>
+                    <option value="Athene noctua">Mochuelo europeo (Athene noctua)</option>
+                    <option value="Otus scops">Autillo europeo (Otus scops)</option>
+                    <option value="Asio otus">Búho chico (Asio otus)</option>
+                    <option value="Strix aluco">Cárabo común (Strix aluco)</option>
+                  </select>
+                </div>
+                <div class="col-md-1 text-end">
+                  <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="resetearFiltrosTabla()" title="Limpiar filtros">↺</button>
+                </div>
               </div>
             </div>
 
@@ -352,6 +434,87 @@
     const ESTADOS_VALIDOS = ["Muy buena", "Buena", "Normal", "Mala", "Muy mala"];
 
     document.getElementById('input-fecha-anil').value = new Date().toISOString().slice(0,10);
+
+    var toastTimer = null;
+    window.mostrarToast = function(mensaje, tipo) {
+      var el = document.getElementById("toast-aviso");
+      var txt = document.getElementById("toast-aviso-texto");
+      if (!el || !txt) return;
+      txt.innerText = mensaje;
+      el.className = "toast-aviso-flotante" + (tipo === "error" ? " is-error" : (tipo === "info" ? " is-info" : ""));
+      el.style.display = "flex";
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() {
+        el.style.display = "none";
+      }, 3200);
+    };
+
+    window.ocultarToast = function() {
+      var el = document.getElementById("toast-aviso");
+      if (el) el.style.display = "none";
+    };
+
+    window.limpiarCamposAve = function() {
+      document.getElementById('input-metal-anil').value = "";
+      document.getElementById('input-pvc-anil').value = "";
+      document.getElementById('input-ala-anil').value = "";
+      document.getElementById('input-p8-anil').value = "";
+      document.getElementById('input-cola-anil').value = "";
+      document.getElementById('input-r5-anil').value = "";
+      document.getElementById('input-tarso-anil').value = "";
+      document.getElementById('input-peso-anil').value = "";
+      document.getElementById('input-grasa-anil').value = "";
+      document.getElementById('alerta-metal').style.display = 'none';
+      document.getElementById('alerta-pvc').style.display = 'none';
+      window.evaluarCondicionEnVivo();
+      window.mostrarToast("Campos del ave limpiados (se mantiene estación y fecha)", "info");
+    };
+
+    function obtenerListaFiltrada() {
+      var qEl = document.getElementById("filtro-busqueda-anil");
+      var tipoEl = document.getElementById("filtro-tipo-captura");
+      var espEl = document.getElementById("filtro-especie-anil");
+
+      var q = qEl ? String(qEl.value || "").trim().toLowerCase() : "";
+      var tipo = tipoEl ? String(tipoEl.value || "todas") : "todas";
+      var esp = espEl ? String(espEl.value || "todas") : "todas";
+
+      return window.anillamientos.filter(function(r) {
+        if (tipo !== "todas") {
+          var tc = String(r.tipoCaptura || "").toLowerCase();
+          var esRec = tc.includes("recaptura") || tc.includes("control") || tc === "r" || tc === "c";
+          if (tipo === "recaptura" && !esRec) return false;
+          if (tipo === "anillamiento" && esRec) return false;
+        }
+        if (esp !== "todas") {
+          if (String(r.especie || "").trim().toLowerCase() !== esp.toLowerCase()) return false;
+        }
+        if (q) {
+          var metal = String(r.metal || "").toLowerCase();
+          var pvc = formatearPvcLimpio(r.pvc).toLowerCase();
+          var nido = String(r.codigoNido || "").toLowerCase();
+          if (!metal.includes(q) && !pvc.includes(q) && !nido.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    window.aplicarFiltrosYRenderizar = function() {
+      paginaActual = 1;
+      renderizarTablaPaginada();
+    };
+
+    window.resetearFiltrosTabla = function() {
+      var qEl = document.getElementById("filtro-busqueda-anil");
+      var tipoEl = document.getElementById("filtro-tipo-captura");
+      var espEl = document.getElementById("filtro-especie-anil");
+      if (qEl) qEl.value = "";
+      if (tipoEl) tipoEl.value = "todas";
+      if (espEl) espEl.value = "todas";
+      paginaActual = 1;
+      renderizarTablaPaginada();
+      window.mostrarToast("Filtros restablecidos", "info");
+    };
 
     function leerMapaCondicionesGraficas() {
       try {
@@ -692,7 +855,7 @@
       try {
         if (editDocId) {
           await updateDoc(doc(db, "anillamientos", editDocId), item);
-          alert("¡Registro actualizado con éxito en Firebase!");
+          window.mostrarToast("Registro actualizado en Firebase");
           cancelarEdicion();
         } else {
           await addDoc(collection(db, "anillamientos"), item);
@@ -716,7 +879,7 @@
             }
           }
 
-          alert("¡Captura guardada en Firebase correctamente!");
+          window.mostrarToast("Captura guardada en Firebase");
           document.getElementById('input-metal-anil').value = "";
           document.getElementById('input-pvc-anil').value = "";
           document.getElementById('input-peso-anil').value = "";
@@ -1016,7 +1179,14 @@
         return;
       }
 
-      var datosOrdenados = ordenarCapturasFechaYAnilla(window.anillamientos);
+      var listaFiltrada = obtenerListaFiltrada();
+      if (listaFiltrada.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">No hay capturas que coincidan con los filtros seleccionados.</td></tr>';
+        if(pagContainer) pagContainer.style.setProperty('display', 'none', 'important');
+        return;
+      }
+
+      var datosOrdenados = ordenarCapturasFechaYAnilla(listaFiltrada);
 
       var totalPaginas = Math.ceil(datosOrdenados.length / registrosPorPagina);
       if (paginaActual > totalPaginas) paginaActual = totalPaginas;
@@ -1054,7 +1224,7 @@
           <td>${pvcBadge}</td>
           <td>${esc(especieAbreviada)}</td>
           <td><span class="badge bg-secondary" style="font-size:0.69rem; padding:3px 5px;" title="${esc(edadTitle)}">${esc(edadCorta)}</span></td>
-          <td>${r.ala}</td><td>${r.p8}</td><td>${r.cola}</td><td>${r.tarso}</td><td>${r.r5}</td><td>${r.peso}</td>
+          <td class="num-col">${r.ala}</td><td class="num-col">${r.p8}</td><td class="num-col">${r.cola}</td><td class="num-col">${r.tarso}</td><td class="num-col">${r.r5}</td><td class="num-col fw-semibold">${r.peso}</td>
           <td><span class="badge badge-cond ${cond.badge}" title="${esc(cond.detalle)}">${esc(cond.corta)}</span></td>
           <td class="text-center">
             <button class="btn btn-sm btn-outline-warning py-0 px-1 fw-bold" style="font-size:0.71rem; line-height:1.25;" onclick="cargarParaEditar('${r.docId}')" title="Editar este registro">✏️ Edit</button>
