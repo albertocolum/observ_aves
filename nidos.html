@@ -62,11 +62,19 @@
             </div>
 
             <div class="row g-2 mb-2">
-              <div class="col-md-5">
+              <div class="col-md-4">
+                <label class="form-label">Visita / Ronda *</label>
+                <select id="input-ronda-visita" class="form-select form-select-sm fw-bold text-primary" onchange="alCambiarRondaVisita()">
+                  <option value="1ª Visita">1ª Visita (Revisión / Puesta)</option>
+                  <option value="2ª Visita">2ª Visita (Control / Eclosión)</option>
+                  <option value="3ª Visita (Anillamiento)" selected>3ª Visita (Anillamiento)</option>
+                </select>
+              </div>
+              <div class="col-md-4">
                 <label class="form-label">Fecha Inspección *</label>
                 <input type="date" id="input-temp-nido" class="form-control form-control-sm fw-bold" required>
               </div>
-              <div class="col-md-7">
+              <div class="col-md-4">
                 <label class="form-label">Especie Principal *</label>
                 <select id="input-especie-nido" class="form-select form-select-sm" required>
                   <option value="Falco tinnunculus" selected>Cernícalo vulgar (Falco tinnunculus)</option>
@@ -164,17 +172,28 @@
       <!-- COLUMNA DERECHA: HISTORIAL Y VISITAS DEL NIDO SELECCIONADO -->
       <div class="col-lg-7">
         <div class="card-panel">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
             <div>
               <h4 class="form-title mb-1" style="border:none; padding:0;" id="titulo-tabla-historial">Historial de Visitas</h4>
               <small class="text-muted" id="subtitulo-tabla-historial">Cargando desde Firebase...</small>
             </div>
-            <div class="btn-group">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <select id="filtro-ronda-nido" class="form-select form-select-sm fw-semibold" style="width: auto;" onchange="cambiarFiltroRondaNido(this.value)" title="Filtrar visitas por ronda">
+                <option value="todas" selected>Todas las visitas</option>
+                <option value="1ª Visita">1ª Visita</option>
+                <option value="2ª Visita">2ª Visita</option>
+                <option value="3ª Visita (Anillamiento)">3ª Visita (Anillamiento)</option>
+              </select>
+              <select id="filtro-ano-nido" class="form-select form-select-sm fw-semibold" style="width: auto;" onchange="cambiarFiltroAnoNido(this.value)" title="Filtrar pollos anillados y visitas por año">
+                <option value="todos" selected>Todos los años</option>
+              </select>
+              <div class="btn-group">
               <button class="btn btn-outline-primary btn-sm" onclick="mostrarTodoElHistorial()" id="btn-ver-todos" style="display:none;">Ver Todos</button>
               <button class="btn btn-primary btn-sm fw-bold" onclick="document.getElementById('input-migrar-nidos-csv').click()" title="Subir tu archivo CSV de nidos">☁️ Importar CSV</button>
               <input type="file" id="input-migrar-nidos-csv" accept=".csv" style="display:none;" onchange="migrarNidosCSVAFirebase(event)">
               <button class="btn btn-outline-secondary btn-sm" onclick="exportarNidosCSV()">📊 Exportar</button>
               <button class="btn btn-outline-danger btn-sm" onclick="vaciarNidosFirebase()" title="Borrar todo en nube">⚠️ Vaciar</button>
+            </div>
             </div>
           </div>
 
@@ -240,11 +259,114 @@
       return false;
     }
 
-    function contarPollosAnilladosEnNido(codigoNido) {
+    var rondaFiltroNido = "todas";
+
+    function inferirRondaVisita(n) {
+      if (!n) return "3ª Visita (Anillamiento)";
+      var r = String(n.rondaVisita || n.visita || "").trim();
+      if (r) return r;
+      var est = String(n.estado || "").toLowerCase();
+      if ((parseInt(n.anillados) || 0) > 0 || est.includes("pollos") || est.includes("volando")) {
+        return "3ª Visita (Anillamiento)";
+      }
+      if ((parseInt(n.nacidos) || 0) > 0) {
+        return "2ª Visita";
+      }
+      return "1ª Visita";
+    }
+
+    window.cambiarFiltroRondaNido = function(ronda) {
+      rondaFiltroNido = ronda || "todas";
+      renderTablaNidos();
+    };
+
+    window.alCambiarRondaVisita = function() {
+      var rondaSel = document.getElementById("input-ronda-visita").value;
+      var codigoActual = modoCreacionNuevo
+        ? document.getElementById("input-codigo-nido").value.trim()
+        : document.getElementById("select-codigo-nido").value;
+      var anoActual = extraerAnoFecha(document.getElementById("input-temp-nido").value) || extraerAnoFecha(new Date().toISOString().slice(0, 10));
+
+      if (rondaSel === "3ª Visita (Anillamiento)") {
+        var estSel = document.getElementById("input-estado-nido");
+        if (estSel && (estSel.value === "Incubando/con huevos" || estSel.value === "Vacio/inactivo")) {
+          estSel.value = "Con pollos / Eclosionado";
+        }
+        if (codigoActual) {
+          document.getElementById("input-anillados-nido").value = contarPollosAnilladosEnNido(codigoActual, anoActual);
+        }
+      }
+    };
+
+    var anoFiltroNido = "todos";
+
+    function extraerAnoFecha(fechaStr) {
+      if (!fechaStr) return "";
+      var s = String(fechaStr).trim();
+      var mIso = s.match(/^(\d{4})-\d{2}-\d{2}/);
+      if (mIso) return mIso[1];
+      var mEur = s.match(/^\d{1,2}\/\d{1,2}\/(\d{4})/);
+      if (mEur) return mEur[1];
+      var mAny = s.match(/\b(19|20)\d{2}\b/);
+      return mAny ? mAny[0] : "";
+    }
+
+    function obtenerAnosDisponiblesNidos() {
+      var anos = new Set();
+      window.nidos.forEach(function(n) {
+        var y = extraerAnoFecha(n.temporada);
+        if (y) anos.add(y);
+      });
+      window.anillamientosGlobal.forEach(function(a) {
+        if (esPolloAnillado(a)) {
+          var y = extraerAnoFecha(a.fecha);
+          if (y) anos.add(y);
+        }
+      });
+      var sel = document.getElementById("filtro-ano-nido");
+      var anoActualForm = extraerAnoFecha(document.getElementById("input-temp-nido") && document.getElementById("input-temp-nido").value);
+      if (anoActualForm) anos.add(anoActualForm);
+      if (sel) {
+        var valorPrevio = sel.value || anoFiltroNido;
+        var ordenados = Array.from(anos).sort(function(a, b) { return Number(b) - Number(a); });
+        sel.innerHTML = '<option value="todos">Todos los años</option>';
+        ordenados.forEach(function(y) {
+          sel.innerHTML += `<option value="${y}">Año ${y}</option>`;
+        });
+        if (valorPrevio !== "todos" && ordenados.includes(valorPrevio)) {
+          sel.value = valorPrevio;
+          anoFiltroNido = valorPrevio;
+        } else {
+          sel.value = "todos";
+          anoFiltroNido = "todos";
+        }
+      }
+    }
+
+    window.cambiarFiltroAnoNido = function(ano) {
+      anoFiltroNido = ano || "todos";
+      if (nidoSeleccionadoFiltro) {
+        var visitasNido = window.nidos.filter(function(n) { return n.id === nidoSeleccionadoFiltro; });
+        var visitaAno = (anoFiltroNido !== "todos")
+          ? visitasNido.find(function(n) { return extraerAnoFecha(n.temporada) === anoFiltroNido; })
+          : null;
+        var refVisita = visitaAno || visitasNido[0];
+        var anoConteo = (anoFiltroNido !== "todos") ? anoFiltroNido : (refVisita ? extraerAnoFecha(refVisita.temporada) : "");
+        document.getElementById("input-anillados-nido").value = contarPollosAnilladosEnNido(nidoSeleccionadoFiltro, anoConteo);
+      }
+      renderTablaNidos();
+    };
+
+    function contarPollosAnilladosEnNido(codigoNido, anoReferencia) {
       var cod = String(codigoNido || "").trim().toLowerCase();
       if (!cod) return 0;
+      var anoObjetivo = String(anoReferencia || "").trim();
       return window.anillamientosGlobal.filter(function(a) {
-        return String(a.codigoNido || "").trim().toLowerCase() === cod && esPolloAnillado(a);
+        if (String(a.codigoNido || "").trim().toLowerCase() !== cod || !esPolloAnillado(a)) {
+          return false;
+        }
+        if (!anoObjetivo || anoObjetivo === "todos") return true;
+        return extraerAnoFecha(a.fecha) === anoObjetivo;
       }).length;
     }
 
@@ -272,6 +394,7 @@
         });
 
         actualizarSelectNidos();
+        obtenerAnosDisponiblesNidos();
         if (window.nidos.length > 0 && !document.getElementById('input-doc-id').value) {
           var codigosOrdenados = [...new Set(window.nidos.map(n => n.id))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
           var primerCodigo = codigosOrdenados[0];
@@ -397,6 +520,7 @@
       document.getElementById('btn-cancelar-edicion').style.display = 'none';
 
       document.getElementById('input-temp-nido').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('input-ronda-visita').value = '1ª Visita';
       document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
       document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
       document.getElementById('input-macho-nido').value = '';
@@ -423,11 +547,12 @@
       modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
       
-      var visitasNido = window.nidos.filter(n => n.id === codigo);
-      let totalAnilladosAutomaticos = contarPollosAnilladosEnNido(codigo);
+      var visitasNido = [...window.nidos.filter(n => n.id === codigo)].sort((a, b) => new Date(b.temporada) - new Date(a.temporada));
+      var ultimo = visitasNido.length > 0 ? visitasNido[0] : null;
+      var anoConteoSel = (anoFiltroNido && anoFiltroNido !== "todos") ? anoFiltroNido : (ultimo ? extraerAnoFecha(ultimo.temporada) : "");
+      let totalAnilladosAutomaticos = contarPollosAnilladosEnNido(codigo, anoConteoSel);
 
-      if (visitasNido.length > 0) {
-        var ultimo = visitasNido[0];
+      if (ultimo) {
         document.getElementById('input-doc-id').value = ultimo.docId;
         document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
@@ -460,6 +585,7 @@
       document.getElementById('input-doc-id').value = nidoVisita.docId;
       document.getElementById('select-codigo-nido').value = nidoVisita.id;
       document.getElementById('input-temp-nido').value = nidoVisita.temporada || new Date().toISOString().slice(0, 10);
+      document.getElementById('input-ronda-visita').value = inferirRondaVisita(nidoVisita);
       document.getElementById('input-especie-nido').value = nidoVisita.especie || 'Falco tinnunculus';
       document.getElementById('input-coords-nido').value = `${nidoVisita.lat}, ${nidoVisita.lng}`;
       document.getElementById('input-tipo-estructura').value = nidoVisita.estructura || 'Caja Nido Madera';
@@ -471,7 +597,8 @@
       document.getElementById('input-nacidos-nido').value = nidoVisita.nacidos || 0;
       document.getElementById('input-volados-nido').value = nidoVisita.volados || 0;
       
-      let anilladosReales = contarPollosAnilladosEnNido(nidoVisita.id);
+      var anoVisitaEdit = extraerAnoFecha(nidoVisita.temporada);
+      let anilladosReales = contarPollosAnilladosEnNido(nidoVisita.id, anoVisitaEdit);
       document.getElementById('input-anillados-nido').value = anilladosReales;
       document.getElementById('input-obs-nido').value = nidoVisita.obs || '';
 
@@ -586,6 +713,7 @@
         lng: lng,
         estructura: document.getElementById('input-tipo-estructura').value,
         lugar: lugar,
+        rondaVisita: document.getElementById('input-ronda-visita').value,
         temporada: document.getElementById('input-temp-nido').value,
         macho: machoVal,
         hembra: hembraVal,
@@ -681,14 +809,20 @@
       }
 
       var datosAMostrar = window.nidos;
+      if (anoFiltroNido && anoFiltroNido !== "todos") {
+        datosAMostrar = datosAMostrar.filter(n => extraerAnoFecha(n.temporada) === anoFiltroNido);
+      }
+      if (rondaFiltroNido && rondaFiltroNido !== "todas") {
+        datosAMostrar = datosAMostrar.filter(n => inferirRondaVisita(n) === rondaFiltroNido);
+      }
       if (nidoSeleccionadoFiltro) {
-        datosAMostrar = window.nidos.filter(n => n.id === nidoSeleccionadoFiltro);
-        tituloHist.innerText = `Visitas del Nido: ${nidoSeleccionadoFiltro}`;
-        subTituloHist.innerText = `Historial de inspecciones en nube`;
+        datosAMostrar = datosAMostrar.filter(n => n.id === nidoSeleccionadoFiltro);
+        tituloHist.innerText = `Visitas del Nido: ${nidoSeleccionadoFiltro}` + (anoFiltroNido !== "todos" ? ` (${anoFiltroNido})` : "");
+        subTituloHist.innerText = `Historial de inspecciones por temporada`;
         btnVerTodos.style.display = 'inline-block';
       } else {
-        tituloHist.innerText = `Historial General de Visitas`;
-        subTituloHist.innerText = `Mostrando todas las inspecciones en nube`;
+        tituloHist.innerText = `Historial General de Visitas` + (anoFiltroNido !== "todos" ? ` (${anoFiltroNido})` : "");
+        subTituloHist.innerText = `Mostrando inspecciones en nube`;
         btnVerTodos.style.display = 'none';
       }
 
@@ -707,7 +841,8 @@
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
         
-        let anilladosReales = contarPollosAnilladosEnNido(n.id);
+        var anoVisitaFila = extraerAnoFecha(n.temporada);
+        let anilladosReales = contarPollosAnilladosEnNido(n.id, anoVisitaFila);
         
         var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos anillados (${anilladosReales})</span>` : '';
         
@@ -720,7 +855,10 @@
 
         tbody.innerHTML += `<tr>
           <td><b class="text-primary">${n.id}</b></td>
-          <td><small>${formatearFecha(n.temporada) || '-'}</small></td>
+          <td>
+            <small>${formatearFecha(n.temporada) || '-'}</small><br>
+            <span class="badge ${inferirRondaVisita(n).includes('3ª') ? 'bg-success' : (inferirRondaVisita(n).includes('2ª') ? 'bg-info text-dark' : 'bg-light text-dark border')}" style="font-size:0.65rem;">${esc(inferirRondaVisita(n))}</span>
+          </td>
           <td><i>${n.especie}</i></td>
           <td>${machoStr}<br>${hembraStr}</td>
           <td><span class="badge ${badgeColor}">${n.estado}</span>${badgeAnillados}</td>
@@ -746,14 +884,18 @@
     window.anillarNidadaDirecta = function(codigoNido) {
       var n = window.nidos.find(x => x.id === codigoNido);
       if (!n) return;
+      var fechaVisitaHoy = document.getElementById("input-temp-nido") && document.getElementById("input-temp-nido").value;
       var preset = {
         codigoNido: n.id,
         especie: n.especie,
         lat: n.lat,
         lng: n.lng,
         localidad: n.lugar,
-        edad: "1"
+        edad: "1",
+        fecha: fechaVisitaHoy || new Date().toISOString().slice(0, 10)
       };
+      var selRonda = document.getElementById('input-ronda-visita');
+      if (selRonda) selRonda.value = '3ª Visita (Anillamiento)';
       localStorage.setItem("preset_anillamiento_nidada", JSON.stringify(preset));
       window.location.href = "anillamiento.html";
     }
