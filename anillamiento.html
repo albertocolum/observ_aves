@@ -33,6 +33,25 @@
     }
     .table-history th { font-size: 0.74rem; padding-top: 6px !important; padding-bottom: 6px !important; }
 
+    .th-sort-btn {
+      background: none;
+      border: none;
+      padding: 0 2px;
+      margin-left: 3px;
+      font-size: 0.72rem;
+      line-height: 1;
+      color: #475569;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    .th-sort-btn:hover {
+      color: #0d6efd;
+    }
+    .th-sort-btn.active {
+      color: #0d6efd;
+      font-weight: 700;
+    }
+
     .badge-metal { background-color: #718096; color: #ffffff; letter-spacing: 0.2px; font-size: 0.71rem; padding: 3px 6px; }
     .badge-pvc { background-color: #15803d; color: #ffffff; letter-spacing: 0.2px; font-family: monospace; font-size: 0.71rem; padding: 3px 6px; }
     .badge-cond { font-size: 0.71rem; padding: 3px 6px; }
@@ -251,7 +270,7 @@
               <div>
                 <h4 class="form-title mb-0" style="border:none; padding:0;">Capturas y Registros Biométricos</h4>
                 <div class="d-flex align-items-center gap-3">
-                  <small class="text-muted">Sincronizado con Firebase Firestore (20 por página)</small>
+                  <small class="text-muted">Ordenado según orden de introducción · 20 por página</small>
                   <small class="d-inline-flex align-items-center gap-1 text-dark fw-semibold">
                     <span style="display:inline-block; width:10px; height:10px; background-color:#fef3c7; border:1px solid #d97706; border-radius:2px;"></span>
                     Recaptura / Control
@@ -276,7 +295,7 @@
                     <th>#</th>
                     <th>Nido</th>
                     <th>Fecha</th>
-                    <th>Metálica</th>
+                    <th>Metálica <button type="button" id="btn-orden-anilla" class="th-sort-btn" onclick="alternarOrdenAnilla()" title="Ordenar por Nº de anilla (orden entrada / ascendente / descendente)">⇅</button></th>
                     <th>PVC</th>
                     <th>Especie</th>
                     <th>Edad</th>
@@ -523,7 +542,18 @@
       });
 
       if (repetida) {
-        divAlerta.innerText = `⚠️ ¡Atención! La anilla "${valTrim}" ya está registrada en la base de datos.`;
+        var datosOrd = ordenarCapturasFechaYAnilla(window.anillamientos);
+        var idxEncontrado = datosOrd.findIndex(item => {
+          if (tipo === 'metal') {
+            return String(item.metal || '').trim().toLowerCase() === valTrim.toLowerCase();
+          } else {
+            return formatearPvcLimpio(item.pvc).toLowerCase() === valTrim.toLowerCase();
+          }
+        });
+        var regEncontrado = idxEncontrado >= 0 ? datosOrd[idxEncontrado] : null;
+        var pagEncontrada = idxEncontrado >= 0 ? Math.floor(idxEncontrado / registrosPorPagina) + 1 : 1;
+        var fechaTxt = regEncontrado && regEncontrado.fecha ? ` (${formatearFecha(regEncontrado.fecha)})` : '';
+        divAlerta.innerHTML = `⚠️ Ya existe "${esc(valTrim)}"${esc(fechaTxt)} en <b>Pág. ${pagEncontrada}</b>. <button type="button" class="btn btn-link btn-sm p-0 align-baseline fw-bold" style="font-size:0.70rem;" onclick="irAPaginaYResaltar(${pagEncontrada}, '${esc(valTrim)}')">Ver</button>`;
         divAlerta.style.display = 'block';
       } else {
         divAlerta.style.display = 'none';
@@ -559,8 +589,12 @@
 
         const querySnapshot = await getDocs(collection(db, "anillamientos"));
         window.anillamientos = [];
+        var contadorOrden = 1;
         querySnapshot.forEach((docSnap) => {
-          window.anillamientos.push({ docId: docSnap.id, ...docSnap.data() });
+          var d = docSnap.data();
+          var ordenGuardado = (typeof d._ordenEntrada === "number" && !isNaN(d._ordenEntrada)) ? d._ordenEntrada : contadorOrden;
+          window.anillamientos.push({ docId: docSnap.id, ...d, _ordenEntrada: ordenGuardado });
+          contadorOrden++;
         });
         localStorage.setItem("anillamiento_biometria_data", JSON.stringify(window.anillamientos));
         renderizarTablaPaginada();
@@ -624,7 +658,17 @@
       var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
       if (isNaN(lat) || isNaN(lng)) return alert("Coordenadas no válidas.");
 
+      var maxOrden = window.anillamientos.reduce((max, a) => {
+        var o = (typeof a._ordenEntrada === "number") ? a._ordenEntrada : 0;
+        return o > max ? o : max;
+      }, 0);
+      var existenteEdit = editDocId ? window.anillamientos.find(a => a.docId === editDocId) : null;
+      var ordenAsignado = existenteEdit && typeof existenteEdit._ordenEntrada === "number"
+        ? existenteEdit._ordenEntrada
+        : (maxOrden + 1);
+
       var item = {
+        _ordenEntrada: ordenAsignado,
         tipoCaptura: tipoCaptura,
         codigoNido: codigoNido || "-",
         fecha: document.getElementById('input-fecha-anil').value,
@@ -748,14 +792,104 @@
       window.location.href = "ficha_ave.html";
     }
 
+      function fechaAStamp(fStr) {
+        if (!fStr) return 0;
+        var s = String(fStr).trim();
+        var iso = s.includes('/') ? s.split('/').reverse().join('-') : s;
+        var t = Date.parse(iso);
+        return isNaN(t) ? 0 : t;
+      }
+
+      function compararAnilla(a, b) {
+        var ma = String(a.metal || "").trim();
+        var mb = String(b.metal || "").trim();
+        var pa = ma.match(/^([A-Za-z]*)[-_\s]*(\d+)$/);
+        var pb = mb.match(/^([A-Za-z]*)[-_\s]*(\d+)$/);
+        if (pa && pb) {
+          var prefCmp = pb[1].localeCompare(pa[1], 'es', { sensitivity: 'base' });
+          if (prefCmp !== 0) return prefCmp;
+          var numA = parseInt(pa[2], 10);
+          var numB = parseInt(pb[2], 10);
+          if (numA !== numB) return numB - numA;
+        }
+        return mb.localeCompare(ma, 'es', { numeric: true, sensitivity: 'base' });
+      }
+
+    window.modoOrdenAnilla = "none"; // "none" (orden de entrada), "asc", "desc"
+
+    window.alternarOrdenAnilla = function() {
+      if (window.modoOrdenAnilla === "none") {
+        window.modoOrdenAnilla = "asc";
+      } else if (window.modoOrdenAnilla === "asc") {
+        window.modoOrdenAnilla = "desc";
+      } else {
+        window.modoOrdenAnilla = "none";
+      }
+      actualizarIconoOrdenAnilla();
+      paginaActual = 1;
+      renderizarTablaPaginada();
+    };
+
+    function actualizarIconoOrdenAnilla() {
+      var btn = document.getElementById("btn-orden-anilla");
+      if (!btn) return;
+      if (window.modoOrdenAnilla === "asc") {
+        btn.innerText = "↑";
+        btn.className = "th-sort-btn active";
+        btn.title = "Anilla ascendente (pulsa para descendente)";
+      } else if (window.modoOrdenAnilla === "desc") {
+        btn.innerText = "↓";
+        btn.className = "th-sort-btn active";
+        btn.title = "Anilla descendente (pulsa para orden de introducción)";
+      } else {
+        btn.innerText = "⇅";
+        btn.className = "th-sort-btn";
+        btn.title = "Orden de introducción (pulsa para ascendente)";
+      }
+    }
+
+    function compararAnillaValor(a, b, direccion) {
+      var ma = String(a.metal || "").trim();
+      var mb = String(b.metal || "").trim();
+      var pa = ma.match(/^([A-Za-z]*)[-_\s]*(\d+)$/);
+      var pb = mb.match(/^([A-Za-z]*)[-_\s]*(\d+)$/);
+      var res = 0;
+      if (pa && pb) {
+        var prefCmp = pa[1].localeCompare(pb[1], 'es', { sensitivity: 'base' });
+        if (prefCmp !== 0) {
+          res = prefCmp;
+        } else {
+          var numA = parseInt(pa[2], 10);
+          var numB = parseInt(pb[2], 10);
+          res = numA - numB;
+        }
+      } else {
+        res = ma.localeCompare(mb, 'es', { numeric: true, sensitivity: 'base' });
+      }
+      return direccion === "desc" ? -res : res;
+    }
+
+      function ordenarCapturasFechaYAnilla(lista) {
+        return [...lista].sort((a, b) => {
+          if (window.modoOrdenAnilla === "asc" || window.modoOrdenAnilla === "desc") {
+            var cmpAnilla = compararAnillaValor(a, b, window.modoOrdenAnilla);
+            if (cmpAnilla !== 0) return cmpAnilla;
+            var diffFechaManual = fechaAStamp(b.fecha) - fechaAStamp(a.fecha);
+            if (diffFechaManual !== 0) return diffFechaManual;
+          }
+          var oa = (typeof a._ordenEntrada === "number") ? a._ordenEntrada : 0;
+          var ob = (typeof b._ordenEntrada === "number") ? b._ordenEntrada : 0;
+          if (ob !== oa) return ob - oa;
+          var diffFecha = fechaAStamp(b.fecha) - fechaAStamp(a.fecha);
+          if (diffFecha !== 0) return diffFecha;
+          return compararAnilla(a, b);
+        });
+      }
+
     window.borrarUltimoRegistro = async function() {
       if (window.anillamientos.length === 0) return alert("No hay registros para borrar.");
       
-      var datosOrdenados = [...window.anillamientos].sort((a, b) => {
-        var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
-        var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
-        return fb - fa;
-      });
+      var datosOrdenados = ordenarCapturasFechaYAnilla(window.anillamientos);
 
       var ultimo = datosOrdenados[0];
       if (!ultimo || !ultimo.docId) return alert("No se pudo identificar el último registro.");
@@ -795,7 +929,12 @@
             var latVal = corregirLatitudJS(cols[18]);
             var lngVal = parseFloat(String(cols[19] || 0).replace(',', '.')) || -0.1840;
 
+            var maxOrdenCsv = window.anillamientos.reduce((max, a) => {
+              var o = (typeof a._ordenEntrada === "number") ? a._ordenEntrada : 0;
+              return o > max ? o : max;
+            }, 0) + contador + 1;
             var item = {
+              _ordenEntrada: maxOrdenCsv,
               codigoNido: cols[1] || "-",
               tipoCaptura: cols[2] || "Anillamiento",
               fecha: cols[3] || new Date().toISOString().slice(0,10),
@@ -851,6 +990,13 @@
       }
     }
 
+    window.anillaResaltada = "";
+    window.irAPaginaYResaltar = function(pag, anillaTxt) {
+      paginaActual = pag || 1;
+      window.anillaResaltada = String(anillaTxt || "").trim().toLowerCase();
+      renderizarTablaPaginada();
+    };
+
     window.cambiarPagina = function(direccion) {
       var totalPaginas = Math.ceil(window.anillamientos.length / registrosPorPagina) || 1;
       paginaActual += direccion;
@@ -870,11 +1016,7 @@
         return;
       }
 
-      var datosOrdenados = [...window.anillamientos].sort((a, b) => {
-        var fa = new Date(a.fecha.includes('/') ? a.fecha.split('/').reverse().join('-') : a.fecha);
-        var fb = new Date(b.fecha.includes('/') ? b.fecha.split('/').reverse().join('-') : b.fecha);
-        return fb - fa;
-      });
+      var datosOrdenados = ordenarCapturasFechaYAnilla(window.anillamientos);
 
       var totalPaginas = Math.ceil(datosOrdenados.length / registrosPorPagina);
       if (paginaActual > totalPaginas) paginaActual = totalPaginas;
@@ -897,7 +1039,11 @@
 
         var tipoCap = String(r.tipoCaptura || "").toLowerCase();
         var esRecaptura = tipoCap.includes("recaptura") || tipoCap.includes("control") || tipoCap === "r" || tipoCap === "c";
-        var claseFila = esRecaptura ? "fila-recaptura" : "";
+        var esResaltada = window.anillaResaltada && (
+          String(r.metal || '').trim().toLowerCase() === window.anillaResaltada ||
+          formatearPvcLimpio(r.pvc).toLowerCase() === window.anillaResaltada
+        );
+        var claseFila = (esRecaptura ? "fila-recaptura " : "") + (esResaltada ? "table-info border border-primary" : "");
         var badgeRec = esRecaptura ? `<span class="badge-recaptura" title="Recaptura / Control">REC</span>` : "";
 
         tbody.innerHTML += `<tr class="${claseFila}">
