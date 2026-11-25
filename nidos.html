@@ -193,7 +193,7 @@
   </div>
 
   <div class="container main-container">
-    
+
     <!-- CABECERA DE MÓDULO -->
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center">
@@ -209,7 +209,7 @@
     </div>
 
     <div class="row g-4">
-      
+
       <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / VISITA -->
       <div class="col-lg-5">
         <div class="card-panel">
@@ -218,11 +218,11 @@
             <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="limpiarFormularioParaNuevo()" title="Crear un nuevo nido">➕ Nuevo Nido</button>
           </div>
           <hr class="mt-2 mb-3">
-          
+
           <form id="form-nido">
             <input type="hidden" id="input-doc-id" value="">
             <div class="section-subtitle">1. Ubicación e Identificación</div>
-            
+
             <div class="mb-2">
               <label class="form-label">Seleccionar / Código Nido *</label>
               <div class="input-group input-group-sm">
@@ -375,12 +375,6 @@
               <small class="text-muted" id="subtitulo-tabla-historial">Cargando desde Firebase...</small>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <select id="filtro-ronda-nido" class="form-select form-select-sm fw-semibold" style="width: auto;" onchange="cambiarFiltroRondaNido(this.value)" title="Filtrar visitas por ronda">
-                <option value="todas" selected>Todas las visitas</option>
-                <option value="1ª Visita">1ª Visita</option>
-                <option value="2ª Visita">2ª Visita</option>
-                <option value="3ª Visita (Anillamiento)">3ª Visita (Anillamiento)</option>
-              </select>
               <select id="filtro-ano-nido" class="form-select form-select-sm fw-semibold" style="width: auto;" onchange="cambiarFiltroAnoNido(this.value)" title="Filtrar pollos anillados y visitas por año">
                 <option value="todos" selected>Todos los años</option>
               </select>
@@ -598,9 +592,6 @@
       if (nidoSeleccionadoFiltro) {
         var visitasNido = [...window.nidos.filter(function(n) { return n.id === nidoSeleccionadoFiltro; })]
           .sort(function(a, b) { return fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada); });
-        var visitaAno = (anoFiltroNido !== "todos")
-          ? visitasNido.find(function(n) { return extraerAnoFecha(n.temporada) === anoFiltroNido; })
-          : null;
         var anoConteo = "";
         if (anoFiltroNido !== "todos") {
           anoConteo = anoFiltroNido;
@@ -683,7 +674,7 @@
       });
 
       markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
-      
+
       var baseMaps = {
         "🛰️ Satélite (Esri)": sateliteLayer,
         "🗺️ Callejero (OSM)": calleLayer
@@ -699,12 +690,11 @@
       cargarDatosFirebase();
     }
 
-    // BUSCAR ANILLA EN ANILLAMIENTOS Y AUTOCOMPLETAR FORMATO METÁLICA / PVC
     window.buscarAdultoEnAnillados = function(valorAnilla, sexo) {
       let valTrim = valorAnilla.trim();
       if (!valTrim || valTrim === "-") return;
 
-      let encontrado = window.anillamientosGlobal.find(a => 
+      let encontrado = window.anillamientosGlobal.find(a =>
         String(a.metal || '').trim().toLowerCase() === valTrim.toLowerCase() ||
         String(a.pvc || '').trim().toLowerCase() === valTrim.toLowerCase()
       );
@@ -809,7 +799,7 @@
       }
       modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
-      
+
       var visitasNido = [...window.nidos.filter(n => n.id === codigo)].sort((a, b) => fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada));
       var ultimo = visitasNido.length > 0 ? visitasNido[0] : null;
       var anoConteoSel = (anoFiltroNido && anoFiltroNido !== "todos") ? anoFiltroNido : (extraerAnoFecha(document.getElementById('input-temp-nido') && document.getElementById('input-temp-nido').value) || (ultimo ? extraerAnoFecha(ultimo.temporada) : ""));
@@ -831,7 +821,7 @@
         document.getElementById('input-anillados-nido').value = totalAnilladosAutomaticos;
         document.getElementById('input-obs-nido').value = ultimo.obs || '';
         actualizarPreviewFotoFormulario(obtenerFotoPrincipalNido(codigo, visitasNido));
-        
+
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
         mapForm.panTo([ultimo.lat, ultimo.lng]);
       }
@@ -862,7 +852,7 @@
       document.getElementById('input-huevos-nido').value = nidoVisita.huevos || 0;
       document.getElementById('input-nacidos-nido').value = nidoVisita.nacidos || 0;
       document.getElementById('input-volados-nido').value = nidoVisita.volados || 0;
-      
+
       var anoVisitaEdit = extraerAnoFecha(nidoVisita.temporada);
       let anilladosReales = contarPollosAnilladosEnNido(nidoVisita.id, anoVisitaEdit);
       document.getElementById('input-anillados-nido').value = anilladosReales;
@@ -1145,13 +1135,12 @@
       return { metal: metal, pvc: pvc };
     }
 
-    // Actualizar el código de nido en la tabla de anillamientos si el adulto ya existe
     async function actualizarCodigoNidoEnAnillamiento(cadenaAnilla, codigoNidoActual) {
       if (!cadenaAnilla || cadenaAnilla.trim() === "-" || cadenaAnilla.trim() === "") return;
       let { metal, pvc } = extraerMetalYPvc(cadenaAnilla);
       if (!metal) return;
 
-      let encontrado = window.anillamientosGlobal.find(a => 
+      let encontrado = window.anillamientosGlobal.find(a =>
         String(a.metal || '').trim().toLowerCase() === metal.toLowerCase() ||
         (pvc && String(a.pvc || '').trim().toLowerCase() === pvc.toLowerCase())
       );
@@ -1159,7 +1148,6 @@
       if (encontrado && encontrado.docId) {
         let anilRef = doc(db, "anillamientos", encontrado.docId);
         await updateDoc(anilRef, { codigoNido: codigoNidoActual });
-        console.log(`Anillamiento de la anilla [${metal}] actualizado con el nido [${codigoNidoActual}].`);
       }
     }
 
@@ -1258,14 +1246,23 @@
           mostrarToastNido(`Nueva visita guardada en Firebase para el nido [${codigo}]`, "success");
         }
 
-        // Vincular el nido en las fichas de anillamiento de los adultos si ya existen
         await actualizarCodigoNidoEnAnillamiento(machoVal, codigo);
         await actualizarCodigoNidoEnAnillamiento(hembraVal, codigo);
 
-        cancelarEdicionVisita();
+        document.getElementById('input-doc-id').value = '';
+        document.getElementById('titulo-formulario-nido').innerText = 'Nueva Visita / Inspección';
+        document.getElementById('btn-guardar-visita').innerText = '☁️ Guardar Visita en la Nube';
+        document.getElementById('btn-cancelar-edicion').style.display = 'none';
+        modoCreacionNuevo = false;
+        modoNuevoActivoEnTablaBlanca = false;
+        nidoSeleccionadoFiltro = codigo;
+        document.getElementById('select-codigo-nido').style.display = 'block';
+        document.getElementById('input-codigo-nido').style.display = 'none';
+        document.getElementById('btn-toggle-modo').innerText = 'Nuevo';
         await cargarDatosFirebase();
         nidoSeleccionadoFiltro = codigo;
         actualizarSelectNidos();
+        document.getElementById('select-codigo-nido').value = codigo;
         renderTablaNidos();
       } catch (e) {
         console.error("Error al guardar en Firebase:", e);
@@ -1346,17 +1343,23 @@
       var box = document.getElementById("diario-visitas-nido");
       if (!box) return;
 
-      if (!nidoCodigo || modoNuevoActivoEnTablaBlanca) {
+      var codigoObjetivo = nidoCodigo || ((window.nidos && window.nidos[0]) ? window.nidos[0].id : "");
+      if (!codigoObjetivo || modoNuevoActivoEnTablaBlanca) {
         box.style.display = "none";
         box.innerHTML = "";
         return;
       }
 
-      var base = (Array.isArray(registrosFiltradosPorAno) && registrosFiltradosPorAno.length > 0)
-        ? registrosFiltradosPorAno
-        : window.nidos.filter(function(n) { return n.id === nidoCodigo; });
-
-      var visitasNido = base.filter(function(n) { return n.id === nidoCodigo; });
+      var visitasNido = window.nidos.filter(function(n) {
+        if (n.id !== codigoObjetivo) return false;
+        if (anoFiltroNido && anoFiltroNido !== "todos") {
+          return extraerAnoFecha(n.temporada) === anoFiltroNido;
+        }
+        return true;
+      });
+      if (!visitasNido.length) {
+        visitasNido = window.nidos.filter(function(n) { return n.id === codigoObjetivo; });
+      }
       if (!visitasNido.length) {
         box.style.display = "none";
         box.innerHTML = "";
@@ -1440,11 +1443,9 @@
       if (anoFiltroNido && anoFiltroNido !== "todos") {
         datosPorAno = datosPorAno.filter(n => extraerAnoFecha(n.temporada) === anoFiltroNido);
       }
-      renderDiarioNido(nidoSeleccionadoFiltro, datosPorAno);
+      var codigoDiario = nidoSeleccionadoFiltro || ((window.nidos && window.nidos[0]) ? window.nidos[0].id : null);
+      renderDiarioNido(codigoDiario, datosPorAno);
       var datosAMostrar = datosPorAno;
-      if (rondaFiltroNido && rondaFiltroNido !== "todas") {
-        datosAMostrar = datosAMostrar.filter(n => inferirRondaVisita(n) === rondaFiltroNido);
-      }
       if (nidoSeleccionadoFiltro) {
         datosAMostrar = datosAMostrar.filter(n => n.id === nidoSeleccionadoFiltro);
         tituloHist.innerText = `Visitas del Nido: ${nidoSeleccionadoFiltro}` + (anoFiltroNido !== "todos" ? ` (${anoFiltroNido})` : "");
@@ -1473,17 +1474,17 @@
         else if (n.estado && n.estado.includes('Exito')) badgeColor = 'bg-success';
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
-        
+
         var anoVisitaFila = extraerAnoFecha(n.temporada);
         let anilladosReales = contarPollosAnilladosEnNido(n.id, anoVisitaFila);
-        
+
         var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos ${anoVisitaFila ? anoVisitaFila + ' ' : ''}(${anilladosReales})</span>` : '';
-        
+
         let btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-1 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar pollos o adultos">🐣 Anillar</button>`;
         let btnFotoHtml = n.fotoUrl ? `<button class="btn btn-sm btn-outline-info py-0 px-1" onclick="abrirVisorFotoNido('${esc(n.fotoUrl)}', 'Nido ${esc(n.id)}')" title="Ver foto del nido">📷</button>` : '';
         let btnEditarHtml = `${btnFotoHtml}<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editarVisitaNido('${n.docId}')" title="Editar esta visita">✏️</button>`;
         let btnBorrarHtml = `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="borrarVisitaNido('${n.docId}', '${n.id}')" title="Borrar esta visita">🗑️</button>`;
-        
+
         let machoStr = n.macho && n.macho !== "-" ? `<span class="text-primary fw-bold">♂ ${esc(n.macho)}</span>` : '<span class="text-muted">♂ -</span>';
         let hembraStr = n.hembra && n.hembra !== "-" ? `<span class="text-danger fw-bold">♀ ${esc(n.hembra)}</span>` : '<span class="text-muted">♀ -</span>';
         let estBadge = etiquetaEstructuraCorta(n.estructura);
@@ -1587,6 +1588,7 @@
       initMapaForm();
     };
   </script>
+
   <!-- VISOR DE FOTO DEL NIDO -->
   <div id="visor-foto-nido" class="visor-foto-overlay" role="dialog" aria-modal="true" onclick="if(event.target===this) cerrarVisorFotoNido()">
     <div class="visor-foto-card">
@@ -1597,6 +1599,5 @@
       <img id="visor-foto-img" src="" alt="Foto del nido" class="visor-foto-img">
     </div>
   </div>
-
 </body>
 </html>
