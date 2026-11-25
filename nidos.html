@@ -15,6 +15,94 @@
     .form-label { font-weight: 600; color: #4a5568; font-size: 0.82rem; }
     #mapa-nido-preliminar { height: 180px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; z-index: 1; }
     .table-history { font-size: 0.78rem; }
+    .diario-nido-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #198754;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 0.8rem;
+    }
+    .diario-ronda-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 11px;
+    }
+    .diario-obs-texto {
+      white-space: pre-line;
+      color: #1e293b;
+      margin-top: 4px;
+      font-size: 0.78rem;
+    }
+    .modal-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.58);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: fadeOverlayIn 0.18s ease-out;
+    }
+    .modal-confirm-overlay.is-open {
+      display: flex;
+    }
+    .modal-confirm-card {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      animation: popCardIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-confirm-header {
+      background: linear-gradient(135deg, #0f766e 0%, #15803d 100%);
+      color: #ffffff;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-confirm-header.is-danger {
+      background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    }
+    .modal-confirm-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+    }
+    .modal-confirm-item-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .modal-confirm-item-val {
+      color: #0f172a;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    @keyframes fadeOverlayIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes popCardIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -194,6 +282,8 @@
             </div>
           </div>
 
+          <div id="diario-visitas-nido" class="diario-nido-box" style="display:none;"></div>
+
           <div class="table-responsive">
             <table class="table table-hover align-middle table-history">
               <thead class="table-light">
@@ -215,6 +305,27 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- VENTANA EMERGENTE DINÁMICA DE CONFIRMACIÓN -->
+  <div id="modal-confirm-nido" class="modal-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-titulo">
+    <div class="modal-confirm-card">
+      <div id="modal-confirm-header" class="modal-confirm-header">
+        <div>
+          <span id="modal-confirm-badge" class="badge bg-light text-dark mb-1" style="font-size:0.68rem;">CONFIRMACIÓN</span>
+          <h5 class="mb-0 fw-bold" id="modal-confirm-titulo">Confirmar datos de la visita</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" onclick="resolverModalConfirmacion(false)"></button>
+      </div>
+      <div class="p-3 p-sm-4">
+        <p class="text-muted small mb-3" id="modal-confirm-subtitulo">Revisa los datos antes de enviar a Firebase Firestore.</p>
+        <div id="modal-confirm-cuerpo"></div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-semibold" onclick="resolverModalConfirmacion(false)">Cancelar</button>
+          <button type="button" id="modal-confirm-btn-aceptar" class="btn btn-success btn-sm px-4 fw-bold" onclick="resolverModalConfirmacion(true)">✅ Confirmar y Guardar</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -653,8 +764,75 @@
       }
     }
 
+    var resolverConfirmacionPendiente = null;
+
+    window.resolverModalConfirmacion = function(aceptado) {
+      var overlay = document.getElementById("modal-confirm-nido");
+      if (overlay) {
+        overlay.classList.remove("is-open");
+      }
+      var fn = resolverConfirmacionPendiente;
+      resolverConfirmacionPendiente = null;
+      if (typeof fn === "function") {
+        fn(Boolean(aceptado));
+      }
+    };
+
+    document.addEventListener("keydown", function(ev) {
+      if (ev.key === "Escape" && resolverConfirmacionPendiente) {
+        resolverModalConfirmacion(false);
+      }
+    });
+
+    function abrirModalConfirmacion(opts) {
+      return new Promise(function(resolve) {
+        var overlay = document.getElementById("modal-confirm-nido");
+        var header = document.getElementById("modal-confirm-header");
+        var badge = document.getElementById("modal-confirm-badge");
+        var titulo = document.getElementById("modal-confirm-titulo");
+        var subtitulo = document.getElementById("modal-confirm-subtitulo");
+        var cuerpo = document.getElementById("modal-confirm-cuerpo");
+        var btnAceptar = document.getElementById("modal-confirm-btn-aceptar");
+
+        if (!overlay || !cuerpo || !btnAceptar) {
+          resolve(window.confirm((opts && opts.textoFallback) || "¿Confirmar acción?"));
+          return;
+        }
+
+        resolverConfirmacionPendiente = resolve;
+        header.classList.toggle("is-danger", Boolean(opts && opts.peligro));
+        badge.innerText = (opts && opts.badge) || "CONFIRMACIÓN";
+        titulo.innerText = (opts && opts.titulo) || "Confirmar datos";
+        subtitulo.innerText = (opts && opts.subtitulo) || "Revisa los valores antes de continuar.";
+        cuerpo.innerHTML = (opts && opts.htmlCuerpo) || "";
+        btnAceptar.className = "btn btn-sm px-4 fw-bold " + ((opts && opts.peligro) ? "btn-danger" : "btn-success");
+        btnAceptar.innerText = (opts && opts.textoAceptar) || "✅ Confirmar";
+
+        overlay.classList.add("is-open");
+        btnAceptar.focus();
+      });
+    }
+
     window.borrarVisitaNido = async function(docId, codigoNido) {
-      if (confirm(`¿Estás seguro de borrar esta visita registrada para el nido [${codigoNido}]?`)) {
+      var visitaObj = window.nidos.find(function(x) { return x.docId === docId; });
+      var detalleHtml = `
+        <div class="modal-confirm-grid">
+          <div><div class="modal-confirm-item-label">Código Nido</div><div class="modal-confirm-item-val text-primary">${esc(codigoNido)}</div></div>
+          <div><div class="modal-confirm-item-label">Fecha</div><div class="modal-confirm-item-val">${esc(visitaObj ? formatearFecha(visitaObj.temporada) : "-")}</div></div>
+          <div><div class="modal-confirm-item-label">Ronda</div><div class="modal-confirm-item-val">${esc(visitaObj ? inferirRondaVisita(visitaObj) : "-")}</div></div>
+          <div><div class="modal-confirm-item-label">Conteo H/N/V/A</div><div class="modal-confirm-item-val">${visitaObj ? `${visitaObj.huevos || 0}H / ${visitaObj.nacidos || 0}N / ${visitaObj.volados || 0}V / ${visitaObj.anillados || 0}A` : "-"}</div></div>
+        </div>
+      `;
+      var confirmado = await abrirModalConfirmacion({
+        badge: "ELIMINAR REGISTRO",
+        titulo: `Borrar visita de ${codigoNido}`,
+        subtitulo: "Esta acción eliminará permanentemente esta visita de Firebase Firestore.",
+        htmlCuerpo: detalleHtml,
+        textoAceptar: "🗑️ Sí, borrar visita",
+        peligro: true,
+        textoFallback: `¿Estás seguro de borrar esta visita registrada para el nido [${codigoNido}]?`
+      });
+      if (confirmado) {
         try {
           await deleteDoc(doc(db, "nidos", docId));
           alert("¡Visita borrada correctamente de la nube!");
@@ -757,6 +935,31 @@
         obs: document.getElementById('input-obs-nido').value
       };
 
+      var obsPreview = String(nidoObj.obs || "").trim();
+      var resumenGuardarHtml = `
+        <div class="modal-confirm-grid">
+          <div><div class="modal-confirm-item-label">Código Nido</div><div class="modal-confirm-item-val text-primary">${esc(nidoObj.id)}</div></div>
+          <div><div class="modal-confirm-item-label">Ronda & Fecha</div><div class="modal-confirm-item-val">${esc(nidoObj.rondaVisita)} · ${esc(formatearFecha(nidoObj.temporada))}</div></div>
+          <div><div class="modal-confirm-item-label">Especie</div><div class="modal-confirm-item-val fst-italic">${esc(nidoObj.especie)}</div></div>
+          <div><div class="modal-confirm-item-label">Estructura</div><div class="modal-confirm-item-val">${esc(nidoObj.estructura)}</div></div>
+          <div><div class="modal-confirm-item-label">Localidad</div><div class="modal-confirm-item-val">${esc(nidoObj.lugar)}</div></div>
+          <div><div class="modal-confirm-item-label">Estado</div><div class="modal-confirm-item-val text-success">${esc(nidoObj.estado)}</div></div>
+          <div><div class="modal-confirm-item-label">Pareja (♂ / ♀)</div><div class="modal-confirm-item-val">${esc(nidoObj.macho)} / ${esc(nidoObj.hembra)}</div></div>
+          <div><div class="modal-confirm-item-label">H / N / V / A</div><div class="modal-confirm-item-val">${nidoObj.huevos}H · ${nidoObj.nacidos}N · ${nidoObj.volados}V · <span class="text-success">${nidoObj.anillados}A</span></div></div>
+        </div>
+        ${obsPreview ? `<div class="mt-2 p-2 rounded bg-light border small"><strong class="text-secondary">Observaciones:</strong><div style="white-space:pre-line;">${esc(obsPreview)}</div></div>` : ""}
+      `;
+      var quiereGuardar = await abrirModalConfirmacion({
+        badge: docIdExistente ? "ACTUALIZAR VISITA" : "NUEVA VISITA",
+        titulo: docIdExistente ? `Actualizar visita de ${nidoObj.id}` : `Guardar visita de ${nidoObj.id}`,
+        subtitulo: "Comprueba que todos los campos de la inspección son correctos antes de sincronizar.",
+        htmlCuerpo: resumenGuardarHtml,
+        textoAceptar: docIdExistente ? "💾 Actualizar en la nube" : "☁️ Guardar en la nube",
+        peligro: false,
+        textoFallback: `¿Guardar visita del nido [${nidoObj.id}]?`
+      });
+      if (!quiereGuardar) return;
+
       try {
         if (docIdExistente) {
           await updateDoc(doc(db, "nidos", docIdExistente), nidoObj);
@@ -839,6 +1042,86 @@
       return { texto: "Caja Nido", clase: "bg-info text-dark" };
     }
 
+    function ordenRondaNumerica(rondaStr) {
+      var s = String(rondaStr || "").toLowerCase();
+      if (s.includes("1ª") || s.includes("1a") || s.startsWith("1 ")) return 1;
+      if (s.includes("2ª") || s.includes("2a") || s.startsWith("2 ")) return 2;
+      if (s.includes("3ª") || s.includes("3a") || s.includes("anillamiento") || s.startsWith("3 ")) return 3;
+      return 9;
+    }
+
+    function renderDiarioNido(nidoCodigo, registrosFiltradosPorAno) {
+      var box = document.getElementById("diario-visitas-nido");
+      if (!box) return;
+
+      if (!nidoCodigo || modoNuevoActivoEnTablaBlanca) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      var base = (Array.isArray(registrosFiltradosPorAno) && registrosFiltradosPorAno.length > 0)
+        ? registrosFiltradosPorAno
+        : window.nidos.filter(function(n) { return n.id === nidoCodigo; });
+
+      var visitasNido = base.filter(function(n) { return n.id === nidoCodigo; });
+      if (!visitasNido.length) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+
+      visitasNido.sort(function(a, b) {
+        var ra = ordenRondaNumerica(inferirRondaVisita(a));
+        var rb = ordenRondaNumerica(inferirRondaVisita(b));
+        if (ra !== rb) return ra - rb;
+        return fechaAStampNido(a.temporada) - fechaAStampNido(b.temporada);
+      });
+
+      var tituloAno = (anoFiltroNido && anoFiltroNido !== "todos") ? `Temporada ${anoFiltroNido}` : "Todas las temporadas";
+      var itemsHtml = visitasNido.map(function(v) {
+        var ronda = inferirRondaVisita(v);
+        var fechaFmt = formatearFecha(v.temporada);
+        var anoV = extraerAnoFecha(v.temporada);
+        var pollosReales = contarPollosAnilladosEnNido(v.id, anoV);
+        var obsLimpia = String(v.obs || "").trim();
+        var badgeRonda = ronda.includes("3ª")
+          ? "bg-success"
+          : (ronda.includes("2ª") ? "bg-info text-dark" : "bg-primary");
+
+        var obsHtml = obsLimpia
+          ? `<div class="diario-obs-texto">📝 ${esc(obsLimpia)}</div>`
+          : `<div class="text-muted fst-italic mt-1" style="font-size:0.75rem;">Sin observaciones anotadas en esta visita.</div>`;
+
+        return `
+          <div class="diario-ronda-item">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+              <div>
+                <span class="badge ${badgeRonda}">${esc(ronda)}</span>
+                <b class="ms-1 text-dark">${esc(fechaFmt)}</b>
+                <small class="text-muted ms-1">· ${esc(v.estado || "-")}</small>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-dark border">${v.huevos || 0}H / ${v.nacidos || 0}N / ${v.volados || 0}V / <b class="text-success">${pollosReales}</b>A</span>
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="editarVisitaNido('${v.docId}')">Editar</button>
+                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-danger" onclick="borrarVisitaNido('${v.docId}', '${esc(v.id)}')">Borrar</button>
+              </div>
+            </div>
+            ${obsHtml}
+          </div>
+        `;
+      }).join("");
+
+      box.style.display = "block";
+      box.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+          <div class="fw-bold text-success">📖 Diario de Visitas del Nido ${esc(nidoCodigo)} <span class="text-muted fw-normal">(${esc(tituloAno)})</span></div>
+          <small class="text-muted">1ª → 2ª → 3ª visita</small>
+        </div>
+        <div class="d-flex flex-column gap-2">${itemsHtml}</div>
+      `;
+    }
+
     function renderTablaNidos() {
       var tbody = document.getElementById('tabla-nidos');
       var tituloHist = document.getElementById('titulo-tabla-historial');
@@ -847,6 +1130,7 @@
       if (!tbody) return;
 
       if (modoNuevoActivoEnTablaBlanca) {
+        renderDiarioNido(null, []);
         tituloHist.innerText = `Historial de Visitas`;
         subTituloHist.innerText = `Crea un nuevo nido o selecciona uno existente`;
         btnVerTodos.style.display = 'none';
@@ -854,10 +1138,12 @@
         return;
       }
 
-      var datosAMostrar = window.nidos;
+      var datosPorAno = window.nidos;
       if (anoFiltroNido && anoFiltroNido !== "todos") {
-        datosAMostrar = datosAMostrar.filter(n => extraerAnoFecha(n.temporada) === anoFiltroNido);
+        datosPorAno = datosPorAno.filter(n => extraerAnoFecha(n.temporada) === anoFiltroNido);
       }
+      renderDiarioNido(nidoSeleccionadoFiltro, datosPorAno);
+      var datosAMostrar = datosPorAno;
       if (rondaFiltroNido && rondaFiltroNido !== "todas") {
         datosAMostrar = datosAMostrar.filter(n => inferirRondaVisita(n) === rondaFiltroNido);
       }
