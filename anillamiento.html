@@ -115,6 +115,73 @@
       font-size: 0.73rem;
       color: #475569;
     }
+    .modal-confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.58);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: fadeOverlayIn 0.18s ease-out;
+    }
+    .modal-confirm-overlay.is-open {
+      display: flex;
+    }
+    .modal-confirm-card {
+      width: 100%;
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      animation: popCardIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-confirm-header {
+      background: linear-gradient(135deg, #0f766e 0%, #15803d 100%);
+      color: #ffffff;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-confirm-header.is-danger {
+      background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    }
+    .modal-confirm-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+    }
+    .modal-confirm-item-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .modal-confirm-item-val {
+      color: #0f172a;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    @keyframes fadeOverlayIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes popCardIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -385,6 +452,27 @@
             <button class="btn btn-outline-primary btn-sm px-3 py-0" id="btn-siguiente" onclick="cambiarPagina(1)">Siguiente &rarr;</button>
           </div>
 
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VENTANA EMERGENTE DINÁMICA DE CONFIRMACIÓN -->
+  <div id="modal-confirm-anil" class="modal-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-titulo">
+    <div class="modal-confirm-card">
+      <div id="modal-confirm-header" class="modal-confirm-header">
+        <div>
+          <span id="modal-confirm-badge" class="badge bg-light text-dark mb-1" style="font-size:0.68rem;">CONFIRMACIÓN</span>
+          <h5 class="mb-0 fw-bold" id="modal-confirm-titulo">Confirmar datos de captura</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" onclick="resolverModalConfirmacion(false)"></button>
+      </div>
+      <div class="p-3 p-sm-4">
+        <p class="text-muted small mb-3" id="modal-confirm-subtitulo">Revisa los datos antes de sincronizar con Firebase Firestore.</p>
+        <div id="modal-confirm-cuerpo"></div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-outline-secondary btn-sm px-3 fw-semibold" onclick="resolverModalConfirmacion(false)">Cancelar</button>
+          <button type="button" id="modal-confirm-btn-aceptar" class="btn btn-success btn-sm px-4 fw-bold" onclick="resolverModalConfirmacion(true)">✅ Confirmar</button>
         </div>
       </div>
     </div>
@@ -787,6 +875,55 @@
       return val;
     }
 
+    var resolverConfirmacionPendiente = null;
+
+    window.resolverModalConfirmacion = function(aceptado) {
+      var overlay = document.getElementById("modal-confirm-anil");
+      if (overlay) {
+        overlay.classList.remove("is-open");
+      }
+      var fn = resolverConfirmacionPendiente;
+      resolverConfirmacionPendiente = null;
+      if (typeof fn === "function") {
+        fn(Boolean(aceptado));
+      }
+    };
+
+    document.addEventListener("keydown", function(ev) {
+      if (ev.key === "Escape" && resolverConfirmacionPendiente) {
+        resolverModalConfirmacion(false);
+      }
+    });
+
+    function abrirModalConfirmacion(opts) {
+      return new Promise(function(resolve) {
+        var overlay = document.getElementById("modal-confirm-anil");
+        var header = document.getElementById("modal-confirm-header");
+        var badge = document.getElementById("modal-confirm-badge");
+        var titulo = document.getElementById("modal-confirm-titulo");
+        var subtitulo = document.getElementById("modal-confirm-subtitulo");
+        var cuerpo = document.getElementById("modal-confirm-cuerpo");
+        var btnAceptar = document.getElementById("modal-confirm-btn-aceptar");
+
+        if (!overlay || !cuerpo || !btnAceptar) {
+          resolve(window.confirm((opts && opts.textoFallback) || "¿Confirmar acción?"));
+          return;
+        }
+
+        resolverConfirmacionPendiente = resolve;
+        header.classList.toggle("is-danger", Boolean(opts && opts.peligro));
+        badge.innerText = (opts && opts.badge) || "CONFIRMACIÓN";
+        titulo.innerText = (opts && opts.titulo) || "Confirmar datos";
+        subtitulo.innerText = (opts && opts.subtitulo) || "Revisa los valores antes de continuar.";
+        cuerpo.innerHTML = (opts && opts.htmlCuerpo) || "";
+        btnAceptar.className = "btn btn-sm px-4 fw-bold " + ((opts && opts.peligro) ? "btn-danger" : "btn-success");
+        btnAceptar.innerText = (opts && opts.textoAceptar) || "✅ Confirmar";
+
+        overlay.classList.add("is-open");
+        btnAceptar.focus();
+      });
+    }
+
     window.guardarAnillamiento = async function() {
       var metal = document.getElementById('input-metal-anil').value.trim();
       if (!metal) return alert("Indica la anilla metálica obligatoriamente.");
@@ -832,6 +969,30 @@
         anillador: document.getElementById('input-anillador-anil').value,
         lat: lat, lng: lng
       };
+
+      var condPreview = window.calcularCondicionRegistro(item);
+      var resumenGuardarHtml = `
+        <div class="modal-confirm-grid">
+          <div><div class="modal-confirm-item-label">Anilla Metálica</div><div class="modal-confirm-item-val text-primary">${esc(item.metal)}</div></div>
+          <div><div class="modal-confirm-item-label">PVC / Marca</div><div class="modal-confirm-item-val text-success">${esc(item.pvc)}</div></div>
+          <div><div class="modal-confirm-item-label">Tipo & Fecha</div><div class="modal-confirm-item-val">${esc(item.tipoCaptura)} · ${esc(formatearFecha(item.fecha))}</div></div>
+          <div><div class="modal-confirm-item-label">Especie</div><div class="modal-confirm-item-val fst-italic">${esc(item.especie)}</div></div>
+          <div><div class="modal-confirm-item-label">Edad & Sexo</div><div class="modal-confirm-item-val">Edad ${esc(item.edad)} · ${esc(item.sexo)}</div></div>
+          <div><div class="modal-confirm-item-label">Nido / Localidad</div><div class="modal-confirm-item-val">${esc(item.codigoNido)} · ${esc(item.localidad)}</div></div>
+          <div><div class="modal-confirm-item-label">Ala / Peso / Tarso</div><div class="modal-confirm-item-val">${esc(item.ala)} mm · ${esc(item.peso)} g · ${esc(item.tarso)} mm</div></div>
+          <div><div class="modal-confirm-item-label">Condición</div><div class="modal-confirm-item-val"><span class="badge ${condPreview.badge}">${esc(condPreview.corta)}</span></div></div>
+        </div>
+      `;
+      var quiereGuardarAnil = await abrirModalConfirmacion({
+        badge: editDocId ? "ACTUALIZAR CAPTURA" : "NUEVA CAPTURA",
+        titulo: editDocId ? `Actualizar registro ${item.metal}` : `Guardar captura ${item.metal}`,
+        subtitulo: "Comprueba los datos biométricos y de marcaje antes de enviar a Firebase.",
+        htmlCuerpo: resumenGuardarHtml,
+        textoAceptar: editDocId ? "💾 Actualizar registro" : "☁️ Guardar captura",
+        peligro: false,
+        textoFallback: `¿Guardar registro con anilla [${item.metal}]?`
+      });
+      if (!quiereGuardarAnil) return;
 
       try {
         if (editDocId) {
@@ -985,7 +1146,24 @@
       var ultimo = datosOrdenados[0];
       if (!ultimo || !ultimo.docId) return alert("No se pudo identificar el último registro.");
 
-      if (confirm(`¿Estás seguro de borrar el registro con anilla metálica [${ultimo.metal}]?`)) {
+      var detalleBorrarUltHtml = `
+        <div class="modal-confirm-grid">
+          <div><div class="modal-confirm-item-label">Anilla Metálica</div><div class="modal-confirm-item-val text-danger">${esc(ultimo.metal)}</div></div>
+          <div><div class="modal-confirm-item-label">PVC / Marca</div><div class="modal-confirm-item-val">${esc(formatearPvcLimpio(ultimo.pvc))}</div></div>
+          <div><div class="modal-confirm-item-label">Fecha</div><div class="modal-confirm-item-val">${esc(formatearFecha(ultimo.fecha))}</div></div>
+          <div><div class="modal-confirm-item-label">Especie</div><div class="modal-confirm-item-val fst-italic">${esc(ultimo.especie || "-")}</div></div>
+        </div>
+      `;
+      var confirmadoBorrarUlt = await abrirModalConfirmacion({
+        badge: "BORRAR ÚLTIMO REGISTRO",
+        titulo: `Borrar anilla ${ultimo.metal}`,
+        subtitulo: "Esta acción eliminará permanentemente el último registro ordenado de Firebase.",
+        htmlCuerpo: detalleBorrarUltHtml,
+        textoAceptar: "🗑️ Sí, borrar registro",
+        peligro: true,
+        textoFallback: `¿Estás seguro de borrar el registro con anilla metálica [${ultimo.metal}]?`
+      });
+      if (confirmadoBorrarUlt) {
         try {
           await deleteDoc(doc(db, "anillamientos", ultimo.docId));
           alert("¡Registro borrado con éxito!");
@@ -1057,7 +1235,26 @@
     }
 
     window.vaciarTodoAnilFirebase = async function() {
-      if (confirm("¿Estás seguro de que quieres vaciar TODOS los registros de anillamiento de la nube de golpe?")) {
+      var totalCapturas = window.anillamientos.length;
+      var vaciarAnilHtml = `
+        <div class="modal-confirm-grid">
+          <div><div class="modal-confirm-item-label">Total Capturas</div><div class="modal-confirm-item-val text-danger">${totalCapturas}</div></div>
+          <div><div class="modal-confirm-item-label">Colección</div><div class="modal-confirm-item-val">anillamientos</div></div>
+        </div>
+        <div class="mt-2 p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 small text-danger">
+          Se borrarán todos los registros de anillamiento y recaptura en Firebase Firestore. Exporta a Excel/CSV antes si necesitas copia de seguridad.
+        </div>
+      `;
+      var confirmadoVaciarAnil = await abrirModalConfirmacion({
+        badge: "VACIADO TOTAL",
+        titulo: "Vaciar todas las capturas en la nube",
+        subtitulo: "Acción destructiva: se eliminarán todos los registros biométricos almacenados en Firebase.",
+        htmlCuerpo: vaciarAnilHtml,
+        textoAceptar: "⚠️ Sí, vaciar todo",
+        peligro: true,
+        textoFallback: "¿Estás seguro de que quieres vaciar TODOS los registros de anillamiento de la nube de golpe?"
+      });
+      if (confirmadoVaciarAnil) {
         try {
           document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="15" class="text-center text-danger py-3"><b>Vaciando toda la base de datos... Por favor espera.</b></td></tr>';
           
