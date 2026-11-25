@@ -72,7 +72,7 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label">Fecha Inspección *</label>
-                <input type="date" id="input-temp-nido" class="form-control form-control-sm fw-bold" required>
+                <input type="date" id="input-temp-nido" class="form-control form-control-sm fw-bold" onchange="actualizarAnilladosFormularioPorFecha()" required>
               </div>
               <div class="col-md-4">
                 <label class="form-label">Especie Principal *</label>
@@ -95,10 +95,7 @@
                 <label class="form-label">Tipo Estructura</label>
                 <select id="input-tipo-estructura" class="form-select form-select-sm">
                   <option value="Caja Nido Madera">Caja Nido (Madera)</option>
-                  <option value="Caja Nido Hormigón">Caja Nido (Hormigón/Piedra)</option>
-                  <option value="Nido Natural Árbol">Nido Natural (Árbol)</option>
-                  <option value="Nidificación Edificio">Edificación / Masía</option>
-                  <option value="Cortado / Roquedo">Cortado / Roquedo</option>
+                  <option value="Nidificación Edificio">Edificacion/Masia</option>
                 </select>
               </div>
             </div>
@@ -343,15 +340,49 @@
       }
     }
 
+    function fechaAStampNido(fStr) {
+      if (!fStr) return 0;
+      var s = String(fStr).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        var t1 = Date.parse(s.slice(0, 10));
+        return isNaN(t1) ? 0 : t1;
+      }
+      var mEur = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (mEur) {
+        var iso = `${mEur[3]}-${mEur[2].padStart(2, '0')}-${mEur[1].padStart(2, '0')}`;
+        var t2 = Date.parse(iso);
+        return isNaN(t2) ? 0 : t2;
+      }
+      var t3 = Date.parse(s);
+      return isNaN(t3) ? 0 : t3;
+    }
+
+    window.actualizarAnilladosFormularioPorFecha = function() {
+      var codigoActual = modoCreacionNuevo
+        ? document.getElementById("input-codigo-nido").value.trim()
+        : document.getElementById("select-codigo-nido").value;
+      if (!codigoActual) return;
+      var fechaInput = document.getElementById("input-temp-nido") && document.getElementById("input-temp-nido").value;
+      var anoForm = extraerAnoFecha(fechaInput);
+      var anoConteo = (anoFiltroNido && anoFiltroNido !== "todos") ? anoFiltroNido : anoForm;
+      document.getElementById("input-anillados-nido").value = contarPollosAnilladosEnNido(codigoActual, anoConteo);
+    };
+
     window.cambiarFiltroAnoNido = function(ano) {
       anoFiltroNido = ano || "todos";
       if (nidoSeleccionadoFiltro) {
-        var visitasNido = window.nidos.filter(function(n) { return n.id === nidoSeleccionadoFiltro; });
+        var visitasNido = [...window.nidos.filter(function(n) { return n.id === nidoSeleccionadoFiltro; })]
+          .sort(function(a, b) { return fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada); });
         var visitaAno = (anoFiltroNido !== "todos")
           ? visitasNido.find(function(n) { return extraerAnoFecha(n.temporada) === anoFiltroNido; })
           : null;
-        var refVisita = visitaAno || visitasNido[0];
-        var anoConteo = (anoFiltroNido !== "todos") ? anoFiltroNido : (refVisita ? extraerAnoFecha(refVisita.temporada) : "");
+        var anoConteo = "";
+        if (anoFiltroNido !== "todos") {
+          anoConteo = anoFiltroNido;
+        } else {
+          var refVisita = visitasNido[0];
+          anoConteo = refVisita ? extraerAnoFecha(refVisita.temporada) : extraerAnoFecha(document.getElementById("input-temp-nido") && document.getElementById("input-temp-nido").value);
+        }
         document.getElementById("input-anillados-nido").value = contarPollosAnilladosEnNido(nidoSeleccionadoFiltro, anoConteo);
       }
       renderTablaNidos();
@@ -365,7 +396,8 @@
         if (String(a.codigoNido || "").trim().toLowerCase() !== cod || !esPolloAnillado(a)) {
           return false;
         }
-        if (!anoObjetivo || anoObjetivo === "todos") return true;
+        if (anoObjetivo === "todos") return true;
+        if (!anoObjetivo) return false;
         return extraerAnoFecha(a.fecha) === anoObjetivo;
       }).length;
     }
@@ -547,9 +579,9 @@
       modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
       
-      var visitasNido = [...window.nidos.filter(n => n.id === codigo)].sort((a, b) => new Date(b.temporada) - new Date(a.temporada));
+      var visitasNido = [...window.nidos.filter(n => n.id === codigo)].sort((a, b) => fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada));
       var ultimo = visitasNido.length > 0 ? visitasNido[0] : null;
-      var anoConteoSel = (anoFiltroNido && anoFiltroNido !== "todos") ? anoFiltroNido : (ultimo ? extraerAnoFecha(ultimo.temporada) : "");
+      var anoConteoSel = (anoFiltroNido && anoFiltroNido !== "todos") ? anoFiltroNido : (extraerAnoFecha(document.getElementById('input-temp-nido') && document.getElementById('input-temp-nido').value) || (ultimo ? extraerAnoFecha(ultimo.temporada) : ""));
       let totalAnilladosAutomaticos = contarPollosAnilladosEnNido(codigo, anoConteoSel);
 
       if (ultimo) {
@@ -793,6 +825,20 @@
       reader.readAsText(file, "UTF-8");
     }
 
+    function etiquetaEstructuraCorta(estRaw) {
+      var s = String(estRaw || "").toLowerCase();
+      if (s.includes("edificio") || s.includes("masía") || s.includes("masia")) {
+        return { texto: "Edificación / Masía", clase: "bg-warning text-dark" };
+      }
+      if (s.includes("caja")) {
+        return { texto: "Caja Nido", clase: "bg-info text-dark" };
+      }
+      if (estRaw && String(estRaw).trim()) {
+        return { texto: String(estRaw).trim(), clase: "bg-light text-dark border" };
+      }
+      return { texto: "Caja Nido", clase: "bg-info text-dark" };
+    }
+
     function renderTablaNidos() {
       var tbody = document.getElementById('tabla-nidos');
       var tituloHist = document.getElementById('titulo-tabla-historial');
@@ -827,11 +873,14 @@
       }
 
       if (datosAMostrar.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No hay registros en la nube. Pulsa "Importar CSV" para cargar tus nidos.</td></tr>';
+        var msgVacio = (anoFiltroNido && anoFiltroNido !== "todos")
+          ? `No hay visitas registradas para el filtro seleccionado (Año ${anoFiltroNido}). Cambia a "Todos los años" o revisa el año de anillamiento.`
+          : 'No hay registros en la nube. Pulsa "Importar CSV" para cargar tus nidos.';
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">${msgVacio}</td></tr>`;
         return;
       }
 
-      datosAMostrar.sort((a, b) => new Date(b.temporada) - new Date(a.temporada));
+      datosAMostrar.sort((a, b) => fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada));
 
       tbody.innerHTML = '';
       datosAMostrar.forEach(n => {
@@ -844,7 +893,7 @@
         var anoVisitaFila = extraerAnoFecha(n.temporada);
         let anilladosReales = contarPollosAnilladosEnNido(n.id, anoVisitaFila);
         
-        var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos anillados (${anilladosReales})</span>` : '';
+        var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos ${anoVisitaFila ? anoVisitaFila + ' ' : ''}(${anilladosReales})</span>` : '';
         
         let btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-1 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar pollos o adultos">🐣 Anillar</button>`;
         let btnEditarHtml = `<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editarVisitaNido('${n.docId}')" title="Editar esta visita">✏️</button>`;
@@ -852,9 +901,13 @@
         
         let machoStr = n.macho && n.macho !== "-" ? `<span class="text-primary fw-bold">♂ ${esc(n.macho)}</span>` : '<span class="text-muted">♂ -</span>';
         let hembraStr = n.hembra && n.hembra !== "-" ? `<span class="text-danger fw-bold">♀ ${esc(n.hembra)}</span>` : '<span class="text-muted">♀ -</span>';
+        let estBadge = etiquetaEstructuraCorta(n.estructura);
 
         tbody.innerHTML += `<tr>
-          <td><b class="text-primary">${n.id}</b></td>
+          <td>
+            <b class="text-primary">${n.id}</b><br>
+            <span class="badge ${estBadge.clase}" style="font-size:0.65rem;">${esc(estBadge.texto)}</span>
+          </td>
           <td>
             <small>${formatearFecha(n.temporada) || '-'}</small><br>
             <span class="badge ${inferirRondaVisita(n).includes('3ª') ? 'bg-success' : (inferirRondaVisita(n).includes('2ª') ? 'bg-info text-dark' : 'bg-light text-dark border')}" style="font-size:0.65rem;">${esc(inferirRondaVisita(n))}</span>
