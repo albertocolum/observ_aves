@@ -3,45 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mapa Cartográfico - Tracking Ornitológico</title>
+  <title>Mapa de Nidos y Capturas - Tracking Ornitológico</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-    .header-panel { background: white; padding: 12px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 1000; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-    #mapa-general { flex-grow: 1; width: 100%; z-index: 1; }
-    .map-controls { background: white; padding: 6px 12px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; }
+    .topbar { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+    #mapa-general { height: calc(100vh - 76px); min-height: 520px; width: 100%; z-index: 1; }
+    .popup-nido-img {
+      width: 100%;
+      max-height: 155px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      margin: 6px 0 8px 0;
+      display: block;
+      cursor: pointer;
+    }
+    .popup-nido-card { min-width: 225px; max-width: 260px; font-size: 0.8rem; }
+    .visor-foto-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.84);
+      backdrop-filter: blur(4px);
+      z-index: 2500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+    .visor-foto-overlay.is-open { display: flex; }
+    .visor-foto-card {
+      max-width: 840px;
+      width: 100%;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid #334155;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .visor-foto-img {
+      width: 100%;
+      max-height: 74vh;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #020617;
+    }
   </style>
 </head>
 <body>
-
-  <div class="header-panel">
+  <div class="topbar d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-      <h4 class="fw-bold text-primary mb-0" id="titulo-mapa">🌍 Mapa General de Seguimiento</h4>
-      <small class="text-muted" id="subtitulo-mapa">Conectado a Firebase Firestore</small>
+      <h5 class="fw-bold text-success mb-0" id="titulo-mapa">🌍 Mapa de Nidos y Seguimiento</h5>
+      <small class="text-muted" id="subtitulo-mapa">Cargando puntos desde Firebase Firestore...</small>
     </div>
-
-    <!-- Controles de Capa y Filtro de Año -->
-    <div class="map-controls">
-      <span class="small fw-bold text-secondary">Capa:</span>
-      <button class="btn btn-sm btn-primary fw-bold" id="btn-capa-anil" onclick="cambiarCapa('anillamientos')">📋 Anillamientos</button>
-      <button class="btn btn-sm btn-outline-success fw-bold" id="btn-capa-nidos" onclick="cambiarCapa('nidos')">🪹 Nidos</button>
-      
-      <span class="small fw-bold text-secondary ms-2">Año:</span>
-      <select id="select-filtro-anio" class="form-select form-select-sm fw-bold text-dark" style="width: 115px;" onchange="pintarMarcadores()">
-        <option value="todos">Todos</option>
-        <option value="2026" selected>2026</option>
-        <option value="2025">2025</option>
-        <option value="2024">2024</option>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <select id="filtro-modo-mapa" class="form-select form-select-sm fw-semibold" style="width:auto;" onchange="cambiarModoMapa(this.value)">
+        <option value="nidos">🪹 Nidos / Cajas Nido</option>
+        <option value="anillamientos">🦅 Capturas / Anillamientos</option>
       </select>
-    </div>
-
-    <div>
-      <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Volver al Inicio</a>
+      <a href="nidos.html" class="btn btn-outline-success btn-sm">🪹 Ir a Nidos</a>
+      <a href="anillamiento.html" class="btn btn-outline-primary btn-sm">🦅 Ir a Anillamiento</a>
+      <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Inicio</a>
     </div>
   </div>
 
   <div id="mapa-general"></div>
+
+  <div id="visor-foto-mapa" class="visor-foto-overlay" role="dialog" aria-modal="true" onclick="if(event.target===this) cerrarVisorFotoMapa()">
+    <div class="visor-foto-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span id="visor-foto-mapa-titulo" class="fw-bold small">Foto del nido</span>
+        <button type="button" class="btn-close btn-close-white btn-sm" onclick="cerrarVisorFotoMapa()" aria-label="Cerrar"></button>
+      </div>
+      <img id="visor-foto-mapa-img" src="" alt="Foto del nido" class="visor-foto-img">
+    </div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
@@ -61,228 +99,175 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    var map;
-    var capaActual = 'anillamientos';
-    var marcadoresLayer = L.layerGroup();
-    var datosAnillamientos = [];
-    var datosNidos = [];
+    var nidosData = [];
+    var anilData = [];
+    var capaMarcadores = null;
+    var mapa = null;
 
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('modo') === 'nidos') {
-      capaActual = 'nidos';
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function(c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
     }
 
-    function inicializarMapa() {
-      var sateliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-        maxZoom: 19
-      });
+    window.abrirVisorFotoMapa = function(urlSrc, titulo) {
+      if (!urlSrc) return;
+      var v = document.getElementById("visor-foto-mapa");
+      var img = document.getElementById("visor-foto-mapa-img");
+      var tit = document.getElementById("visor-foto-mapa-titulo");
+      if (!v || !img) return;
+      img.src = urlSrc;
+      if (tit) tit.innerText = titulo || "Foto del nido";
+      v.classList.add("is-open");
+    };
 
-      var calleLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    window.cerrarVisorFotoMapa = function() {
+      var v = document.getElementById("visor-foto-mapa");
+      if (v) v.classList.remove("is-open");
+    };
+
+    function obtenerFotoNido(codigoNido, registroNido) {
+      if (registroNido && registroNido.fotoUrl) return String(registroNido.fotoUrl).trim();
+      var match = nidosData.find(function(x) {
+        return String(x.id || "").trim().toLowerCase() === String(codigoNido || "").trim().toLowerCase() && x.fotoUrl;
+      });
+      return match ? String(match.fotoUrl).trim() : "";
+    }
+
+    function obtenerOrientacionNido(codigoNido, registroNido) {
+      if (registroNido && registroNido.orientacion) return String(registroNido.orientacion).trim();
+      var match = nidosData.find(function(x) {
+        return String(x.id || "").trim().toLowerCase() === String(codigoNido || "").trim().toLowerCase() && x.orientacion;
+      });
+      return match ? String(match.orientacion).trim() : "";
+    }
+
+    function initMapa() {
+      var satelite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
         maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
+        attribution: "Tiles &copy; Esri"
+      });
+      var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
       });
 
-      map = L.map('mapa-general', {
+      mapa = L.map("mapa-general", {
         center: [40.1831, 0.0225],
         zoom: 10,
-        layers: [sateliteLayer, marcadoresLayer]
+        layers: [satelite]
       });
 
-      var baseMaps = {
-        "🛰️ Satélite (Esri)": sateliteLayer,
-        "🗺️ Callejero (OSM)": calleLayer
-      };
-      L.control.layers(baseMaps).addTo(map);
-
-      cargarDatosYConstruirMapa();
+      L.control.layers({ "🛰️ Satélite": satelite, "🗺️ Callejero": osm }).addTo(mapa);
+      capaMarcadores = L.layerGroup().addTo(mapa);
     }
 
-    async function cargarDatosYConstruirMapa() {
-      try {
-        const snapAnil = await getDocs(collection(db, "anillamientos"));
-        datosAnillamientos = [];
-        snapAnil.forEach(d => datosAnillamientos.push(d.data()));
+    function renderMarcadores() {
+      if (!mapa || !capaMarcadores) return;
+      capaMarcadores.clearLayers();
+      var modo = document.getElementById("filtro-modo-mapa").value;
+      var bounds = [];
 
-        const snapNidos = await getDocs(collection(db, "nidos"));
-        datosNidos = [];
-        snapNidos.forEach(d => datosNidos.push(d.data()));
+      if (modo === "nidos") {
+        document.getElementById("titulo-mapa").innerText = "🪹 Mapa de Nidos y Cajas Nido";
+        var porCodigo = new Map();
+        nidosData.forEach(function(n) {
+          var lat = parseFloat(n.lat);
+          var lng = parseFloat(n.lng);
+          if (isNaN(lat) || isNaN(lng)) return;
+          if (!porCodigo.has(n.id)) porCodigo.set(n.id, n);
+        });
 
-        actualizarSelectAniosDinamico();
-        actualizarVistaBotones();
-        pintarMarcadores();
-      } catch (e) {
-        console.error("Error al cargar datos en el mapa:", e);
-      }
-    }
-
-    function extraerAnio(fechaStr) {
-      if (!fechaStr) return "";
-      let s = String(fechaStr).trim();
-      if (s.includes('-')) {
-        let p = s.split('-');
-        if (p[0].length === 4) return p[0]; 
-        if (p[2] && p[2].length === 4) return p[2]; 
-      }
-      if (s.includes('/')) {
-        let p = s.split('/');
-        if (p[2] && p[2].length === 4) return p[2]; 
-      }
-      return "";
-    }
-
-    function corregirLatitud(rawLat) {
-      if (rawLat === undefined || rawLat === null) return NaN;
-      let s = String(rawLat).replace(',', '.');
-      if ((s.match(/\./g) || []).length > 1) {
-        let partes = s.split('.');
-        s = partes[0] + '.' + partes.slice(1).join('');
-      }
-      let val = parseFloat(s);
-      if (isNaN(val)) return NaN;
-      if (1.0 <= val && val < 10.0) {
-        val = val * 10.0;
-      } else if (val > 90) {
-        while (val > 90) {
-          val = val / 10.0;
-        }
-      }
-      return val;
-    }
-
-    function actualizarSelectAniosDinamico() {
-      let listaActual = capaActual === 'anillamientos' ? datosAnillamientos : datosNidos;
-      let aniosSet = new Set(["2026", "2025", "2024"]);
-
-      listaActual.forEach(item => {
-        let fecha = item.fecha || item.temporada || "";
-        let anio = extraerAnio(fecha);
-        if (anio) aniosSet.add(anio);
-      });
-
-      let aniosOrdenados = Array.from(aniosSet).sort().reverse();
-      let select = document.getElementById('select-filtro-anio');
-      let valorSeleccionado = select.value;
-
-      select.innerHTML = '<option value="todos">Todos</option>';
-      aniosOrdenados.forEach(a => {
-        select.innerHTML += `<option value="${a}">${a}</option>`;
-      });
-
-      if (aniosOrdenados.includes(valorSeleccionado) || valorSeleccionado === "todos") {
-        select.value = valorSeleccionado;
-      } else {
-        select.value = "2026";
-      }
-    }
-
-    window.cambiarCapa = function(capa) {
-      capaActual = capa;
-      actualizarSelectAniosDinamico();
-      actualizarVistaBotones();
-      pintarMarcadores();
-    }
-
-    function actualizarVistaBotones() {
-      let btnAnil = document.getElementById('btn-capa-anil');
-      let btnNidos = document.getElementById('btn-capa-nidos');
-      let titulo = document.getElementById('titulo-mapa');
-
-      if (capaActual === 'anillamientos') {
-        btnAnil.className = "btn btn-sm btn-primary fw-bold";
-        btnNidos.className = "btn btn-sm btn-outline-success fw-bold";
-        titulo.innerText = "🌍 Mapa General de Anillamientos";
-      } else {
-        btnAnil.className = "btn btn-sm btn-outline-primary fw-bold";
-        btnNidos.className = "btn btn-sm btn-success fw-bold";
-        titulo.innerText = "🪹 Mapa de Ubicación de Nidos";
-      }
-    }
-
-    window.pintarMarcadores = function() {
-      marcadoresLayer.clearLayers();
-      let lista = capaActual === 'anillamientos' ? datosAnillamientos : datosNidos;
-      let anioSeleccionado = document.getElementById('select-filtro-anio').value;
-
-      let bounds = [];
-      let contadorVisibles = 0;
-
-      lista.forEach(item => {
-        let fecha = item.fecha || item.temporada || "";
-        let anioItem = extraerAnio(fecha);
-
-        if (anioSeleccionado !== "todos" && anioItem !== anioSeleccionado) {
-          return;
-        }
-
-        let lat = corregirLatitud(item.lat);
-        let lng = parseFloat(String(item.lng || 0).replace(',', '.'));
-
-        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-          contadorVisibles++;
-          let popupContent = "";
-          let marker;
-
-          if (capaActual === 'anillamientos') {
-            popupContent = `<b>Anilla:</b> ${item.metal || '-'}<br>
-                            <b>Especie:</b> <i>${item.especie || '-'}</i><br>
-                            <b>Fecha:</b> ${item.fecha || '-'}<br>
-                            <b>Lugar:</b> ${item.localidad || '-'}<br>
-                            <b>Peso:</b> ${item.peso || '-'}g`;
-            marker = L.circleMarker([lat, lng], {
-              radius: 6,
-              fillColor: "#0d6efd",
-              color: "#fff",
-              weight: 1,
-              opacity: 1,
-              fillOpacity: 0.8
-            });
-          } else {
-            // Asignar color de chincheta según el estado reproductor del nido
-            let estado = (item.estado || "").toLowerCase();
-            let colorPin = "#6c757d"; // Gris por defecto (Vacio / Inactivo)
-
-            if (estado.includes('exito') || estado.includes('volando') || estado.includes('pollos')) {
-              colorPin = "#198754"; // Verde (Éxito / Con pollos)
-            } else if (estado.includes('incubando') || estado.includes('huevos')) {
-              colorPin = "#fd7e14"; // Naranja (Incubando / Con huevos)
-            } else if (estado.includes('ocupado')) {
-              colorPin = "#0d6efd"; // Azul (Ocupado)
-            } else if (estado.includes('fracasado') || estado.includes('predado')) {
-              colorPin = "#dc3545"; // Rojo (Fracasado / Predado)
-            }
-
-            popupContent = `<b>Nido:</b> <span class="text-success fw-bold">${item.id || '-'}</span><br>
-                            <b>Especie:</b> <i>${item.especie || '-'}</i><br>
-                            <b>Estado:</b> <span style="color:${colorPin}; font-weight:bold;">${item.estado || '-'}</span><br>
-                            <b>Población:</b> ${item.lugar || '-'}<br>
-                            <b>Huevos/Nacidos:</b> ${item.huevos || 0}H / ${item.nacidos || 0}N`;
-
-            marker = L.circleMarker([lat, lng], {
-              radius: 8,
-              fillColor: colorPin,
-              color: "#ffffff",
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.9
-            });
-          }
-
-          marker.bindPopup(popupContent);
-          marcadoresLayer.addLayer(marker);
+        porCodigo.forEach(function(n) {
+          var lat = parseFloat(n.lat);
+          var lng = parseFloat(n.lng);
           bounds.push([lat, lng]);
-        }
-      });
 
-      document.getElementById('subtitulo-mapa').innerText = `Mostrando ${contadorVisibles} registros (Año: ${anioSeleccionado})`;
+          var fotoUrl = obtenerFotoNido(n.id, n);
+          var orientacion = obtenerOrientacionNido(n.id, n);
+          var fotoHtml = fotoUrl
+            ? `<img src="${esc(fotoUrl)}" alt="Foto del nido ${esc(n.id)}" class="popup-nido-img" onclick="abrirVisorFotoMapa('${esc(fotoUrl)}', 'Nido ${esc(n.id)}')">
+               <div class="mb-2"><a href="${esc(fotoUrl)}" target="_blank" rel="noopener noreferrer" class="small text-decoration-none">🔗 Abrir foto en pestaña nueva</a></div>`
+            : `<div class="text-muted fst-italic small mb-2">Sin fotografía registrada</div>`;
+
+          var orientHtml = orientacion
+            ? `<span class="badge bg-light text-dark border ms-1">🧭 ${esc(orientacion)}</span>`
+            : "";
+
+          var popupHtml = `
+            <div class="popup-nido-card">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <b class="text-success fs-6">🪹 ${esc(n.id)}</b>
+                ${orientHtml}
+              </div>
+              <div class="text-muted small mb-1">${esc(n.lugar || "-")} · <i>${esc(n.especie || "-")}</i></div>
+              <div class="small mb-1"><b>Estado:</b> ${esc(n.estado || "-")} · <b>H/N/V/A:</b> ${n.huevos || 0}/${n.nacidos || 0}/${n.volados || 0}/${n.anillados || 0}</div>
+              ${fotoHtml}
+              <a href="nidos.html" class="btn btn-sm btn-outline-success w-100 py-0">Abrir en Control de Nidos</a>
+            </div>
+          `;
+
+          L.marker([lat, lng]).addTo(capaMarcadores).bindPopup(popupHtml);
+        });
+
+        document.getElementById("subtitulo-mapa").innerText = `${porCodigo.size} nidos georreferenciados en Firebase`;
+      } else {
+        document.getElementById("titulo-mapa").innerText = "🦅 Mapa de Capturas y Anillamientos";
+        var validos = 0;
+        anilData.forEach(function(a) {
+          var lat = parseFloat(a.lat);
+          var lng = parseFloat(a.lng);
+          if (isNaN(lat) || isNaN(lng)) return;
+          validos++;
+          bounds.push([lat, lng]);
+          var html = `
+            <div class="popup-nido-card">
+              <b class="text-primary">🦅 ${esc(a.metal || "-")}</b> ${a.pvc && a.pvc !== "-" ? `<span class="badge bg-success">${esc(a.pvc)}</span>` : ""}<br>
+              <small class="text-muted">${esc(a.localidad || "-")} · ${esc(a.fecha || "-")}</small><br>
+              <span class="small"><i>${esc(a.especie || "-")}</i> · Edad ${esc(a.edad || "-")}</span>
+            </div>
+          `;
+          L.circleMarker([lat, lng], { radius: 6, color: "#1d4ed8", fillColor: "#3b82f6", fillOpacity: 0.8 }).addTo(capaMarcadores).bindPopup(html);
+        });
+        document.getElementById("subtitulo-mapa").innerText = `${validos} capturas georreferenciadas en Firebase`;
+      }
 
       if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [50, 50] });
+        mapa.fitBounds(bounds, { padding: [35, 35], maxZoom: 14 });
+      }
+    }
+
+    window.cambiarModoMapa = function(nuevoModo) {
+      var url = new URL(window.location.href);
+      if (nuevoModo === "nidos") url.searchParams.set("modo", "nidos");
+      else url.searchParams.delete("modo");
+      window.history.replaceState({}, "", url.toString());
+      renderMarcadores();
+    };
+
+    async function cargarTodo() {
+      try {
+        const snapNidos = await getDocs(collection(db, "nidos"));
+        nidosData = [];
+        snapNidos.forEach(function(d) { nidosData.push({ docId: d.id, ...d.data() }); });
+
+        const snapAnil = await getDocs(collection(db, "anillamientos"));
+        anilData = [];
+        snapAnil.forEach(function(d) { anilData.push({ docId: d.id, ...d.data() }); });
+
+        var params = new URLSearchParams(window.location.search);
+        var modoInicial = params.get("modo") === "nidos" ? "nidos" : (nidosData.length > 0 ? "nidos" : "anillamientos");
+        document.getElementById("filtro-modo-mapa").value = modoInicial;
+        renderMarcadores();
+      } catch (e) {
+        console.error("Error cargando datos del mapa:", e);
+        document.getElementById("subtitulo-mapa").innerText = "Error al conectar con Firebase";
       }
     }
 
     window.onload = function() {
-      inicializarMapa();
+      initMapa();
+      cargarTodo();
     };
   </script>
 </body>

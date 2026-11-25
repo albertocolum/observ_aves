@@ -128,6 +128,62 @@
     .toast-aviso-flotante.is-info {
       border-left-color: #2563eb;
     }
+    .foto-nido-preview-box {
+      border: 1px dashed #94a3b8;
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #f8fafc;
+      margin-bottom: 10px;
+    }
+    .foto-nido-thumb {
+      width: 100%;
+      max-height: 170px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      display: block;
+      cursor: pointer;
+    }
+    .diario-foto-nido {
+      width: 100%;
+      max-height: 190px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .visor-foto-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(4px);
+      z-index: 2200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+    .visor-foto-overlay.is-open {
+      display: flex;
+    }
+    .visor-foto-card {
+      max-width: 820px;
+      width: 100%;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid #334155;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .visor-foto-img {
+      width: 100%;
+      max-height: 72vh;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #020617;
+    }
   </style>
 </head>
 <body>
@@ -208,11 +264,25 @@
                 <label class="form-label">Coordenadas (Lat, Lng) *</label>
                 <input type="text" id="input-coords-nido" class="form-control form-control-sm" value="40.1831, 0.0225" onchange="actualizarDesdeCoordsManual()" required>
               </div>
-              <div class="col-md-5">
-                <label class="form-label">Tipo Estructura</label>
+              <div class="col-md-3">
+                <label class="form-label">Estructura</label>
                 <select id="input-tipo-estructura" class="form-select form-select-sm">
                   <option value="Caja Nido Madera">Caja Nido (Madera)</option>
                   <option value="Nidificación Edificio">Edificacion/Masia</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label" title="Orientación cardinal de la entrada o fachada del nido">Orientación</label>
+                <select id="input-orientacion-nido" class="form-select form-select-sm fw-semibold">
+                  <option value="">-</option>
+                  <option value="N">N</option>
+                  <option value="NE">NE</option>
+                  <option value="E">E</option>
+                  <option value="SE">SE</option>
+                  <option value="S">S</option>
+                  <option value="SO">SO</option>
+                  <option value="O">O</option>
+                  <option value="NO">NO</option>
                 </select>
               </div>
             </div>
@@ -265,6 +335,19 @@
               <div class="col-md-3">
                 <label class="form-label text-success fw-bold" title="Solo pollos (edad 1 / pullus) vinculados a este nido en Anillamiento">Pollos Anillados 🐣</label>
                 <input type="number" id="input-anillados-nido" class="form-control form-control-sm fw-bold text-success bg-light" value="0" readonly>
+              </div>
+            </div>
+
+            <div class="mb-2 foto-nido-preview-box">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0 text-success">📷 Foto del Nido / Estructura</label>
+                <button type="button" class="btn btn-link btn-sm p-0 text-danger text-decoration-none" id="btn-quitar-foto-nido" style="display:none; font-size:0.74rem;" onclick="quitarFotoNidoFormulario()">Quitar foto</button>
+              </div>
+              <input type="file" id="input-foto-nido" accept="image/*" class="form-control form-control-sm" onchange="manejarSeleccionFotoNido(event)">
+              <input type="hidden" id="input-foto-nido-actual" value="">
+              <div id="estado-compresion-foto" class="form-text text-muted" style="font-size:0.7rem;">Se comprime automáticamente antes de subir a Firebase.</div>
+              <div id="preview-foto-nido-wrap" style="display:none;" class="mt-2">
+                <img id="preview-foto-nido-img" src="" alt="Vista previa del nido" class="foto-nido-thumb" onclick="abrirVisorFotoNido(this.src, 'Vista previa del nido')">
               </div>
             </div>
 
@@ -362,6 +445,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDCEN_3ZKHTaR0MjMRth0lwK4xi4onV3Dc",
@@ -375,6 +459,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
     window.nidos = [];
     window.anillamientosGlobal = [];
@@ -695,6 +780,7 @@
       document.getElementById('input-ronda-visita').value = '1ª Visita';
       document.getElementById('input-especie-nido').value = 'Falco tinnunculus';
       document.getElementById('input-tipo-estructura').value = 'Caja Nido Madera';
+      document.getElementById('input-orientacion-nido').value = '';
       document.getElementById('input-macho-nido').value = '';
       document.getElementById('input-hembra-nido').value = '';
       document.getElementById('input-estado-nido').value = 'Incubando/con huevos';
@@ -703,6 +789,11 @@
       document.getElementById('input-volados-nido').value = '0';
       document.getElementById('input-anillados-nido').value = '0';
       document.getElementById('input-obs-nido').value = '';
+      var inpFileNew = document.getElementById('input-foto-nido');
+      if (inpFileNew) inpFileNew.value = '';
+      var estCompNew = document.getElementById('estado-compresion-foto');
+      if (estCompNew) estCompNew.innerText = 'Se comprime automáticamente antes de subir a Firebase.';
+      actualizarPreviewFotoFormulario('');
 
       modoNuevoActivoEnTablaBlanca = true;
       nidoSeleccionadoFiltro = null;
@@ -729,6 +820,7 @@
         document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
         document.getElementById('input-tipo-estructura').value = ultimo.estructura || 'Caja Nido Madera';
+        document.getElementById('input-orientacion-nido').value = ultimo.orientacion || '';
         document.getElementById('input-lugar-nido').value = ultimo.lugar || '';
         document.getElementById('input-macho-nido').value = ultimo.macho || '';
         document.getElementById('input-hembra-nido').value = ultimo.hembra || '';
@@ -738,6 +830,7 @@
         document.getElementById('input-volados-nido').value = ultimo.volados || 0;
         document.getElementById('input-anillados-nido').value = totalAnilladosAutomaticos;
         document.getElementById('input-obs-nido').value = ultimo.obs || '';
+        actualizarPreviewFotoFormulario(obtenerFotoPrincipalNido(codigo, visitasNido));
         
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
         mapForm.panTo([ultimo.lat, ultimo.lng]);
@@ -761,6 +854,7 @@
       document.getElementById('input-especie-nido').value = nidoVisita.especie || 'Falco tinnunculus';
       document.getElementById('input-coords-nido').value = `${nidoVisita.lat}, ${nidoVisita.lng}`;
       document.getElementById('input-tipo-estructura').value = nidoVisita.estructura || 'Caja Nido Madera';
+      document.getElementById('input-orientacion-nido').value = nidoVisita.orientacion || '';
       document.getElementById('input-lugar-nido').value = nidoVisita.lugar || '';
       document.getElementById('input-macho-nido').value = nidoVisita.macho || '';
       document.getElementById('input-hembra-nido').value = nidoVisita.hembra || '';
@@ -773,6 +867,7 @@
       let anilladosReales = contarPollosAnilladosEnNido(nidoVisita.id, anoVisitaEdit);
       document.getElementById('input-anillados-nido').value = anilladosReales;
       document.getElementById('input-obs-nido').value = nidoVisita.obs || '';
+      actualizarPreviewFotoFormulario(nidoVisita.fotoUrl || obtenerFotoPrincipalNido(nidoVisita.id, []));
 
       markerForm.setLatLng([nidoVisita.lat, nidoVisita.lng]);
       mapForm.panTo([nidoVisita.lat, nidoVisita.lng]);
@@ -791,6 +886,123 @@
       if (window.nidos.length > 0) {
         seleccionarNidoExistente(window.nidos[0].id);
       }
+    }
+
+    window.abrirVisorFotoNido = function(urlSrc, titulo) {
+      if (!urlSrc) return;
+      var visor = document.getElementById("visor-foto-nido");
+      var img = document.getElementById("visor-foto-img");
+      var tit = document.getElementById("visor-foto-titulo");
+      if (!visor || !img) return;
+      img.src = urlSrc;
+      if (tit) tit.innerText = titulo || "Foto del nido";
+      visor.classList.add("is-open");
+    };
+
+    window.cerrarVisorFotoNido = function() {
+      var visor = document.getElementById("visor-foto-nido");
+      if (visor) visor.classList.remove("is-open");
+    };
+
+    function comprimirImagenDataUrl(file, maxDim, calidad) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var img = new Image();
+          img.onload = function() {
+            var w = img.width;
+            var h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            var canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", calidad || 0.78));
+          };
+          img.onerror = function() { reject(new Error("No se pudo leer la imagen")); };
+          img.src = ev.target.result;
+        };
+        reader.onerror = function() { reject(new Error("Error al abrir el archivo de imagen")); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function actualizarPreviewFotoFormulario(urlVal) {
+      var wrap = document.getElementById("preview-foto-nido-wrap");
+      var img = document.getElementById("preview-foto-nido-img");
+      var btnQuitar = document.getElementById("btn-quitar-foto-nido");
+      var hiddenVal = document.getElementById("input-foto-nido-actual");
+      var limpio = String(urlVal || "").trim();
+      if (hiddenVal) hiddenVal.value = limpio;
+      if (limpio && wrap && img) {
+        img.src = limpio;
+        wrap.style.display = "block";
+        if (btnQuitar) btnQuitar.style.display = "inline-block";
+      } else if (wrap && img) {
+        img.src = "";
+        wrap.style.display = "none";
+        if (btnQuitar) btnQuitar.style.display = "none";
+      }
+    }
+
+    window.manejarSeleccionFotoNido = async function(event) {
+      var file = event && event.target && event.target.files && event.target.files[0];
+      if (!file) return;
+      var estadoEl = document.getElementById("estado-compresion-foto");
+      try {
+        if (estadoEl) estadoEl.innerText = "Optimizando imagen...";
+        var dataUrl = await comprimirImagenDataUrl(file, 1024, 0.76);
+        actualizarPreviewFotoFormulario(dataUrl);
+        if (estadoEl) estadoEl.innerText = "Foto lista para guardar con la visita.";
+      } catch (e) {
+        console.error(e);
+        mostrarToastNido("No se pudo procesar la foto seleccionada", "error");
+        if (estadoEl) estadoEl.innerText = "Error al cargar la imagen.";
+      }
+    };
+
+    window.quitarFotoNidoFormulario = function() {
+      var inpFile = document.getElementById("input-foto-nido");
+      if (inpFile) inpFile.value = "";
+      var estadoEl = document.getElementById("estado-compresion-foto");
+      if (estadoEl) estadoEl.innerText = "Foto eliminada del formulario.";
+      actualizarPreviewFotoFormulario("");
+    };
+
+    async function resolverFotoParaGuardar(codigoNido, fotoActual) {
+      var limpio = String(fotoActual || "").trim();
+      if (!limpio) return "";
+      if (!limpio.startsWith("data:image/")) return limpio;
+      try {
+        var safeCode = String(codigoNido || "nido").replace(/[^a-zA-Z0-9_-]/g, "_");
+        var storageRef = ref(storage, "nidos_fotos/" + safeCode + "_" + Date.now() + ".jpg");
+        await uploadString(storageRef, limpio, "data_url");
+        return await getDownloadURL(storageRef);
+      } catch (errStorage) {
+        console.warn("Storage no disponible o sin permisos, usando miniatura comprimida:", errStorage);
+        return limpio;
+      }
+    }
+
+    function obtenerFotoPrincipalNido(codigoNido, visitasNido) {
+      if (Array.isArray(visitasNido)) {
+        for (var i = 0; i < visitasNido.length; i++) {
+          if (visitasNido[i] && visitasNido[i].fotoUrl) return String(visitasNido[i].fotoUrl).trim();
+        }
+      }
+      var match = window.nidos.find(function(x) {
+        return String(x.id || "").trim().toLowerCase() === String(codigoNido || "").trim().toLowerCase() && x.fotoUrl;
+      });
+      return match ? String(match.fotoUrl).trim() : "";
     }
 
     var toastNidoTimer = null;
@@ -970,6 +1182,7 @@
         lat: lat,
         lng: lng,
         estructura: document.getElementById('input-tipo-estructura').value,
+        orientacion: document.getElementById('input-orientacion-nido').value || "",
         lugar: lugar,
         rondaVisita: document.getElementById('input-ronda-visita').value,
         temporada: document.getElementById('input-temp-nido').value,
@@ -980,6 +1193,7 @@
         nacidos: parseInt(document.getElementById('input-nacidos-nido').value) || 0,
         volados: parseInt(document.getElementById('input-volados-nido').value) || 0,
         anillados: anilladosCount,
+        fotoUrl: await resolverFotoParaGuardar(codigo, document.getElementById('input-foto-nido-actual').value),
         obs: document.getElementById('input-obs-nido').value
       };
 
@@ -989,7 +1203,7 @@
           <div><div class="modal-confirm-item-label">Código Nido</div><div class="modal-confirm-item-val text-primary">${esc(nidoObj.id)}</div></div>
           <div><div class="modal-confirm-item-label">Ronda & Fecha</div><div class="modal-confirm-item-val">${esc(nidoObj.rondaVisita)} · ${esc(formatearFecha(nidoObj.temporada))}</div></div>
           <div><div class="modal-confirm-item-label">Especie</div><div class="modal-confirm-item-val fst-italic">${esc(nidoObj.especie)}</div></div>
-          <div><div class="modal-confirm-item-label">Estructura</div><div class="modal-confirm-item-val">${esc(nidoObj.estructura)}</div></div>
+          <div><div class="modal-confirm-item-label">Estructura & Orientación</div><div class="modal-confirm-item-val">${esc(nidoObj.estructura)}${nidoObj.orientacion ? ` · 🧭 ${esc(nidoObj.orientacion)}` : ""}</div></div>
           <div><div class="modal-confirm-item-label">Localidad</div><div class="modal-confirm-item-val">${esc(nidoObj.lugar)}</div></div>
           <div><div class="modal-confirm-item-label">Estado</div><div class="modal-confirm-item-val text-success">${esc(nidoObj.estado)}</div></div>
           <div><div class="modal-confirm-item-label">Pareja (♂ / ♀)</div><div class="modal-confirm-item-val">${esc(nidoObj.macho)} / ${esc(nidoObj.hembra)}</div></div>
@@ -1053,6 +1267,7 @@
               id: cols[0] || "CN-00",
               especie: cols[1] || "Falco tinnunculus",
               estructura: cols[2] || "Caja Nido Madera",
+              orientacion: cols[15] || "",
               lugar: cols[3] || "Zona Rural",
               temporada: cols[4] || new Date().toISOString().slice(0,10),
               macho: cols[5] || "-",
@@ -1160,12 +1375,18 @@
         `;
       }).join("");
 
+      var fotoNidoActual = obtenerFotoPrincipalNido(nidoCodigo, visitasNido);
+      var fotoNidoHtml = fotoNidoActual
+        ? `<div class="mb-2"><img src="${esc(fotoNidoActual)}" alt="Foto del nido ${esc(nidoCodigo)}" class="diario-foto-nido" onclick="abrirVisorFotoNido(this.src, 'Nido ${esc(nidoCodigo)}')"></div>`
+        : "";
+
       box.style.display = "block";
       box.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
-          <div class="fw-bold text-success">📖 Diario de Visitas del Nido ${esc(nidoCodigo)} <span class="text-muted fw-normal">(${esc(tituloAno)})</span></div>
+          <div class="fw-bold text-success">📖 Diario de Visitas del Nido ${esc(nidoCodigo)} <span class="text-muted fw-normal">(${esc(tituloAno)})</span>${(visitasNido[0] && visitasNido[0].orientacion) ? ` <span class="badge bg-light text-dark border ms-1">🧭 ${esc(visitasNido[0].orientacion)}</span>` : ""}</div>
           <small class="text-muted">1ª → 2ª → 3ª visita</small>
         </div>
+        ${fotoNidoHtml}
         <div class="d-flex flex-column gap-2">${itemsHtml}</div>
       `;
     }
@@ -1230,7 +1451,8 @@
         var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos ${anoVisitaFila ? anoVisitaFila + ' ' : ''}(${anilladosReales})</span>` : '';
         
         let btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-1 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar pollos o adultos">🐣 Anillar</button>`;
-        let btnEditarHtml = `<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editarVisitaNido('${n.docId}')" title="Editar esta visita">✏️</button>`;
+        let btnFotoHtml = n.fotoUrl ? `<button class="btn btn-sm btn-outline-info py-0 px-1" onclick="abrirVisorFotoNido('${esc(n.fotoUrl)}', 'Nido ${esc(n.id)}')" title="Ver foto del nido">📷</button>` : '';
+        let btnEditarHtml = `${btnFotoHtml}<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editarVisitaNido('${n.docId}')" title="Editar esta visita">✏️</button>`;
         let btnBorrarHtml = `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="borrarVisitaNido('${n.docId}', '${n.id}')" title="Borrar esta visita">🗑️</button>`;
         
         let machoStr = n.macho && n.macho !== "-" ? `<span class="text-primary fw-bold">♂ ${esc(n.macho)}</span>` : '<span class="text-muted">♂ -</span>';
@@ -1239,7 +1461,7 @@
 
         tbody.innerHTML += `<tr>
           <td>
-            <b class="text-primary">${n.id}</b><br>
+            <b class="text-primary">${n.id}</b>${n.orientacion ? ` <span class="badge bg-light text-dark border" style="font-size:0.64rem;" title="Orientación del nido">🧭 ${esc(n.orientacion)}</span>` : ""}<br>
             <span class="badge ${estBadge.clase}" style="font-size:0.65rem;">${esc(estBadge.texto)}</span>
           </td>
           <td>
@@ -1326,8 +1548,8 @@
 
     window.exportarNidosCSV = function() {
       if (!window.nidos.length) return mostrarToastNido("No hay datos de nidos para exportar", "info");
-      var h = "Codigo;Especie;Estructura;Lugar;FechaInspeccion;Macho;Hembra;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs\n";
-      var r = window.nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.macho || '-'}";"${n.hembra || '-'}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
+      var h = "Codigo;Especie;Estructura;Lugar;FechaInspeccion;Macho;Hembra;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs;Orientacion\n";
+      var r = window.nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.macho || '-'}";"${n.hembra || '-'}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}";"${n.orientacion || ''}"`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
       link.download = "seguimiento_nidos_firebase.csv"; link.click();
     }
@@ -1336,5 +1558,16 @@
       initMapaForm();
     };
   </script>
+  <!-- VISOR DE FOTO DEL NIDO -->
+  <div id="visor-foto-nido" class="visor-foto-overlay" role="dialog" aria-modal="true" onclick="if(event.target===this) cerrarVisorFotoNido()">
+    <div class="visor-foto-card">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span id="visor-foto-titulo" class="fw-bold small">Foto del nido</span>
+        <button type="button" class="btn-close btn-close-white btn-sm" onclick="cerrarVisorFotoNido()" aria-label="Cerrar"></button>
+      </div>
+      <img id="visor-foto-img" src="" alt="Foto del nido" class="visor-foto-img">
+    </div>
+  </div>
+
 </body>
 </html>
