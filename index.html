@@ -145,12 +145,27 @@
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="kpi-label">Cajas nido</span>
-            <span>🪹</span>
+          <div class="d-flex justify-content-between align-items-center gap-1">
+            <span class="kpi-label">Nidos y Cajas</span>
+            <div class="d-flex align-items-center gap-1">
+              <select id="filtro-ano-nidos-index" class="form-select form-select-sm py-0 px-1 fw-semibold" style="width: auto; font-size: 0.68rem; height: 20px;" title="Filtrar nidos ocupados y pollos por año" onchange="window.aplicarFiltroAnoNidosIndex(this.value)">
+                <option value="todos" selected>Todos los años</option>
+              </select>
+              <span>🪹</span>
+            </div>
           </div>
           <div class="kpi-value text-success mt-1" id="kpi-nidos">—</div>
-          <small class="kpi-sub">Nidos en seguimiento</small>
+          <div class="mt-1 pt-1 border-top border-dark border-opacity-10" style="font-size: 0.72rem; line-height: 1.35;">
+            <div class="d-flex justify-content-between">
+              <span>📦 Cajas: <b class="text-primary" id="kpi-cajas-total">—</b> <small class="text-muted">(Oc: <b class="text-success" id="kpi-cajas-ocupadas">—</b> · Vac: <b id="kpi-cajas-vacias">—</b>)</small></span>
+            </div>
+            <div class="d-flex justify-content-between mt-0.5">
+              <span>🌿 Naturales: <b class="text-warning-emphasis" id="kpi-naturales-total">—</b> <small class="text-muted">(Oc: <b class="text-success" id="kpi-naturales-ocupados">—</b> · Vac: <b id="kpi-naturales-vacios">—</b>)</small></span>
+            </div>
+            <span class="d-none" id="kpi-nidos-ocupados">0</span>
+            <span class="d-none" id="kpi-nidos-vacios">0</span>
+            <div id="kpi-nidos-detalle-ocupados" class="mt-1 pt-1 border-top border-dark border-opacity-10" style="max-height: 82px; overflow-y: auto; font-size: 0.68rem;">Cargando nidos...</div>
+          </div>
         </div>
       </div>
       <div class="col-6 col-md-3">
@@ -278,8 +293,38 @@
         var capturas = [];
         snapAnil.forEach(d => capturas.push({ id: d.id, ...d.data() }));
 
-        var nidosCount = 0;
-        snapNidos.forEach(() => { nidosCount++; });
+        var nidosRecords = [];
+        snapNidos.forEach(d => { nidosRecords.push({ id: d.id, ...d.data() }); });
+
+        function esCajaNido(n) {
+          var est = String(n.estructura || n.tipoEstructura || "").toLowerCase();
+          var cod = String(n.id || n.codigo || "").toLowerCase();
+          if (est.includes("caja") || est.includes("artificial") || est.includes("madera") ||
+              est.includes("hormigón") || est.includes("hormigon") || est.includes("piedra")) {
+            return true;
+          }
+          if (est.includes("natural") || est.includes("árbol") || est.includes("arbol") ||
+              est.includes("edificio") || est.includes("masía") || est.includes("masia") ||
+              est.includes("cortado") || est.includes("roquedo") || est.includes("roca") ||
+              est.includes("barranco") || est.includes("cueva")) {
+            return false;
+          }
+          if (cod.startsWith("cn-") || cod.includes("caja") || cod.includes("art")) {
+            return true;
+          }
+          return true;
+        }
+
+        function esPolloAnillado(a) {
+          if (!a) return false;
+          var edadStr = String(a.edad || "").trim().toLowerCase();
+          if (edadStr === "1" || edadStr.startsWith("1 ") || edadStr.includes("pullus") || edadStr.includes("pollo")) {
+            return true;
+          }
+          var tc = String(a.tipoCaptura || "").trim().toLowerCase();
+          if (tc.includes("pollo") || tc.includes("pullus")) return true;
+          return false;
+        }
 
         var recapturasCount = capturas.filter(r => {
           var tc = String(r.tipoCaptura || "").toLowerCase();
@@ -302,11 +347,165 @@
         document.getElementById("kpi-total-capturas").innerText = capturas.length;
         document.getElementById("kpi-sub-capturas").innerText = `${capturas.length - recapturasCount} anillamientos nuevos`;
         document.getElementById("kpi-recapturas").innerText = recapturasCount;
-        document.getElementById("kpi-nidos").innerText = nidosCount;
+
         document.getElementById("kpi-especies").innerText = especiesSet.size;
 
         var ultimaFecha = ordenadas.length > 0 ? formatearFecha(ordenadas[0].fecha) : "—";
         document.getElementById("kpi-ultima-fecha").innerText = `Última: ${ultimaFecha}`;
+
+        function extraerAnoIdx(fStr) {
+          if (!fStr) return "";
+          var s = String(fStr).trim();
+          var mIso = s.match(/^(\d{4})-\d{2}-\d{2}/);
+          if (mIso) return mIso[1];
+          var mEur = s.match(/^\d{1,2}\/\d{1,2}\/(\d{4})/);
+          if (mEur) return mEur[1];
+          var mAny = s.match(/\b(19|20)\d{2}\b/);
+          return mAny ? mAny[0] : "";
+        }
+
+        function poblarSelectorAnosIndex(anoSeleccionado) {
+          var anosSet = new Set();
+          nidosRecords.forEach(n => {
+            var y = extraerAnoIdx(n.temporada || n.fecha);
+            if (y) anosSet.add(y);
+          });
+          capturas.forEach(a => {
+            if (esPolloAnillado(a)) {
+              var y = extraerAnoIdx(a.fecha);
+              if (y) anosSet.add(y);
+            }
+          });
+          var sel = document.getElementById("filtro-ano-nidos-index");
+          if (!sel) return;
+          var ordenados = Array.from(anosSet).sort((a, b) => Number(b) - Number(a));
+          sel.innerHTML = '<option value="todos">Todos los años</option>';
+          ordenados.forEach(y => {
+            sel.innerHTML += `<option value="${y}">${y}</option>`;
+          });
+          if (anoSeleccionado && anoSeleccionado !== "todos" && ordenados.includes(anoSeleccionado)) {
+            sel.value = anoSeleccionado;
+          } else {
+            sel.value = "todos";
+          }
+        }
+
+        function renderResumenNidosPorAno(anoFiltro) {
+          var anoSel = anoFiltro || "todos";
+          var pollosPorNidoAno = {};
+          capturas.forEach(a => {
+            if (!esPolloAnillado(a)) return;
+            if (anoSel !== "todos" && extraerAnoIdx(a.fecha) !== anoSel) return;
+            var codN = String(a.codigoNido || "").trim().toLowerCase();
+            if (!codN || codN === "-") return;
+            pollosPorNidoAno[codN] = (pollosPorNidoAno[codN] || 0) + 1;
+          });
+
+          var nidosFiltrados = (anoSel === "todos")
+            ? nidosRecords
+            : nidosRecords.filter(n => extraerAnoIdx(n.temporada || n.fecha) === anoSel);
+
+          function esNidoOcupadoEstado(info, pollosCount) {
+            var st = String(info.estado || "").toLowerCase();
+            if (st.includes("vacio") || st.includes("vacío") || st.includes("inactivo") || st.includes("sin ocupar") || st.includes("libre")) {
+              return false;
+            }
+            if (st.includes("ocupado") || st.includes("incubando") || st.includes("huevo") ||
+                st.includes("pollo") || st.includes("eclosion") || st.includes("exito") || st.includes("éxito") || st.includes("volando")) {
+              return true;
+            }
+            return (pollosCount || 0) > 0 || info.huevos > 0 || info.nacidos > 0 || info.volados > 0;
+          }
+
+          var porNidoAno = new Map();
+          var sinClasificarAno = 0;
+
+          nidosFiltrados.forEach((n, idx) => {
+            var codRaw = String(n.id || n.codigo || "").trim();
+            var clave = codRaw ? codRaw.toLowerCase() : ("__doc_" + idx);
+            if (!codRaw && !String(n.estructura || n.tipoEstructura || "").trim()) {
+              sinClasificarAno++;
+              return;
+            }
+            var prev = porNidoAno.get(clave);
+            if (!prev || fechaStamp(n.temporada || n.fecha) >= fechaStamp(prev.temporada || prev.fecha)) {
+              porNidoAno.set(clave, {
+                codigo: codRaw || `Nido ${idx + 1}`,
+                clave: clave,
+                esCaja: esCajaNido(n),
+                estado: String(n.estado || "").trim(),
+                huevos: parseInt(n.huevos) || 0,
+                nacidos: parseInt(n.nacidos) || 0,
+                volados: parseInt(n.volados) || 0,
+                anilladosCampo: parseInt(n.anillados) || 0
+              });
+            }
+          });
+
+          var cajasOcupadas = [];
+          var cajasVacias = [];
+          var natOcupados = [];
+          var natVacios = [];
+
+          porNidoAno.forEach(info => {
+            var pollosReales = pollosPorNidoAno[info.clave];
+            var pollosCount = (typeof pollosReales === "number") ? pollosReales : (anoSel === "todos" ? info.anilladosCampo : 0);
+            var item = { codigo: info.codigo, pollos: pollosCount };
+            if (info.esCaja) {
+              if (esNidoOcupadoEstado(info, pollosCount)) cajasOcupadas.push(item);
+              else cajasVacias.push(item);
+            } else {
+              if (esNidoOcupadoEstado(info, pollosCount)) natOcupados.push(item);
+              else natVacios.push(item);
+            }
+          });
+
+          var cmpCod = (a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true, sensitivity: 'base' });
+          cajasOcupadas.sort(cmpCod);
+          cajasVacias.sort(cmpCod);
+          natOcupados.sort(cmpCod);
+          natVacios.sort(cmpCod);
+
+          var totalCajas = cajasOcupadas.length + cajasVacias.length;
+          var totalNaturales = natOcupados.length + natVacios.length;
+          var totalNidosAno = porNidoAno.size > 0 ? porNidoAno.size : (nidosFiltrados.length + sinClasificarAno);
+
+          document.getElementById("kpi-nidos").innerText = totalNidosAno;
+          document.getElementById("kpi-cajas-total").innerText = totalCajas;
+          document.getElementById("kpi-cajas-ocupadas").innerText = cajasOcupadas.length;
+          document.getElementById("kpi-cajas-vacias").innerText = cajasVacias.length;
+          document.getElementById("kpi-naturales-total").innerText = totalNaturales;
+          document.getElementById("kpi-naturales-ocupados").innerText = natOcupados.length;
+          document.getElementById("kpi-naturales-vacios").innerText = natVacios.length;
+          document.getElementById("kpi-nidos-ocupados").innerText = cajasOcupadas.length + natOcupados.length;
+          document.getElementById("kpi-nidos-vacios").innerText = cajasVacias.length + natVacios.length;
+
+          var detalleEl = document.getElementById("kpi-nidos-detalle-ocupados");
+          if (detalleEl) {
+            var htmlDetalle = "";
+            if (cajasOcupadas.length > 0) {
+              htmlDetalle += `<div class="text-primary fw-semibold">📦 Cajas oc. (${cajasOcupadas.length}): ` +
+                cajasOcupadas.map(o => `${o.codigo} (${o.pollos}🐣)`).join(", ") + `</div>`;
+            }
+            if (natOcupados.length > 0) {
+              htmlDetalle += `<div class="text-success fw-semibold mt-0.5">🌿 Nat. oc. (${natOcupados.length}): ` +
+                natOcupados.map(o => `${o.codigo} (${o.pollos}🐣)`).join(", ") + `</div>`;
+            }
+            if (!htmlDetalle) {
+              htmlDetalle = anoSel !== "todos"
+                ? `<span class="text-muted">Sin nidos ocupados en ${anoSel}</span>`
+                : '<span class="text-muted">Sin nidos ocupados</span>';
+            }
+            detalleEl.innerHTML = htmlDetalle;
+          }
+        }
+
+        window.aplicarFiltroAnoNidosIndex = function(ano) {
+          renderResumenNidosPorAno(ano || "todos");
+        };
+
+        poblarSelectorAnosIndex("todos");
+        renderResumenNidosPorAno("todos");
 
         if (badgeConn) {
           badgeConn.className = "badge bg-success";
