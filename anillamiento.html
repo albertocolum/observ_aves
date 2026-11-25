@@ -850,7 +850,7 @@
             }
           });
       } else {
-        alert("Introduce coordenadas válidas.");
+        window.mostrarToast("Introduce coordenadas válidas", "error");
       }
     }
 
@@ -926,7 +926,7 @@
 
     window.guardarAnillamiento = async function() {
       var metal = document.getElementById('input-metal-anil').value.trim();
-      if (!metal) return alert("Indica la anilla metálica obligatoriamente.");
+      if (!metal) return window.mostrarToast("Indica la anilla metálica obligatoriamente", "error");
 
       var editDocId = document.getElementById('input-edit-docid').value;
       var tipoCaptura = document.getElementById('input-tipo-captura').value;
@@ -937,7 +937,7 @@
 
       var c = document.getElementById('input-coords-anil').value.split(',');
       var lat = parseFloat(c[0]), lng = parseFloat(c[1]);
-      if (isNaN(lat) || isNaN(lng)) return alert("Coordenadas no válidas.");
+      if (isNaN(lat) || isNaN(lng)) return window.mostrarToast("Coordenadas no válidas", "error");
 
       var maxOrden = window.anillamientos.reduce((max, a) => {
         var o = (typeof a._ordenEntrada === "number") ? a._ordenEntrada : 0;
@@ -1034,13 +1034,13 @@
         await cargarDatosFirebase();
       } catch (e) {
         console.error("Error al guardar anillamiento:", e);
-        alert("Error al guardar en la nube.");
+        window.mostrarToast("Error al guardar en la nube", "error");
       }
     }
 
     window.cargarParaEditar = function(docId) {
       const ave = window.anillamientos.find(a => a.docId === docId);
-      if (!ave) return alert("No se encontró el registro para editar.");
+      if (!ave) return window.mostrarToast("No se encontró el registro para editar", "error");
 
       document.getElementById('input-edit-docid').value = ave.docId;
       document.getElementById('input-tipo-captura').value = ave.tipoCaptura || "Anillamiento";
@@ -1092,7 +1092,7 @@
 
     window.abrirFichaAve = function(docId) {
       const ave = window.anillamientos.find(a => a.docId === docId);
-      if (!ave) return alert("No se encontró el registro seleccionado.");
+      if (!ave) return window.mostrarToast("No se encontró el registro seleccionado", "error");
       localStorage.setItem("ave_ficha_actual", JSON.stringify(ave));
       window.location.href = "ficha_ave.html";
     }
@@ -1139,12 +1139,12 @@
     }
 
     window.borrarUltimoRegistro = async function() {
-      if (window.anillamientos.length === 0) return alert("No hay registros para borrar.");
+      if (window.anillamientos.length === 0) return window.mostrarToast("No hay registros para borrar", "info");
       
       var datosOrdenados = ordenarCapturasFechaYAnilla(window.anillamientos);
 
       var ultimo = datosOrdenados[0];
-      if (!ultimo || !ultimo.docId) return alert("No se pudo identificar el último registro.");
+      if (!ultimo || !ultimo.docId) return window.mostrarToast("No se pudo identificar el último registro", "error");
 
       var detalleBorrarUltHtml = `
         <div class="modal-confirm-grid">
@@ -1166,11 +1166,11 @@
       if (confirmadoBorrarUlt) {
         try {
           await deleteDoc(doc(db, "anillamientos", ultimo.docId));
-          alert("¡Registro borrado con éxito!");
+          window.mostrarToast("Registro borrado con éxito", "success");
           await cargarDatosFirebase();
         } catch (e) {
           console.error("Error al borrar registro:", e);
-          alert("Error al borrar de la nube.");
+          window.mostrarToast("Error al borrar de la nube", "error");
         }
       }
     }
@@ -1183,7 +1183,7 @@
       reader.onload = async function(e) {
         var texto = e.target.result;
         var lineas = texto.split(/\r\n|\n/);
-        if (lineas.length < 2) return alert("Archivo sin datos.");
+        if (lineas.length < 2) return window.mostrarToast("El archivo CSV no contiene datos", "error");
 
         var contador = 0;
         document.getElementById('tabla-registros-anil').innerHTML = '<tr><td colspan="15" class="text-center text-primary py-3"><b>Importando todos los registros a la nube... Por favor espera.</b></td></tr>';
@@ -1228,7 +1228,7 @@
             contador++;
           }
         }
-        alert(`¡Se han importado con éxito los ${contador} registros a Firebase!`);
+        window.mostrarToast(`Importados ${contador} registros a Firebase`, "success");
         await cargarDatosFirebase();
       };
       reader.readAsText(file, "UTF-8");
@@ -1269,10 +1269,10 @@
           localStorage.setItem("anillamiento_biometria_data", JSON.stringify([]));
           paginaActual = 1;
           renderizarTablaPaginada();
-          alert("¡Nube vaciada por completo con éxito!");
+          window.mostrarToast("Nube vaciada por completo con éxito", "info");
         } catch (e) {
           console.error("Error al vaciar:", e);
-          alert("Hubo un error al vaciar la base de datos.");
+          window.mostrarToast("Hubo un error al vaciar la base de datos", "error");
           cargarDatosFirebase();
         }
       }
@@ -1369,7 +1369,7 @@
     }
 
     window.exportarExcelAnil = function() {
-      if (!window.anillamientos.length) return alert("Sin datos.");
+      if (!window.anillamientos.length) return window.mostrarToast("No hay datos para exportar", "info");
       var h = "ID;CodigoNido;TipoCaptura;Fecha;Lugar;Metal;PVC;Especie;Edad;Sexo;Ala;P8;Cola;Tarso;R5;Peso;Grasa;Anillador;Lat;Lng\n";
       var r = window.anillamientos.map((a, i) => `${i+1};"${a.codigoNido || '-'}";"${a.tipoCaptura || 'Anillamiento'}";"${a.fecha}";"${a.localidad}";"${a.metal}";"${formatearPvcLimpio(a.pvc)}";"${a.especie}";"${a.edad}";"${a.sexo}";${a.ala};${a.p8};${a.cola};${a.tarso};"${a.r5}";${a.peso};"${a.grasa}";"${a.anillador}";${a.lat};${a.lng}`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));

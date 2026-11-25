@@ -103,9 +103,38 @@
       from { opacity: 0; transform: translateY(10px) scale(0.97); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
+    .toast-aviso-flotante {
+      position: fixed;
+      top: 16px;
+      right: 18px;
+      z-index: 2100;
+      min-width: 290px;
+      max-width: 440px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-left: 4px solid #16a34a;
+      border-radius: 10px;
+      padding: 11px 15px;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.28);
+      font-size: 0.82rem;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .toast-aviso-flotante.is-error {
+      border-left-color: #dc2626;
+    }
+    .toast-aviso-flotante.is-info {
+      border-left-color: #2563eb;
+    }
   </style>
 </head>
 <body>
+  <div id="toast-aviso-nido" class="toast-aviso-flotante" role="status" aria-live="polite">
+    <span id="toast-aviso-nido-texto"></span>
+    <button type="button" class="btn-close btn-close-white btn-sm" style="font-size:0.65rem;" onclick="ocultarToastNido()" aria-label="Cerrar"></button>
+  </div>
 
   <div class="container main-container">
     
@@ -764,6 +793,25 @@
       }
     }
 
+    var toastNidoTimer = null;
+    window.mostrarToastNido = function(mensaje, tipo) {
+      var el = document.getElementById("toast-aviso-nido");
+      var txt = document.getElementById("toast-aviso-nido-texto");
+      if (!el || !txt) return;
+      txt.innerText = mensaje;
+      el.className = "toast-aviso-flotante" + (tipo === "error" ? " is-error" : (tipo === "info" ? " is-info" : ""));
+      el.style.display = "flex";
+      if (toastNidoTimer) clearTimeout(toastNidoTimer);
+      toastNidoTimer = setTimeout(function() {
+        el.style.display = "none";
+      }, 3400);
+    };
+
+    window.ocultarToastNido = function() {
+      var el = document.getElementById("toast-aviso-nido");
+      if (el) el.style.display = "none";
+    };
+
     var resolverConfirmacionPendiente = null;
 
     window.resolverModalConfirmacion = function(aceptado) {
@@ -835,11 +883,11 @@
       if (confirmado) {
         try {
           await deleteDoc(doc(db, "nidos", docId));
-          alert("¡Visita borrada correctamente de la nube!");
+          mostrarToastNido("Visita borrada correctamente de la nube", "success");
           await cargarDatosFirebase();
         } catch (e) {
           console.error("Error al borrar visita:", e);
-          alert("Hubo un error al borrar la visita.");
+          mostrarToastNido("Hubo un error al borrar la visita", "error");
         }
       }
     }
@@ -904,7 +952,7 @@
       }
 
       var lugar = document.getElementById('input-lugar-nido').value.trim();
-      if (!codigo || !lugar) return alert("Indica el código del nido y la población.");
+      if (!codigo || !lugar) return mostrarToastNido("Indica el código del nido y la población", "error");
 
       var parts = document.getElementById('input-coords-nido').value.split(',');
       var lat = parseFloat(parts[0]) || 40.1831;
@@ -963,10 +1011,10 @@
       try {
         if (docIdExistente) {
           await updateDoc(doc(db, "nidos", docIdExistente), nidoObj);
-          alert(`¡Visita del nido [${codigo}] actualizada correctamente en la nube!`);
+          mostrarToastNido(`Visita del nido [${codigo}] actualizada en la nube`, "success");
         } else {
           await addDoc(collection(db, "nidos"), nidoObj);
-          alert(`¡Nueva visita guardada en Firebase para el nido [${codigo}]!`);
+          mostrarToastNido(`Nueva visita guardada en Firebase para el nido [${codigo}]`, "success");
         }
 
         // Vincular el nido en las fichas de anillamiento de los adultos si ya existen
@@ -980,7 +1028,7 @@
         renderTablaNidos();
       } catch (e) {
         console.error("Error al guardar en Firebase:", e);
-        alert("Error al guardar en la nube.");
+        mostrarToastNido("Error al guardar en la nube", "error");
       }
     }
 
@@ -992,7 +1040,7 @@
       reader.onload = async function(e) {
         var texto = e.target.result;
         var lineas = texto.split(/\r\n|\n/);
-        if (lineas.length < 2) return alert("Archivo sin datos.");
+        if (lineas.length < 2) return mostrarToastNido("El archivo CSV no contiene datos", "error");
 
         var contador = 0;
         for (var i = 1; i < lineas.length; i++) {
@@ -1022,7 +1070,7 @@
             contador++;
           }
         }
-        alert(`¡Se han importado con éxito ${contador} registros de nidos a Firebase!`);
+        mostrarToastNido(`Importados ${contador} registros de nidos a Firebase`, "success");
         await cargarDatosFirebase();
       };
       reader.readAsText(file, "UTF-8");
@@ -1240,7 +1288,27 @@
     }
 
     window.vaciarNidosFirebase = async function() {
-      if (confirm("¿Seguro que quieres borrar todos los nidos de la base de datos de Firebase?")) {
+      var totalDocs = window.nidos.length;
+      var codigosUnicos = new Set(window.nidos.map(function(n) { return n.id; }).filter(Boolean));
+      var vaciarHtml = `
+        <div class="modal-confirm-grid">
+          <div><div class="modal-confirm-item-label">Visitas / Registros</div><div class="modal-confirm-item-val text-danger">${totalDocs}</div></div>
+          <div><div class="modal-confirm-item-label">Nidos distintos</div><div class="modal-confirm-item-val">${codigosUnicos.size}</div></div>
+        </div>
+        <div class="mt-2 p-2 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25 small text-danger">
+          Se eliminarán todos los registros de la colección <b>nidos</b> en Firebase Firestore. Te recomendamos exportar un CSV antes si no tienes copia.
+        </div>
+      `;
+      var confirmadoVaciar = await abrirModalConfirmacion({
+        badge: "VACIADO TOTAL",
+        titulo: "Vaciar todos los nidos en la nube",
+        subtitulo: "Acción destructiva: se borrarán todos los registros de nidos almacenados en Firebase.",
+        htmlCuerpo: vaciarHtml,
+        textoAceptar: "⚠️ Sí, vaciar todo",
+        peligro: true,
+        textoFallback: "¿Seguro que quieres borrar todos los nidos de la base de datos de Firebase?"
+      });
+      if (confirmadoVaciar) {
         try {
           for (let n of window.nidos) {
             if (n.docId) await deleteDoc(doc(db, "nidos", n.docId));
@@ -1249,7 +1317,7 @@
           nidoSeleccionadoFiltro = null;
           actualizarSelectNidos();
           limpiarFormularioParaNuevo();
-          alert("Base de datos de nidos vaciada en la nube.");
+          mostrarToastNido("Base de datos de nidos vaciada en la nube", "info");
         } catch (e) {
           console.error("Error al vaciar nidos:", e);
         }
@@ -1257,7 +1325,7 @@
     }
 
     window.exportarNidosCSV = function() {
-      if (!window.nidos.length) return alert("Sin datos.");
+      if (!window.nidos.length) return mostrarToastNido("No hay datos de nidos para exportar", "info");
       var h = "Codigo;Especie;Estructura;Lugar;FechaInspeccion;Macho;Hembra;Estado;Huevos;Nacidos;Volados;Anillados;Lat;Lng;Obs\n";
       var r = window.nidos.map(n => `"${n.id}";"${n.especie}";"${n.estructura}";"${n.lugar}";"${n.temporada}";"${n.macho || '-'}";"${n.hembra || '-'}";"${n.estado}";${n.huevos};${n.nacidos};${n.volados};${n.anillados};${n.lat};${n.lng};"${n.obs}"`).join("\n");
       var link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + h + r], { type: 'text/csv;charset=utf-8;' }));
