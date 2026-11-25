@@ -985,8 +985,16 @@
       try {
         var safeCode = String(codigoNido || "nido").replace(/[^a-zA-Z0-9_-]/g, "_");
         var storageRef = ref(storage, "nidos_fotos/" + safeCode + "_" + Date.now() + ".jpg");
-        await uploadString(storageRef, limpio, "data_url");
-        return await getDownloadURL(storageRef);
+        var subidaConTimeout = Promise.race([
+          (async function() {
+            await uploadString(storageRef, limpio, "data_url");
+            return await getDownloadURL(storageRef);
+          })(),
+          new Promise(function(_, reject) {
+            setTimeout(function() { reject(new Error("Timeout al subir foto a Storage")); }, 6000);
+          })
+        ]);
+        return await subidaConTimeout;
       } catch (errStorage) {
         console.warn("Storage no disponible o sin permisos, usando miniatura comprimida:", errStorage);
         return limpio;
@@ -1156,15 +1164,29 @@
     }
 
     window.guardarNido = async function() {
+      var btnGuardar = document.getElementById('btn-guardar-visita');
       var codigo = "";
       if (modoCreacionNuevo || document.getElementById('select-codigo-nido').value === "") {
-        codigo = document.getElementById('input-codigo-nido').value.trim();
+        codigo = (document.getElementById('input-codigo-nido').value || "").trim();
       } else {
-        codigo = document.getElementById('select-codigo-nido').value;
+        codigo = (document.getElementById('select-codigo-nido').value || "").trim();
       }
 
-      var lugar = document.getElementById('input-lugar-nido').value.trim();
-      if (!codigo || !lugar) return mostrarToastNido("Indica el código del nido y la población", "error");
+      var lugar = (document.getElementById('input-lugar-nido').value || "").trim();
+      if (!codigo) {
+        if (modoCreacionNuevo) {
+          document.getElementById('input-codigo-nido').focus();
+        }
+        return mostrarToastNido("Indica o selecciona el código del nido antes de guardar", "error");
+      }
+      if (!lugar) {
+        document.getElementById('input-lugar-nido').focus();
+        return mostrarToastNido("Indica la población / localidad antes de guardar", "error");
+      }
+
+      if (btnGuardar) {
+        btnGuardar.disabled = true;
+      }
 
       var parts = document.getElementById('input-coords-nido').value.split(',');
       var lat = parseFloat(parts[0]) || 40.1831;
@@ -1220,14 +1242,19 @@
         peligro: false,
         textoFallback: `¿Guardar visita del nido [${nidoObj.id}]?`
       });
-      if (!quiereGuardar) return;
+      if (!quiereGuardar) {
+        if (btnGuardar) btnGuardar.disabled = false;
+        return;
+      }
 
       try {
         if (docIdExistente) {
           await updateDoc(doc(db, "nidos", docIdExistente), nidoObj);
           mostrarToastNido(`Visita del nido [${codigo}] actualizada en la nube`, "success");
         } else {
-          await addDoc(collection(db, "nidos"), nidoObj);
+          var docRefCreado = await addDoc(collection(db, "nidos"), nidoObj);
+          nidoObj.docId = docRefCreado && docRefCreado.id ? docRefCreado.id : ("local_" + Date.now());
+          window.nidos.push(nidoObj);
           mostrarToastNido(`Nueva visita guardada en Firebase para el nido [${codigo}]`, "success");
         }
 
@@ -1242,7 +1269,9 @@
         renderTablaNidos();
       } catch (e) {
         console.error("Error al guardar en Firebase:", e);
-        mostrarToastNido("Error al guardar en la nube", "error");
+        mostrarToastNido("Error al guardar en la nube: " + (e && e.message ? e.message : "revisa la consola"), "error");
+      } finally {
+        if (btnGuardar) btnGuardar.disabled = false;
       }
     }
 
