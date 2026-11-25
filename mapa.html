@@ -50,6 +50,26 @@
       border-radius: 8px;
       background: #020617;
     }
+    .leyenda-mapa-box {
+      background: rgba(255, 255, 255, 0.94);
+      padding: 8px 12px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+      border: 1px solid #cbd5e1;
+      font-size: 0.78rem;
+      color: #1e293b;
+      line-height: 1.45;
+    }
+    .leyenda-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35);
+    }
   </style>
 </head>
 <body>
@@ -208,12 +228,57 @@
 
       L.control.layers({ "🛰️ Satélite": satelite, "🗺️ Callejero": osm }).addTo(mapa);
       capaMarcadores = L.layerGroup().addTo(mapa);
+
+      var leyenda = L.control({ position: "bottomright" });
+      leyenda.onAdd = function() {
+        var div = L.DomUtil.create("div", "leyenda-mapa-box");
+        div.id = "leyenda-mapa-contenido";
+        div.innerHTML = "";
+        return div;
+      };
+      leyenda.addTo(mapa);
+    }
+
+    function clasificarTipoNido(estructuraRaw) {
+      var s = String(estructuraRaw || "").toLowerCase();
+      if (s.includes("edificio") || s.includes("masia") || s.includes("masía") || s.includes("natural") || s.includes("grieta") || s.includes("arbol") || s.includes("árbol") || s.includes("cortado")) {
+        return {
+          esArtificial: false,
+          etiqueta: "Natural / Edificación",
+          fillColor: "#f59e0b",
+          strokeColor: "#b45309"
+        };
+      }
+      return {
+        esArtificial: true,
+        etiqueta: "Artificial (Caja Nido)",
+        fillColor: "#16a34a",
+        strokeColor: "#14532d"
+      };
+    }
+
+    function actualizarLeyendaMapa(modo) {
+      var el = document.getElementById("leyenda-mapa-contenido");
+      if (!el) return;
+      if (modo === "nidos") {
+        el.innerHTML = `
+          <div class="fw-bold mb-1" style="font-size:0.75rem; text-transform:uppercase; color:#475569;">Tipo de Nido</div>
+          <div><span class="leyenda-dot" style="background:#16a34a;"></span>Artificial (Caja nido)</div>
+          <div><span class="leyenda-dot" style="background:#f59e0b;"></span>Natural / Edificación</div>
+        `;
+      } else {
+        el.innerHTML = `
+          <div class="fw-bold mb-1" style="font-size:0.75rem; text-transform:uppercase; color:#475569;">Anillamientos</div>
+          <div><span class="leyenda-dot" style="background:#3b82f6;"></span>Captura / Anillamiento</div>
+        `;
+      }
     }
 
     function renderMarcadores() {
       if (!mapa || !capaMarcadores) return;
       capaMarcadores.clearLayers();
       var modo = document.getElementById("filtro-modo-mapa").value;
+      actualizarLeyendaMapa(modo);
       var bounds = [];
 
       if (modo === "nidos") {
@@ -246,12 +311,18 @@
             ? `<span class="badge bg-light text-dark border ms-1">🧭 ${esc(orientacion)}</span>`
             : "";
 
+          var tipoNido = clasificarTipoNido(n.estructura);
+          var badgeTipoHtml = tipoNido.esArtificial
+            ? `<span class="badge bg-success mb-1" style="font-size:0.68rem;">📦 ${esc(tipoNido.etiqueta)}</span>`
+            : `<span class="badge bg-warning text-dark mb-1" style="font-size:0.68rem;">🏛️ ${esc(tipoNido.etiqueta)}</span>`;
+
           var popupHtml = `
             <div class="popup-nido-card">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <b class="text-success fs-6">🪹 ${esc(n.id)}</b>
                 ${orientHtml}
               </div>
+              <div>${badgeTipoHtml}</div>
               <div class="text-muted small mb-1">${esc(n.lugar || "-")} · <i>${esc(n.especie || "-")}</i></div>
               <div class="small mb-1"><b>Estado:</b> ${esc(n.estado || "-")} · <b>H/N/V/A:</b> ${n.huevos || 0}/${n.nacidos || 0}/${n.volados || 0}/${n.anillados || 0}</div>
               ${fotoHtml}
@@ -259,7 +330,13 @@
             </div>
           `;
 
-          L.marker([lat, lng]).addTo(capaMarcadores).bindPopup(popupHtml);
+          L.circleMarker([lat, lng], {
+            radius: 7,
+            color: "#ffffff",
+            weight: 2,
+            fillColor: tipoNido.fillColor,
+            fillOpacity: 0.92
+          }).addTo(capaMarcadores).bindPopup(popupHtml);
         });
 
         var sufAnoNido = anoSeleccionadoMapa !== "todos" ? " en " + anoSeleccionadoMapa : "";
