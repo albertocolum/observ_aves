@@ -63,6 +63,9 @@
         <option value="nidos">🪹 Nidos / Cajas Nido</option>
         <option value="anillamientos">🦅 Capturas / Anillamientos</option>
       </select>
+      <select id="filtro-ano-mapa" class="form-select form-select-sm fw-semibold" style="width:auto;" onchange="cambiarAnoMapa(this.value)" title="Filtrar nidos y anillamientos por año">
+        <option value="todos" selected>Todos los años</option>
+      </select>
       <a href="nidos.html" class="btn btn-outline-success btn-sm">🪹 Ir a Nidos</a>
       <a href="anillamiento.html" class="btn btn-outline-primary btn-sm">🦅 Ir a Anillamiento</a>
       <a href="index.html" class="btn btn-outline-secondary btn-sm">&larr; Inicio</a>
@@ -103,6 +106,51 @@
     var anilData = [];
     var capaMarcadores = null;
     var mapa = null;
+    var anoSeleccionadoMapa = "todos";
+
+    function extraerAnoMapa(valorFecha) {
+      if (!valorFecha) return "";
+      var s = String(valorFecha).trim();
+      var mIso = s.match(/^(\d{4})-\d{2}-\d{2}/);
+      if (mIso) return mIso[1];
+      var mEur = s.match(/^\d{1,2}\/\d{1,2}\/(\d{4})/);
+      if (mEur) return mEur[1];
+      var mAny = s.match(/\b(19|20)\d{2}\b/);
+      return mAny ? mAny[0] : "";
+    }
+
+    function poblarFiltroAnosMapa() {
+      var anos = new Set();
+      nidosData.forEach(function(n) {
+        var y = extraerAnoMapa(n.temporada || n.fecha);
+        if (y) anos.add(y);
+      });
+      anilData.forEach(function(a) {
+        var y = extraerAnoMapa(a.fecha || a.temporada);
+        if (y) anos.add(y);
+      });
+
+      var sel = document.getElementById("filtro-ano-mapa");
+      if (!sel) return;
+      var previos = sel.value || anoSeleccionadoMapa;
+      var ordenados = Array.from(anos).sort(function(a, b) { return Number(b) - Number(a); });
+      sel.innerHTML = '<option value="todos">Todos los años</option>';
+      ordenados.forEach(function(y) {
+        sel.innerHTML += '<option value="' + esc(y) + '">Año ' + esc(y) + '</option>';
+      });
+      if (previos !== "todos" && ordenados.includes(previos)) {
+        sel.value = previos;
+        anoSeleccionadoMapa = previos;
+      } else {
+        sel.value = "todos";
+        anoSeleccionadoMapa = "todos";
+      }
+    }
+
+    window.cambiarAnoMapa = function(nuevoAno) {
+      anoSeleccionadoMapa = nuevoAno || "todos";
+      renderMarcadores();
+    };
 
     function esc(s) {
       return String(s == null ? "" : s).replace(/[&<>"']/g, function(c) {
@@ -169,9 +217,13 @@
       var bounds = [];
 
       if (modo === "nidos") {
-        document.getElementById("titulo-mapa").innerText = "🪹 Mapa de Nidos y Cajas Nido";
+        document.getElementById("titulo-mapa").innerText = "🪹 Mapa de Nidos y Cajas Nido" + (anoSeleccionadoMapa !== "todos" ? " (" + anoSeleccionadoMapa + ")" : "");
+        var nidosFiltrados = nidosData.filter(function(n) {
+          if (anoSeleccionadoMapa === "todos") return true;
+          return extraerAnoMapa(n.temporada || n.fecha) === anoSeleccionadoMapa;
+        });
         var porCodigo = new Map();
-        nidosData.forEach(function(n) {
+        nidosFiltrados.forEach(function(n) {
           var lat = parseFloat(n.lat);
           var lng = parseFloat(n.lng);
           if (isNaN(lat) || isNaN(lng)) return;
@@ -210,11 +262,16 @@
           L.marker([lat, lng]).addTo(capaMarcadores).bindPopup(popupHtml);
         });
 
-        document.getElementById("subtitulo-mapa").innerText = `${porCodigo.size} nidos georreferenciados en Firebase`;
+        var sufAnoNido = anoSeleccionadoMapa !== "todos" ? " en " + anoSeleccionadoMapa : "";
+        document.getElementById("subtitulo-mapa").innerText = `${porCodigo.size} nidos georreferenciados en Firebase${sufAnoNido}`;
       } else {
-        document.getElementById("titulo-mapa").innerText = "🦅 Mapa de Capturas y Anillamientos";
+        document.getElementById("titulo-mapa").innerText = "🦅 Mapa de Capturas y Anillamientos" + (anoSeleccionadoMapa !== "todos" ? " (" + anoSeleccionadoMapa + ")" : "");
+        var anilFiltrados = anilData.filter(function(a) {
+          if (anoSeleccionadoMapa === "todos") return true;
+          return extraerAnoMapa(a.fecha || a.temporada) === anoSeleccionadoMapa;
+        });
         var validos = 0;
-        anilData.forEach(function(a) {
+        anilFiltrados.forEach(function(a) {
           var lat = parseFloat(a.lat);
           var lng = parseFloat(a.lng);
           if (isNaN(lat) || isNaN(lng)) return;
@@ -229,7 +286,8 @@
           `;
           L.circleMarker([lat, lng], { radius: 6, color: "#1d4ed8", fillColor: "#3b82f6", fillOpacity: 0.8 }).addTo(capaMarcadores).bindPopup(html);
         });
-        document.getElementById("subtitulo-mapa").innerText = `${validos} capturas georreferenciadas en Firebase`;
+        var sufAnoAnil = anoSeleccionadoMapa !== "todos" ? " en " + anoSeleccionadoMapa : "";
+        document.getElementById("subtitulo-mapa").innerText = `${validos} capturas georreferenciadas en Firebase${sufAnoAnil}`;
       }
 
       if (bounds.length > 0) {
@@ -255,6 +313,7 @@
         anilData = [];
         snapAnil.forEach(function(d) { anilData.push({ docId: d.id, ...d.data() }); });
 
+        poblarFiltroAnosMapa();
         var params = new URLSearchParams(window.location.search);
         var modoInicial = params.get("modo") === "nidos" ? "nidos" : (nidosData.length > 0 ? "nidos" : "anillamientos");
         document.getElementById("filtro-modo-mapa").value = modoInicial;
