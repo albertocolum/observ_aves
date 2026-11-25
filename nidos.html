@@ -193,7 +193,7 @@
   </div>
 
   <div class="container main-container">
-
+    
     <!-- CABECERA DE MÓDULO -->
     <div class="card-panel">
       <div class="d-flex justify-content-between align-items-center">
@@ -209,7 +209,7 @@
     </div>
 
     <div class="row g-4">
-
+      
       <!-- COLUMNA IZQUIERDA: FORMULARIO DE REGISTRO / VISITA -->
       <div class="col-lg-5">
         <div class="card-panel">
@@ -218,11 +218,11 @@
             <button class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" onclick="limpiarFormularioParaNuevo()" title="Crear un nuevo nido">➕ Nuevo Nido</button>
           </div>
           <hr class="mt-2 mb-3">
-
+          
           <form id="form-nido">
             <input type="hidden" id="input-doc-id" value="">
             <div class="section-subtitle">1. Ubicación e Identificación</div>
-
+            
             <div class="mb-2">
               <label class="form-label">Seleccionar / Código Nido *</label>
               <div class="input-group input-group-sm">
@@ -592,6 +592,9 @@
       if (nidoSeleccionadoFiltro) {
         var visitasNido = [...window.nidos.filter(function(n) { return n.id === nidoSeleccionadoFiltro; })]
           .sort(function(a, b) { return fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada); });
+        var visitaAno = (anoFiltroNido !== "todos")
+          ? visitasNido.find(function(n) { return extraerAnoFecha(n.temporada) === anoFiltroNido; })
+          : null;
         var anoConteo = "";
         if (anoFiltroNido !== "todos") {
           anoConteo = anoFiltroNido;
@@ -645,9 +648,11 @@
         obtenerAnosDisponiblesNidos();
         if (window.nidos.length > 0 && !document.getElementById('input-doc-id').value) {
           var codigosOrdenados = [...new Set(window.nidos.map(n => n.id))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-          var primerCodigo = codigosOrdenados[0];
-          document.getElementById('select-codigo-nido').value = primerCodigo;
-          seleccionarNidoExistente(primerCodigo);
+          var codigoActivo = (nidoSeleccionadoFiltro && codigosOrdenados.includes(nidoSeleccionadoFiltro))
+            ? nidoSeleccionadoFiltro
+            : codigosOrdenados[0];
+          document.getElementById('select-codigo-nido').value = codigoActivo;
+          seleccionarNidoExistente(codigoActivo);
         } else {
           renderTablaNidos();
         }
@@ -674,7 +679,7 @@
       });
 
       markerForm = L.marker([40.1831, 0.0225], {draggable: true}).addTo(mapForm);
-
+      
       var baseMaps = {
         "🛰️ Satélite (Esri)": sateliteLayer,
         "🗺️ Callejero (OSM)": calleLayer
@@ -690,11 +695,12 @@
       cargarDatosFirebase();
     }
 
+    // BUSCAR ANILLA EN ANILLAMIENTOS Y AUTOCOMPLETAR FORMATO METÁLICA / PVC
     window.buscarAdultoEnAnillados = function(valorAnilla, sexo) {
       let valTrim = valorAnilla.trim();
       if (!valTrim || valTrim === "-") return;
 
-      let encontrado = window.anillamientosGlobal.find(a =>
+      let encontrado = window.anillamientosGlobal.find(a => 
         String(a.metal || '').trim().toLowerCase() === valTrim.toLowerCase() ||
         String(a.pvc || '').trim().toLowerCase() === valTrim.toLowerCase()
       );
@@ -799,14 +805,28 @@
       }
       modoNuevoActivoEnTablaBlanca = false;
       nidoSeleccionadoFiltro = codigo;
-
+      
       var visitasNido = [...window.nidos.filter(n => n.id === codigo)].sort((a, b) => fechaAStampNido(b.temporada) - fechaAStampNido(a.temporada));
       var ultimo = visitasNido.length > 0 ? visitasNido[0] : null;
       var anoConteoSel = (anoFiltroNido && anoFiltroNido !== "todos") ? anoFiltroNido : (extraerAnoFecha(document.getElementById('input-temp-nido') && document.getElementById('input-temp-nido').value) || (ultimo ? extraerAnoFecha(ultimo.temporada) : ""));
       let totalAnilladosAutomaticos = contarPollosAnilladosEnNido(codigo, anoConteoSel);
 
       if (ultimo) {
-        document.getElementById('input-doc-id').value = ultimo.docId;
+        document.getElementById('input-doc-id').value = '';
+        document.getElementById('titulo-formulario-nido').innerText = `Nueva Visita (${codigo})`;
+        document.getElementById('btn-guardar-visita').innerText = '☁️ Guardar Nueva Visita en la Nube';
+        document.getElementById('btn-cancelar-edicion').style.display = 'none';
+
+        var hoyIso = new Date().toISOString().slice(0, 10);
+        document.getElementById('input-temp-nido').value = hoyIso;
+
+        var anoHoy = extraerAnoFecha(hoyIso);
+        var visitasAnoActual = visitasNido.filter(function(v) { return extraerAnoFecha(v.temporada) === anoHoy; });
+        var siguienteRonda = '1ª Visita';
+        if (visitasAnoActual.length === 1) siguienteRonda = '2ª Visita';
+        else if (visitasAnoActual.length >= 2) siguienteRonda = '3ª Visita (Anillamiento)';
+        document.getElementById('input-ronda-visita').value = siguienteRonda;
+
         document.getElementById('input-especie-nido').value = ultimo.especie || 'Falco tinnunculus';
         document.getElementById('input-coords-nido').value = `${ultimo.lat}, ${ultimo.lng}`;
         document.getElementById('input-tipo-estructura').value = ultimo.estructura || 'Caja Nido Madera';
@@ -819,14 +839,26 @@
         document.getElementById('input-nacidos-nido').value = ultimo.nacidos || 0;
         document.getElementById('input-volados-nido').value = ultimo.volados || 0;
         document.getElementById('input-anillados-nido').value = totalAnilladosAutomaticos;
-        document.getElementById('input-obs-nido').value = ultimo.obs || '';
+        document.getElementById('input-obs-nido').value = '';
         actualizarPreviewFotoFormulario(obtenerFotoPrincipalNido(codigo, visitasNido));
-
+        
         markerForm.setLatLng([ultimo.lat, ultimo.lng]);
         mapForm.panTo([ultimo.lat, ultimo.lng]);
       }
       renderTablaNidos();
     }
+
+    window.prepararNuevaVisitaParaNidoActual = function(codigo) {
+      if (!codigo) return;
+      modoCreacionNuevo = false;
+      document.getElementById('select-codigo-nido').style.display = 'block';
+      document.getElementById('input-codigo-nido').style.display = 'none';
+      document.getElementById('btn-toggle-modo').innerText = 'Nuevo';
+      document.getElementById('select-codigo-nido').value = codigo;
+      seleccionarNidoExistente(codigo);
+      document.getElementById('input-obs-nido').focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     window.editarVisitaNido = function(docId) {
       var nidoVisita = window.nidos.find(n => n.docId === docId);
@@ -852,7 +884,7 @@
       document.getElementById('input-huevos-nido').value = nidoVisita.huevos || 0;
       document.getElementById('input-nacidos-nido').value = nidoVisita.nacidos || 0;
       document.getElementById('input-volados-nido').value = nidoVisita.volados || 0;
-
+      
       var anoVisitaEdit = extraerAnoFecha(nidoVisita.temporada);
       let anilladosReales = contarPollosAnilladosEnNido(nidoVisita.id, anoVisitaEdit);
       document.getElementById('input-anillados-nido').value = anilladosReales;
@@ -1135,12 +1167,13 @@
       return { metal: metal, pvc: pvc };
     }
 
+    // Actualizar el código de nido en la tabla de anillamientos si el adulto ya existe
     async function actualizarCodigoNidoEnAnillamiento(cadenaAnilla, codigoNidoActual) {
       if (!cadenaAnilla || cadenaAnilla.trim() === "-" || cadenaAnilla.trim() === "") return;
       let { metal, pvc } = extraerMetalYPvc(cadenaAnilla);
       if (!metal) return;
 
-      let encontrado = window.anillamientosGlobal.find(a =>
+      let encontrado = window.anillamientosGlobal.find(a => 
         String(a.metal || '').trim().toLowerCase() === metal.toLowerCase() ||
         (pvc && String(a.pvc || '').trim().toLowerCase() === pvc.toLowerCase())
       );
@@ -1148,6 +1181,7 @@
       if (encontrado && encontrado.docId) {
         let anilRef = doc(db, "anillamientos", encontrado.docId);
         await updateDoc(anilRef, { codigoNido: codigoNidoActual });
+        console.log(`Anillamiento de la anilla [${metal}] actualizado con el nido [${codigoNidoActual}].`);
       }
     }
 
@@ -1246,6 +1280,7 @@
           mostrarToastNido(`Nueva visita guardada en Firebase para el nido [${codigo}]`, "success");
         }
 
+        // Vincular el nido en las fichas de anillamiento de los adultos si ya existen
         await actualizarCodigoNidoEnAnillamiento(machoVal, codigo);
         await actualizarCodigoNidoEnAnillamiento(hembraVal, codigo);
 
@@ -1367,14 +1402,14 @@
       }
 
       visitasNido.sort(function(a, b) {
-        var ra = ordenRondaNumerica(inferirRondaVisita(a));
-        var rb = ordenRondaNumerica(inferirRondaVisita(b));
-        if (ra !== rb) return ra - rb;
-        return fechaAStampNido(a.temporada) - fechaAStampNido(b.temporada);
+        var ta = fechaAStampNido(a.temporada);
+        var tb = fechaAStampNido(b.temporada);
+        if (ta !== tb) return ta - tb;
+        return ordenRondaNumerica(inferirRondaVisita(a)) - ordenRondaNumerica(inferirRondaVisita(b));
       });
 
       var tituloAno = (anoFiltroNido && anoFiltroNido !== "todos") ? `Temporada ${anoFiltroNido}` : "Todas las temporadas";
-      var itemsHtml = visitasNido.map(function(v) {
+      var itemsHtml = visitasNido.map(function(v, idx) {
         var ronda = inferirRondaVisita(v);
         var fechaFmt = formatearFecha(v.temporada);
         var anoV = extraerAnoFecha(v.temporada);
@@ -1384,6 +1419,36 @@
           ? "bg-success"
           : (ronda.includes("2ª") ? "bg-info text-dark" : "bg-primary");
 
+        var prev = idx > 0 ? visitasNido[idx - 1] : null;
+        var cambios = [];
+        if (prev) {
+          if (String(prev.estado || "") !== String(v.estado || "")) {
+            cambios.push(`Estado: ${prev.estado || "-"} → ${v.estado || "-"}`);
+          }
+          if ((parseInt(prev.huevos) || 0) !== (parseInt(v.huevos) || 0)) {
+            cambios.push(`Huevos: ${prev.huevos || 0} → ${v.huevos || 0}`);
+          }
+          if ((parseInt(prev.nacidos) || 0) !== (parseInt(v.nacidos) || 0)) {
+            cambios.push(`Nacidos: ${prev.nacidos || 0} → ${v.nacidos || 0}`);
+          }
+          if ((parseInt(prev.volados) || 0) !== (parseInt(v.volados) || 0)) {
+            cambios.push(`Volados: ${prev.volados || 0} → ${v.volados || 0}`);
+          }
+          if (String(prev.macho || "-") !== String(v.macho || "-")) {
+            cambios.push(`♂: ${prev.macho || "-"} → ${v.macho || "-"}`);
+          }
+          if (String(prev.hembra || "-") !== String(v.hembra || "-")) {
+            cambios.push(`♀: ${prev.hembra || "-"} → ${v.hembra || "-"}`);
+          }
+        }
+        var cambiosHtml = cambios.length > 0
+          ? `<div class="mt-1"><span class="badge bg-warning-subtle text-dark border border-warning-subtle" style="font-size:0.7rem;">🔄 Cambios: ${esc(cambios.join(" · "))}</span></div>`
+          : "";
+
+        var parejaInfo = ((v.macho && v.macho !== "-") || (v.hembra && v.hembra !== "-"))
+          ? `<div class="text-muted mt-1" style="font-size:0.74rem;">♂ <b>${esc(v.macho || "-")}</b> · ♀ <b>${esc(v.hembra || "-")}</b> · <i>${esc(v.especie || "-")}</i></div>`
+          : `<div class="text-muted mt-1" style="font-size:0.74rem;"><i>${esc(v.especie || "-")}</i></div>`;
+
         var obsHtml = obsLimpia
           ? `<div class="diario-obs-texto">📝 ${esc(obsLimpia)}</div>`
           : `<div class="text-muted fst-italic mt-1" style="font-size:0.75rem;">Sin observaciones anotadas en esta visita.</div>`;
@@ -1392,6 +1457,7 @@
           <div class="diario-ronda-item">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
               <div>
+                <span class="badge bg-secondary me-1">#${idx + 1}</span>
                 <span class="badge ${badgeRonda}">${esc(ronda)}</span>
                 <b class="ms-1 text-dark">${esc(fechaFmt)}</b>
                 <small class="text-muted ms-1">· ${esc(v.estado || "-")}</small>
@@ -1402,21 +1468,23 @@
                 <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-danger" onclick="borrarVisitaNido('${v.docId}', '${esc(v.id)}')">Borrar</button>
               </div>
             </div>
+            ${parejaInfo}
+            ${cambiosHtml}
             ${obsHtml}
           </div>
         `;
       }).join("");
 
-      var fotoNidoActual = obtenerFotoPrincipalNido(nidoCodigo, visitasNido);
+      var fotoNidoActual = obtenerFotoPrincipalNido(codigoObjetivo, visitasNido);
       var fotoNidoHtml = fotoNidoActual
-        ? `<div class="mb-2"><img src="${esc(fotoNidoActual)}" alt="Foto del nido ${esc(nidoCodigo)}" class="diario-foto-nido" onclick="abrirVisorFotoNido(this.src, 'Nido ${esc(nidoCodigo)}')"></div>`
+        ? `<div class="mb-2"><img src="${esc(fotoNidoActual)}" alt="Foto del nido ${esc(codigoObjetivo)}" class="diario-foto-nido" onclick="abrirVisorFotoNido(this.src, 'Nido ${esc(codigoObjetivo)}')"></div>`
         : "";
 
       box.style.display = "block";
       box.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
-          <div class="fw-bold text-success">📖 Diario de Visitas del Nido ${esc(nidoCodigo)} <span class="text-muted fw-normal">(${esc(tituloAno)})</span>${(visitasNido[0] && visitasNido[0].orientacion) ? ` <span class="badge bg-light text-dark border ms-1">🧭 ${esc(visitasNido[0].orientacion)}</span>` : ""}</div>
-          <small class="text-muted">1ª → 2ª → 3ª visita</small>
+          <div class="fw-bold text-success">📖 Diario de Visitas del Nido ${esc(codigoObjetivo)} <span class="badge bg-success ms-1">${visitasNido.length} ${visitasNido.length === 1 ? "visita" : "visitas"}</span> <span class="text-muted fw-normal">(${esc(tituloAno)})</span>${(visitasNido[0] && visitasNido[0].orientacion) ? ` <span class="badge bg-light text-dark border ms-1">🧭 ${esc(visitasNido[0].orientacion)}</span>` : ""}</div>
+          <button type="button" class="btn btn-outline-success btn-sm py-0 px-2 fw-semibold" onclick="prepararNuevaVisitaParaNidoActual('${esc(codigoObjetivo)}')">+ Nueva visita</button>
         </div>
         ${fotoNidoHtml}
         <div class="d-flex flex-column gap-2">${itemsHtml}</div>
@@ -1474,17 +1542,17 @@
         else if (n.estado && n.estado.includes('Exito')) badgeColor = 'bg-success';
         else if (n.estado && n.estado.includes('Incubando')) badgeColor = 'bg-warning text-dark';
         else if (n.estado && n.estado.includes('Fracasado')) badgeColor = 'bg-danger';
-
+        
         var anoVisitaFila = extraerAnoFecha(n.temporada);
         let anilladosReales = contarPollosAnilladosEnNido(n.id, anoVisitaFila);
-
+        
         var badgeAnillados = anilladosReales > 0 ? `<br><span class="badge bg-success mt-1">✔ Pollos ${anoVisitaFila ? anoVisitaFila + ' ' : ''}(${anilladosReales})</span>` : '';
-
+        
         let btnAnillarHtml = `<button class="btn btn-sm btn-outline-success py-0 px-1 fw-bold" onclick="anillarNidadaDirecta('${n.id}')" title="Anillar pollos o adultos">🐣 Anillar</button>`;
         let btnFotoHtml = n.fotoUrl ? `<button class="btn btn-sm btn-outline-info py-0 px-1" onclick="abrirVisorFotoNido('${esc(n.fotoUrl)}', 'Nido ${esc(n.id)}')" title="Ver foto del nido">📷</button>` : '';
         let btnEditarHtml = `${btnFotoHtml}<button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editarVisitaNido('${n.docId}')" title="Editar esta visita">✏️</button>`;
         let btnBorrarHtml = `<button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="borrarVisitaNido('${n.docId}', '${n.id}')" title="Borrar esta visita">🗑️</button>`;
-
+        
         let machoStr = n.macho && n.macho !== "-" ? `<span class="text-primary fw-bold">♂ ${esc(n.macho)}</span>` : '<span class="text-muted">♂ -</span>';
         let hembraStr = n.hembra && n.hembra !== "-" ? `<span class="text-danger fw-bold">♀ ${esc(n.hembra)}</span>` : '<span class="text-muted">♀ -</span>';
         let estBadge = etiquetaEstructuraCorta(n.estructura);
@@ -1588,7 +1656,6 @@
       initMapaForm();
     };
   </script>
-
   <!-- VISOR DE FOTO DEL NIDO -->
   <div id="visor-foto-nido" class="visor-foto-overlay" role="dialog" aria-modal="true" onclick="if(event.target===this) cerrarVisorFotoNido()">
     <div class="visor-foto-card">
@@ -1599,5 +1666,6 @@
       <img id="visor-foto-img" src="" alt="Foto del nido" class="visor-foto-img">
     </div>
   </div>
+
 </body>
 </html>
